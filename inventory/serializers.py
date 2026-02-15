@@ -13,5 +13,5 @@ class ItemSerializer(serializers.ModelSerializer):
         model = Item
         fields = [
             'id', 'name', 'sku', 'category', 'quantity',
-            'unit_price', 'created_at', 'updated_at',
+            'retail_price', 'wholesale_price', 'created_at', 'updated_at',
         ]

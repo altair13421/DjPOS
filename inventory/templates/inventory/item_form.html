@@ -53,10 +53,17 @@
             {% endif %}
           </div>
           <div class="col-md-6">
-            <label for="id_unit_price" class="form-label">Unit price</label>
-            {{ form.unit_price }}
-            {% if form.unit_price.errors %}
-              <div class="invalid-feedback d-block">{{ form.unit_price.errors.0 }}</div>
+            <label for="id_retail_price" class="form-label">Retail price</label>
+            {{ form.retail_price }}
+            {% if form.retail_price.errors %}
+              <div class="invalid-feedback d-block">{{ form.retail_price.errors.0 }}</div>
+            {% endif %}
+          </div>
+          <div class="col-md-6">
+            <label for="id_wholesale_price" class="form-label">Wholesale price</label>
+            {{ form.wholesale_price }}
+            {% if form.wholesale_price.errors %}
+              <div class="invalid-feedback d-block">{{ form.wholesale_price.errors.0 }}</div>
             {% endif %}
           </div>
         </div>

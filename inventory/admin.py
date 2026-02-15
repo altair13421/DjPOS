@@ -10,7 +10,7 @@ class CategoryAdmin(admin.ModelAdmin):
 
 @admin.register(Item)
 class ItemAdmin(admin.ModelAdmin):
-    list_display = ('name', 'sku', 'category', 'quantity', 'unit_price', 'created_at')
+    list_display = ('name', 'sku', 'category', 'quantity', 'retail_price', 'wholesale_price', 'created_at')
     list_filter = ('category',)
     search_fields = ('name', 'sku')
     raw_id_fields = ('category',)

@@ -18,7 +18,8 @@
                 <th>SKU</th>
                 <th>Category</th>
                 <th class="text-end">Qty</th>
-                <th class="text-end">Unit price</th>
+                <th class="text-end">Retail price</th>
+                <th class="text-end">Wholesale price</th>
                 <th class="text-end">Actions</th>
               </tr>
             </thead>
@@ -29,7 +30,8 @@
                   <td class="text-muted">{{ item.sku|default:"—" }}</td>
                   <td>{{ item.category.name|default:"—" }}</td>
                   <td class="text-end">{{ item.quantity }}</td>
-                  <td class="text-end">{{ item.unit_price }}</td>
+                  <td class="text-end">{{ item.retail_price }}</td>
+                  <td class="text-end">{{ item.wholesale_price }}</td>
                   <td class="text-end">
                     <a href="{% url 'inventory:item_edit' item.pk %}" class="btn btn-sm btn-outline-secondary">Edit</a>
                   </td>

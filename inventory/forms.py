@@ -31,13 +31,16 @@ class ItemForm(forms.ModelForm):
 
     class Meta:
         model = Item
-        fields = ["name", "sku", "category", "quantity", "unit_price"]
+        fields = ["name", "sku", "category", "quantity", "retail_price", "wholesale_price"]
         widgets = {
             "name": forms.TextInput(attrs={"class": "form-control", "placeholder": "Item name"}),
             "sku": forms.TextInput(attrs={"class": "form-control", "placeholder": "SKU (optional)"}),
             "category": forms.Select(attrs={"class": "form-select"}),
             "quantity": forms.NumberInput(attrs={"class": "form-control", "min": 0}),
-            "unit_price": forms.NumberInput(
+            "retail_price": forms.NumberInput(
+                attrs={"class": "form-control", "min": 0, "step": "0.01"}
+            ),
+            "wholesale_price": forms.NumberInput(
                 attrs={"class": "form-control", "min": 0, "step": "0.01"}
             ),
         }
