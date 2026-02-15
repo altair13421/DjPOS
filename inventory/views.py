@@ -10,8 +10,8 @@ from rest_framework import viewsets
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
-from .models import Category, Item
-from .serializers import CategorySerializer, ItemSerializer
+from .models import Category, Item, Bundle, StockLog
+from .serializers import CategorySerializer, ItemSerializer, BundleSerializer, StockLogSerializer
 from .forms import CategoryForm, ItemForm
 
 
@@ -104,9 +104,25 @@ class ItemViewSet(viewsets.ModelViewSet):
     serializer_class = ItemSerializer
 
 
+class BundleViewSet(viewsets.ModelViewSet):
+    queryset = Bundle.objects.prefetch_related("items").all().order_by("-created_at")
+    serializer_class = BundleSerializer
+
+
+class StockLogViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Read-only viewset for stock logs.
+    """
+    queryset = StockLog.objects.select_related("item").all().order_by("-created_at")
+    serializer_class = StockLogSerializer
+    filterset_fields = ['item', 'reason']
+
+
 class ApiRootView(APIView):
     def get(self, request):
         return Response({
             "categories": request.build_absolute_uri("categories/"),
             "items": request.build_absolute_uri("items/"),
+            "bundles": request.build_absolute_uri("bundles/"),
+            "stock_logs": request.build_absolute_uri("stock_logs/"),
         })

@@ -1,5 +1,6 @@
 from django.db import models
 
+
 class Customer(models.Model):
     """Customer for POS sales."""
 
@@ -11,6 +12,7 @@ class Customer(models.Model):
 
     class Meta:
         """Meta class for the Customer model."""
+
         verbose_name = "Customer"
         verbose_name_plural = "Customers"
         ordering = ["name"]
@@ -24,12 +26,15 @@ class CartItem(models.Model):
 
     item = models.ForeignKey("inventory.Item", on_delete=models.CASCADE)
     quantity = models.PositiveIntegerField(default=0)
-    sale = models.ForeignKey("Sale", on_delete=models.CASCADE, related_name="sale_items")
+    sale = models.ForeignKey(
+        "Sale", on_delete=models.CASCADE, related_name="sale_items"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         """Meta class for the CartItem model."""
+
         verbose_name = "Cart Item"
         verbose_name_plural = "Cart Items"
         ordering = ["-created_at"]
@@ -40,6 +45,7 @@ class CartItem(models.Model):
 
 class Sale(models.Model):
     """A sale transaction."""
+
     customer = models.ForeignKey(
         Customer,
         on_delete=models.SET_NULL,
@@ -55,12 +61,13 @@ class Sale(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-
     @property
     def total_price(self):
         return self.total - self.discount - self.tax
+
     class Meta:
         """Meta class for the Sale model."""
+
         verbose_name = "Sale"
         verbose_name_plural = "Sales"
         ordering = ["-created_at"]
