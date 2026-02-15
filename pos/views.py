@@ -3,6 +3,8 @@ from rest_framework import viewsets
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
+from utils.stock_manager import StockManager
+
 from .models import Customer, Sale
 from .serializers import CustomerSerializer, SaleSerializer
 
@@ -20,6 +22,10 @@ class CustomerViewSet(viewsets.ModelViewSet):
 class SaleViewSet(viewsets.ModelViewSet):
     queryset = Sale.objects.select_related('customer').all()
     serializer_class = SaleSerializer
+
+    def perform_create(self, serializer):
+        sale = serializer.save()
+        StockManager.process_sale(sale)
 
 
 @api_view(['GET'])
