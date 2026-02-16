@@ -1,4 +1,4 @@
-name: Build Jekyll site
+name: Build & Deploy Jekyll
 
 on:
   push:
@@ -7,24 +7,23 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build the site in the jekyll/builder container
+      - name: Build the site
         run: |
           docker run \
             -v ${{ github.workspace }}:/srv/jekyll \
             -v ${{ github.workspace }}/_site:/srv/jekyll/_site \
             jekyll/builder:latest /bin/bash -c "chmod -R 777 /srv/jekyll && jekyll build --future"
 
-      - name: Archive the generated site
-        run: zip -r site.zip _site
-
-      - name: Upload site artifact
-        uses: actions/upload-artifact@v4
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
         with:
-          name: jekyll-site
-          path: site.zip
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./_site
+          # optional: keep the history clean
+          # force_orphan: true
