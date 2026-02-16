@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}POS Dashboard{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <h1 class="h2">POS Dashboard</h1>
+        <div class="btn-group">
+            <a href="{% url 'pos:api_root' %}" class="btn btn-outline-secondary">API</a>
+            <a href="{% url 'inventory:item_list' %}" class="btn btn-outline-primary">Inventory</a>
+        </div>
+    </div>
+</div>
+
+<!-- Key Metrics -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <h6 class="card-subtitle mb-2 text-muted">Today's Revenue</h6>
+                <h2 class="card-title text-success" id="revenue-display">$0.00</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <h6 class="card-subtitle mb-2 text-muted">Gross Profit</h6>
+                <h2 class="card-title text-primary" id="profit-display">$0.00</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <h6 class="card-subtitle mb-2 text-muted">Total Cost</h6>
+                <h2 class="card-title text-danger" id="cost-display">$0.00</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts -->
+<div class="row">
+    <div class="col-md-8 mb-4">
+        <div class="card">
+            <div class="card-header">Sales History (Last 7 Days)</div>
+            <div class="card-body">
+                <canvas id="salesChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-4">
+        <div class="card">
+            <div class="card-header">Top 5 Items</div>
+            <div class="card-body">
+                <canvas id="topItemsChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", async () => {
+        // 1. Fetch Key Metrics (Profit)
+        try {
+            const profitRes = await fetch('/pos/api/analytics/profit/');
+            const profitData = await profitRes.json();
+            document.getElementById('revenue-display').innerText = '$' + parseFloat(profitData.revenue).toFixed(2);
+            document.getElementById('profit-display').innerText = '$' + parseFloat(profitData.profit).toFixed(2);
+            document.getElementById('cost-display').innerText = '$' + parseFloat(profitData.cost).toFixed(2);
+        } catch (e) { console.error("Error fetching profit:", e); }
+
+        // 2. Fetch Daily Sales for Chart
+        try {
+            const salesRes = await fetch('/pos/api/analytics/daily_sales/');
+            const salesData = await salesRes.json();
+
+            const labels = salesData.map(d => d.created_at__date);
+            const data = salesData.map(d => d.total);
+
+            new Chart(document.getElementById('salesChart'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Sales ($)',
+                        data: data,
+                        borderColor: '#0d6efd',
+                        tension: 0.1
+                    }]
+                }
+            });
+        } catch (e) { console.error("Error fetching sales:", e); }
+
+        // 3. Fetch Top Items
+        try {
+            const topRes = await fetch('/pos/api/analytics/top_items/');
+            const topData = await topRes.json();
+
+            new Chart(document.getElementById('topItemsChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: topData.map(d => d.item__name),
+                    datasets: [{
+                        data: topData.map(d => d.total_sold),
+                        backgroundColor: ['#0d6efd', '#6610f2', '#6f42c1', '#d63384', '#dc3545']
+                    }]
+                }
+            });
+        } catch (e) { console.error("Error fetching top items:", e); }
+    });
+</script>

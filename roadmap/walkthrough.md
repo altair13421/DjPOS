@@ -1,46 +1,44 @@
 # POS Feature Implementation Walkthrough
 
-I have successfully transformed the POS skeleton into a modular, testable system with advanced inventory and analytics capabilities.
+I have successfully transformed the POS skeleton into a full-stack system with a modular backend and a reactive frontend.
 
 ## Changes Overview
 
-### 1. Modular Architecture
-*   **`utils/stock_manager.py`**: Centralized logic for stock deduction and refills.
-*   **`inventory/choices.py`**: Dedicated file for Enums like `StockChangeReason`.
-*   **`pos/api/analytics.py`**: New API ViewSet for reporting.
+### 1. Frontend Architecture
+*   **Root Templates**: Moved all templates to `templates/` and static files to `static/`.
+*   **Base Layout**: Standardized `base.html` with a clean navbar (POS vs Inventory modes).
+*   **Modular Components**: Created `templates/components/modal.html`.
 
-### 2. Data Model Enhancements
-*   **Inventory**: Added `cost_price`, `retail_price`, and `wholesale_price` to `Item`.
-*   **Bundles**: Created `Bundle` and `BundleItem` models for product deals.
-*   **Stock Tracking**: Keyed `StockLog` to items to track history (Sales, Restocks).
+### 2. New Features (UI)
+*   **Dashboard (`/pos/`)**: Visualizes Daily Sales (Line Chart) and Top Items (Doughnut Chart) using Chart.js.
+*   **POS Terminal (`/pos/terminal/`)**: A JS-driven interface to search products, build a cart, and checkout.
+*   **Stock Management**: Added a "Restock" button to the Item List for quick inventory updates.
 
-### 3. Business Logic
-*   **Automatic Stock Deduction**: Selling an item now automatically reduces `Item.quantity` and creates a `StockLog` entry via `StockManager`.
-*   **Sales**: Linked `Sale` directly to `CartItems` (replacing the old Cart model) for simpler logic.
-
-### 4. Analytics API
-New endpoints created in `AnalyticsViewSet`:
-*   `GET /pos/api/analytics/daily_sales/`: Sales over last 7 days.
-*   `GET /pos/api/analytics/top_items/`: Top 5 selling items.
-*   `GET /pos/api/analytics/profit/`: Revenue vs Cost (based on `cost_price`).
+### 3. Backend Enhancements
+*   **Writable Sales**: Updated `SaleSerializer` to support creating a Sale *with* items in a single API call.
+*   **Restock API**: Added `POST /inventory/api/items/{id}/restock/` endpoint.
+*   **Modular Logic**: `utils/stock_manager.py` handles all stock transactions.
 
 ## Verification Results
 
 ### Automated Tests (`pytest`)
-All checks passed:
-*   [x] `test_deduct_stock_success`: Verifies stock decreases and log is created.
-*   [x] `test_insufficient_stock`: Prevents selling more than available.
-*   [x] `test_restock_item`: Verifies refilling works.
-*   [x] `test_bundle_creation`: Verifies bundles are linked correctly.
+All checks passed (11 tests):
+*   `test_logic.py`: Stock deduction, restocking, insufficient stock.
+*   `test_api.py`: Validated API endpoints.
+*   `test_models.py`: Validated data integrity.
 
-### How to Run Tests
-```bash
-source djenv/bin/activate
-pytest
-```
-Output:
-```
-inventory/tests/test_logic.py ... [ 75%]
-inventory/tests/test_models.py .  [100%]
-4 passed in 0.18s
-```
+### How to Run & Verify
+1.  **Start Server**:
+    ```bash
+    source djenv/bin/activate
+    python manage.py runserver
+    ```
+2.  **Open Dashboard**: Go to `http://127.0.0.1:8000/pos/`.
+3.  **Make a Sale**:
+    *   Go to **POS Terminal** (`/pos/terminal/`).
+    *   Add items to cart and Checkout.
+4.  **Check Analytics**:
+    *   Return to Dashboard to see the Sales Chart update.
+5.  **Restock Items**:
+    *   Go to **Inventory > Items**.
+    *   Click "Restock" on an item and add quantity.

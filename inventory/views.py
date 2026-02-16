@@ -13,6 +13,9 @@ from rest_framework.response import Response
 from .models import Category, Item, Bundle, StockLog
 from .serializers import CategorySerializer, ItemSerializer, BundleSerializer, StockLogSerializer
 from .forms import CategoryForm, ItemForm
+from rest_framework.decorators import action
+from utils.stock_manager import StockManager
+from .choices import StockChangeReason
 
 
 class IndexView(TemplateView):
@@ -102,6 +105,16 @@ class CategoryViewSet(viewsets.ModelViewSet):
 class ItemViewSet(viewsets.ModelViewSet):
     queryset = Item.objects.select_related("category").all()
     serializer_class = ItemSerializer
+
+    @action(detail=True, methods=['post'])
+    def restock(self, request, pk=None):
+        item = self.get_object()
+        quantity = int(request.data.get('quantity', 0))
+        reason = request.data.get('reason', StockChangeReason.RESTOCK)
+        note = request.data.get('note', '')
+        
+        StockManager.restock_item(item, quantity, reason, note)
+        return Response({'status': 'restocked', 'new_quantity': item.quantity})
 
 
 class BundleViewSet(viewsets.ModelViewSet):
