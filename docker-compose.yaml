@@ -1,18 +1,4 @@
 services:
-  db:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: ospos
-      POSTGRES_USER: ospos
-      POSTGRES_PASSWORD: ospos
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ospos"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
   web:
     build: .
     command: >
@@ -23,15 +9,5 @@ services:
     ports:
       - "8000:8000"
     environment:
-      POSTGRES_HOST: db
-      POSTGRES_DB: ospos
-      POSTGRES_USER: ospos
-      POSTGRES_PASSWORD: ospos
       DEBUG: "True"
       DJANGO_SECRET_KEY: change-me-in-production
-    depends_on:
-      db:
-        condition: service_healthy
-
-volumes:
-  postgres_data:
