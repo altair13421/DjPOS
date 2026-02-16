@@ -51,6 +51,18 @@
         </div>
     </div>
 </div>
+<!-- Toast Container -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="liveToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+            <strong class="me-auto" id="toast-title">Notification</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body" id="toast-body">
+            Action successful.
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -206,7 +218,11 @@
     // --- Filter ---
     document.getElementById('search-input').addEventListener('input', (e) => {
         const term = e.target.value.toLowerCase();
-        const filtered = allProducts.filter(p => p.name.toLowerCase().includes(term) || (p.sku && p.sku.toLowerCase().includes(term)));
+        const filtered = allProducts.filter(p => {
+            const nameMatch = p.name.toLowerCase().includes(term);
+            const skuMatch = p.sku ? p.sku.toLowerCase().includes(term) : false;
+            return nameMatch || skuMatch;
+        });
         renderProducts(filtered);
     });
 
@@ -246,22 +262,30 @@
             });
 
             if (res.ok) {
-                alert('Sale successful!');
+                showToast('Success', 'Sale completed successfully!');
                 cart = [];
                 renderCart();
                 // Refresh products to update stock? ideally yes, but for now just clear cart
                 loadProducts();
             } else {
                 const err = await res.json();
-                alert('Sale failed: ' + JSON.stringify(err));
+                showToast('Error', 'Sale failed: ' + JSON.stringify(err));
             }
         } catch (e) {
-            alert('Network error');
+            showToast('Error', 'Network error');
         } finally {
             btn.disabled = false;
             btn.innerText = 'Checkout';
         }
     });
+
+    function showToast(title, message) {
+        document.getElementById('toast-title').innerText = title;
+        document.getElementById('toast-body').innerText = message;
+        const toastEl = document.getElementById('liveToast');
+        const toast = new bootstrap.Toast(toastEl);
+        toast.show();
+    }
 
     // CSRF Helper
     function getCookie(name) {
