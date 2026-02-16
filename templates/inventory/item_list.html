@@ -128,7 +128,7 @@
     const note = document.getElementById('restock-note').value;
 
     if (!quantity || quantity <= 0) {
-      alert("Please enter a valid quantity.");
+      showToast('Validation', 'Please enter a valid quantity.');
       return;
     }
 

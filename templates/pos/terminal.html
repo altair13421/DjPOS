@@ -80,7 +80,8 @@
     async function loadProducts() {
         try {
             const res = await fetch('/inventory/api/items/');
-            allProducts = await res.json();
+            const data = await res.json();
+            allProducts = Array.isArray(data) ? data : (data.results || []);
         } catch (e) {
             console.error("Error loading products:", e);
             document.getElementById('product-grid').innerHTML = '<div class="text-danger p-3">Failed to load products.</div>';
@@ -90,7 +91,8 @@
     async function loadCategories() {
         try {
             const res = await fetch('/inventory/api/categories/');
-            const categories = await res.json();
+            const data = await res.json();
+            const categories = Array.isArray(data) ? data : (data.results || []);
             const select = document.getElementById('category-filter');
             categories.forEach(c => {
                 const opt = document.createElement('option');
