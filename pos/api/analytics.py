@@ -47,7 +47,7 @@ class AnalyticsViewSet(viewsets.ViewSet):
         total_cost = 0
         for sale in sales:
             for cart_item in sale.sale_items.all():
-                total_cost += cart_item.item.cost_price * cart_item.quantity
+                total_cost = total_cost + cart_item.item.wholesale_price * cart_item.quantity
 
         revenue = float(revenue)
         total_cost = float(total_cost)
