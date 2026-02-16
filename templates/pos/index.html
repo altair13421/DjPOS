@@ -20,7 +20,7 @@
         <div class="card text-center h-100">
             <div class="card-body">
                 <h6 class="card-subtitle mb-2 text-muted">Today's Revenue</h6>
-                <h2 class="card-title text-success" id="revenue-display">$0.00</h2>
+                <h2 class="card-title text-success" id="revenue-display">PKR0.00</h2>
             </div>
         </div>
     </div>
@@ -28,7 +28,7 @@
         <div class="card text-center h-100">
             <div class="card-body">
                 <h6 class="card-subtitle mb-2 text-muted">Gross Profit</h6>
-                <h2 class="card-title text-primary" id="profit-display">$0.00</h2>
+                <h2 class="card-title text-primary" id="profit-display">PKR0.00</h2>
             </div>
         </div>
     </div>
@@ -36,7 +36,7 @@
         <div class="card text-center h-100">
             <div class="card-body">
                 <h6 class="card-subtitle mb-2 text-muted">Total Cost</h6>
-                <h2 class="card-title text-danger" id="cost-display">$0.00</h2>
+                <h2 class="card-title text-danger" id="cost-display">PKR0.00</h2>
             </div>
         </div>
     </div>
@@ -71,9 +71,9 @@
         try {
             const profitRes = await fetch('/pos/api/analytics/profit/');
             const profitData = await profitRes.json();
-            document.getElementById('revenue-display').innerText = '$' + parseFloat(profitData.revenue).toFixed(2);
-            document.getElementById('profit-display').innerText = '$' + parseFloat(profitData.profit).toFixed(2);
-            document.getElementById('cost-display').innerText = '$' + parseFloat(profitData.cost).toFixed(2);
+            document.getElementById('revenue-display').innerText = 'PKR' + parseFloat(profitData.revenue).toFixed(2);
+            document.getElementById('profit-display').innerText = 'PKR' + parseFloat(profitData.profit).toFixed(2);
+            document.getElementById('cost-display').innerText = 'PKR' + parseFloat(profitData.cost).toFixed(2);
         } catch (e) { console.error("Error fetching profit:", e); }
 
         // 2. Fetch Daily Sales for Chart
@@ -89,7 +89,7 @@
                 data: {
                     labels: labels,
                     datasets: [{
-                        label: 'Sales ($)',
+                        label: 'Sales (PKR)',
                         data: data,
                         borderColor: '#0d6efd',
                         tension: 0.1
