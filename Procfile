@@ -1,1 +1,1 @@
-web: gunicorn djpos.wsgi:application
+web: gunicorn config.wsgi:application
