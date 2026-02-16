@@ -29,7 +29,7 @@
         <tbody>
           {% for sale in sales %}
           <tr>
-            <td>{{ sale.created_at|date:"M d, Y H:i" }}</td>
+            <td>{{ sale.created_at|date:"M d, Y g:i A" }}</td>
             <td>{{ sale.customer.name|default:"Walk-in" }}</td>
             <td>
               <ul class="list-unstyled mb-0 small">

@@ -95,3 +95,9 @@ REST_FRAMEWORK = {
 
 # Currency for all amounts in the application
 CURRENCY_CODE = 'PKR'
+
+# 12-hour time format project-wide (e.g. 2:30 PM)
+TIME_FORMAT = 'g:i A'
+DATE_FORMAT = 'M j, Y'
+DATETIME_FORMAT = 'M j, Y g:i A'
+SHORT_DATETIME_FORMAT = 'n/j/Y g:i A'
