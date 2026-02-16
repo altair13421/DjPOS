@@ -36,7 +36,7 @@
                 {% for ci in sale.sale_items.all %}
                   <li class="border-bottom border-light pb-1 mb-1">
                     <strong>{{ ci.item.name }}</strong> &times; {{ ci.quantity }}
-                    &ndash; PKR {{ ci.item.retail_price|floatformat:2 }} &times; {{ ci.quantity }} = PKR {{ ci.line_total|floatformat:2 }}
+                    &ndash; PKR {{ ci.item.retail_price|floatformat:0 }} &times; {{ ci.quantity }} = PKR {{ ci.line_total|floatformat:0 }}
                     {% if ci.stock_before is not None and ci.stock_after is not None %}
                       <span class="text-muted">(stock {{ ci.stock_before }} &rarr; {{ ci.stock_after }})</span>
                     {% else %}
@@ -46,7 +46,7 @@
                 {% endfor %}
               </ul>
             </td>
-            <td class="text-end fw-bold">PKR {{ sale.total|floatformat:2 }}</td>
+            <td class="text-end fw-bold">PKR {{ sale.total|floatformat:0 }}</td>
           </tr>
           {% endfor %}
         </tbody>

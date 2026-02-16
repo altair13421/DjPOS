@@ -43,7 +43,7 @@
         <div class="mt-auto">
             <div class="d-flex justify-content-between h5">
                 <span>Total:</span>
-                <span id="cart-total">PKR 0.00</span>
+                <span id="cart-total">PKR 0</span>
             </div>
             <button id="checkout-btn" class="btn btn-success w-100 btn-lg mt-3" disabled>
                 Checkout
@@ -140,7 +140,7 @@
                     <h6 class="card-title text-truncate">${p.name}</h6>
                     <div class="d-flex justify-content-between align-items-center mt-2">
                          <span class="badge bg-secondary">${p.sku || ''}</span>
-                         <span class="fw-bold text-primary">PKR ${parseFloat(p.retail_price).toFixed(2)}</span>
+                         <span class="fw-bold text-primary">PKR ${Math.round(parseFloat(p.retail_price))}</span>
                     </div>
                     <div class="small mt-1 text-muted">In stock: ${inStock}</div>
                 </div>
@@ -158,7 +158,7 @@
         if (cart.length === 0) {
             container.innerHTML = '<div class="text-center text-muted py-5">Cart is empty</div>';
             document.getElementById('checkout-btn').disabled = true;
-            document.getElementById('cart-total').innerText = 'PKR 0.00';
+            document.getElementById('cart-total').innerText = 'PKR 0';
             return;
         }
 
@@ -171,10 +171,10 @@
             el.innerHTML = `
             <div>
                 <div class="fw-bold">${item.name}</div>
-                <div class="small text-muted">PKR ${parseFloat(item.price).toFixed(2)} x ${item.quantity}</div>
+                <div class="small text-muted">PKR ${Math.round(parseFloat(item.price))} x ${item.quantity}</div>
             </div>
             <div class="text-end">
-                <div class="fw-bold">PKR ${itemTotal.toFixed(2)}</div>
+                <div class="fw-bold">PKR ${Math.round(itemTotal)}</div>
                 <div class="btn-group btn-group-sm mt-1">
                      <button class="btn btn-outline-secondary" onclick="updateQty(${index}, -1)">-</button>
                      <button class="btn btn-outline-danger" onclick="removeFromCart(${index})">×</button>
@@ -184,7 +184,7 @@
             container.appendChild(el);
         });
 
-        document.getElementById('cart-total').innerText = 'PKR ' + total.toFixed(2);
+        document.getElementById('cart-total').innerText = 'PKR ' + Math.round(total);
         document.getElementById('checkout-btn').disabled = false;
     }
 

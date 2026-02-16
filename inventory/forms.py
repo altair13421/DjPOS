@@ -38,10 +38,10 @@ class ItemForm(forms.ModelForm):
             "category": forms.Select(attrs={"class": "form-select"}),
             "quantity": forms.NumberInput(attrs={"class": "form-control", "min": 0}),
             "retail_price": forms.NumberInput(
-                attrs={"class": "form-control", "min": 0, "step": "0.01"}
+                attrs={"class": "form-control", "min": 0, "step": "1"}
             ),
             "wholesale_price": forms.NumberInput(
-                attrs={"class": "form-control", "min": 0, "step": "0.01"}
+                attrs={"class": "form-control", "min": 0, "step": "1"}
             ),
         }
 
