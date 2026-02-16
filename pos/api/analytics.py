@@ -39,19 +39,22 @@ class AnalyticsViewSet(viewsets.ViewSet):
 
     @action(detail=False, methods=['get'])
     def profit(self, request):
-        """Calculate gross profit."""
-        # Revenue
-        sales = Sale.objects.filter(created_at__year=timezone.now().year)
+        """Calculate gross profit for today (revenue, cost, profit)."""
+        today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        sales = Sale.objects.filter(created_at__gte=today_start).prefetch_related('sale_items__item')
+
         revenue = sales.aggregate(Sum('total'))['total__sum'] or 0
-        
-        # Cost
         total_cost = 0
         for sale in sales:
-            for item in sale.sale_items.all():
-                 total_cost += (item.item.cost_price * item.quantity)
+            for cart_item in sale.sale_items.all():
+                total_cost += cart_item.item.cost_price * cart_item.quantity
+
+        revenue = float(revenue)
+        total_cost = float(total_cost)
+        profit = revenue - total_cost
 
         return Response({
             "revenue": revenue,
             "cost": total_cost,
-            "profit": revenue - total_cost
+            "profit": profit
         })

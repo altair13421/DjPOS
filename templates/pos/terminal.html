@@ -131,14 +131,18 @@
         products.forEach(p => {
             const col = document.createElement('div');
             col.className = 'col';
+            const inStock = parseInt(p.quantity, 10) || 0;
+            const outOfStock = inStock <= 0;
+            const cardClass = outOfStock ? 'card h-100 shadow-sm product-card product-card--out' : 'card h-100 shadow-sm product-card';
             col.innerHTML = `
-            <div class="card h-100 shadow-sm product-card" onclick="addToCart(${p.id})">
+            <div class="${cardClass}" onclick="addToCart(${p.id})" data-product-id="${p.id}">
                 <div class="card-body">
                     <h6 class="card-title text-truncate">${p.name}</h6>
                     <div class="d-flex justify-content-between align-items-center mt-2">
                          <span class="badge bg-secondary">${p.sku || ''}</span>
                          <span class="fw-bold text-primary">$${parseFloat(p.retail_price).toFixed(2)}</span>
                     </div>
+                    <div class="small mt-1 text-muted">In stock: ${inStock}</div>
                 </div>
             </div>
         `;
@@ -188,9 +192,18 @@
     window.addToCart = (id) => {
         const product = allProducts.find(p => p.id === id);
         if (!product) return;
+        const available = parseInt(product.quantity, 10) || 0;
+        if (available <= 0) {
+            showToast('Out of stock', product.name + ' has no stock.');
+            return;
+        }
 
         const existing = cart.find(i => i.id === id);
         if (existing) {
+            if (existing.quantity >= available) {
+                showToast('Max stock', 'Cannot add more than ' + available + ' (in stock).');
+                return;
+            }
             existing.quantity += 1;
         } else {
             cart.push({
@@ -204,11 +217,18 @@
     }; // Attached to window for inline onclick
 
     window.updateQty = (index, delta) => {
-        if (cart[index].quantity + delta <= 0) {
+        const product = allProducts.find(p => p.id === cart[index].id);
+        const available = product ? (parseInt(product.quantity, 10) || 0) : 0;
+        const newQty = cart[index].quantity + delta;
+        if (newQty <= 0) {
             removeFromCart(index);
             return;
         }
-        cart[index].quantity += delta;
+        if (newQty > available) {
+            showToast('Max stock', 'Cannot add more than ' + available + ' (in stock).');
+            return;
+        }
+        cart[index].quantity = newQty;
         renderCart();
     };
 
@@ -315,6 +335,16 @@
     .product-card:hover {
         transform: translateY(-2px);
         border-color: #0d6efd;
+    }
+
+    .product-card--out {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .product-card--out:hover {
+        transform: none;
+        border-color: rgba(0, 0, 0, 0.125);
     }
 </style>
 {% endblock %}
