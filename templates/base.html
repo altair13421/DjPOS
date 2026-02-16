@@ -75,8 +75,12 @@
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav me-auto">
           <li class="nav-item">
-            <a class="nav-link {% if 'pos' in request.resolver_match.app_name %}active{% endif %}"
+            <a class="nav-link {% if 'pos' in request.resolver_match.app_name and request.resolver_match.url_name == 'index' %}active{% endif %}"
               href="{% url 'pos:index' %}">POS</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {% if 'pos' in request.resolver_match.app_name and request.resolver_match.url_name == 'sale_panel' %}active{% endif %}"
+              href="{% url 'pos:sale_panel' %}">Sale Panel</a>
           </li>
           <li class="nav-item">
             <a class="nav-link {% if 'inventory' in request.resolver_match.app_name and request.resolver_match.url_name == 'index' %}active{% endif %}"
