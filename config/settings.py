@@ -1,5 +1,5 @@
 """
-Django settings for OSPOS project.
+Django settings for DJPOS project.
 """
 
 import os

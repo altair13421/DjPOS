@@ -1,4 +1,4 @@
-# OSPOS - Django app (Debian-based)
+# DJPOS - Django app (Debian-based)
 FROM debian:bookworm-slim
 
 ENV PYTHONUNBUFFERED=1 \

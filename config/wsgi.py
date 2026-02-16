@@ -1,5 +1,5 @@
 """
-WSGI config for OSPOS project.
+WSGI config for DJPOS project.
 """
 import os
 

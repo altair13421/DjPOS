@@ -1,5 +1,5 @@
 """
-URL configuration for OSPOS project.
+URL configuration for DJPOS project.
 """
 from django.views.generic.base import RedirectView
 from django.contrib import admin

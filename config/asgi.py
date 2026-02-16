@@ -1,5 +1,5 @@
 """
-ASGI config for OSPOS project.
+ASGI config for DJPOS project.
 """
 import os
 

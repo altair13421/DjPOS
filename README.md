@@ -1,6 +1,6 @@
-# OSPOS
+# DJPOS
 
-A Django-based **Open Source Point of Sale (OSPOS)** project with **POS** and **Inventory** apps, REST APIs via Django REST Framework, and Docker support.
+A Django-based **Open Source Point of Sale (DJPOS)** project with **POS** and **Inventory** apps, REST APIs via Django REST Framework, and Docker support.
 
 ## What it does
 
