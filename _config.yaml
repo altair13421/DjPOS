@@ -1,0 +1,5 @@
+# _config.yml
+source: templates/pos
+# optional: keep other settings you already have
+url: "https://altair13421github.io"
+baseurl: "/DjPOS"   # replace <repo> with your repository name
