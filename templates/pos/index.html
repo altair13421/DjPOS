@@ -7,8 +7,9 @@
     <div class="col-12 d-flex justify-content-between align-items-center">
         <h1 class="h2">POS Dashboard</h1>
         <div class="btn-group">
-            <a href="{% url 'pos:api_root' %}" class="btn btn-outline-secondary">API</a>
-            <a href="{% url 'inventory:item_list' %}" class="btn btn-outline-primary">Inventory</a>
+            <a href="{% url 'pos:api_root' %}" class="btn btn-outline-secondary">API Root</a>
+            <a href="{% url 'pos:terminal' %}" class="btn btn-primary">POS Terminal</a>
+            <a href="{% url 'inventory:item_list' %}" class="btn btn-outline-secondary">Manage Inventory</a>
         </div>
     </div>
 </div>

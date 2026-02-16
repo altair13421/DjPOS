@@ -10,7 +10,9 @@ I have successfully transformed the POS skeleton into a full-stack system with a
 *   **Modular Components**: Created `templates/components/modal.html`.
 
 ### 2. New Features (UI)
-*   **Dashboard (`/pos/`)**: Visualizes Daily Sales (Line Chart) and Top Items (Doughnut Chart) using Chart.js.
+*   **Dashboard (`/pos/`)**: 
+    *   Visualizes Daily Sales (Line Chart) and Top Items (Doughnut Chart).
+    *   **Quick Actions**: Direct links to **POS Terminal** and Inventory.
 *   **POS Terminal (`/pos/terminal/`)**: A JS-driven interface to search products, build a cart, and checkout.
 *   **Stock Management**: Added a "Restock" button to the Item List for quick inventory updates.
 
@@ -35,7 +37,7 @@ All checks passed (11 tests):
     ```
 2.  **Open Dashboard**: Go to `http://127.0.0.1:8000/pos/`.
 3.  **Make a Sale**:
-    *   Go to **POS Terminal** (`/pos/terminal/`).
+    *   Click **"POS Terminal"** on the Dashboard (or go to `/pos/terminal/`).
     *   Add items to cart and Checkout.
 4.  **Check Analytics**:
     *   Return to Dashboard to see the Sales Chart update.
