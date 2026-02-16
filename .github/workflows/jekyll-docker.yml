@@ -1,4 +1,11 @@
-name: Build & Deploy Jekyll
+name: Build & Deploy Jekyll to GitHub Pages
+
+# -------------------------------------------------
+# 1️⃣ Give the token write access to repository contents
+# -------------------------------------------------
+permissions:
+  contents: write          # required for pushing to gh‑pages
+  # (optional) you can keep other defaults, e.g. actions: read
 
 on:
   push:
@@ -25,5 +32,3 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./_site
-          # optional: keep the history clean
-          # force_orphan: true
