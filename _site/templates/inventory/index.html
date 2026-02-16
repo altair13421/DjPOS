@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+  <div class="page-header d-flex flex-wrap align-items-center justify-content-between gap-2">
+    <h1 class="h2 mb-0">Dashboard</h1>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-md-6 col-lg-4">
+      <div class="card h-100">
+        <div class="card-body">
+          <h5 class="card-title">Categories</h5>
+          <p class="card-text text-muted">Manage product categories.</p>
+          <a href="{% url 'inventory:category_list' %}" class="btn btn-outline-primary">View categories</a>
+          <a href="{% url 'inventory:category_create' %}" class="btn btn-primary">Add category</a>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6 col-lg-4">
+      <div class="card h-100">
+        <div class="card-body">
+          <h5 class="card-title">Items</h5>
+          <p class="card-text text-muted">Manage inventory items. Add a category on the same page when creating an item.</p>
+          <a href="{% url 'inventory:item_list' %}" class="btn btn-outline-primary">View items</a>
+          <a href="{% url 'inventory:item_create' %}" class="btn btn-primary">Add item</a>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6 col-lg-4">
+      <div class="card h-100">
+        <div class="card-body">
+          <h5 class="card-title">API</h5>
+          <p class="card-text text-muted">REST API for categories and items.</p>
+          <a href="{% url 'inventory:api_root' %}" class="btn btn-outline-secondary">API root</a>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

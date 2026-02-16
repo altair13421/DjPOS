@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Categories{% endblock %}
+
+{% block content %}
+  <div class="page-header d-flex flex-wrap align-items-center justify-content-between gap-2">
+    <h1 class="h2 mb-0">Categories</h1>
+    <a href="{% url 'inventory:category_create' %}" class="btn btn-primary">Add category</a>
+  </div>
+
+  <div class="card">
+    <div class="card-body p-0">
+      {% if categories %}
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Name</th>
+                <th>Description</th>
+                <th class="text-end">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for cat in categories %}
+                <tr>
+                  <td>{{ cat.name }}</td>
+                  <td class="text-muted">{{ cat.description|truncatewords:12|default:"—" }}</td>
+                  <td class="text-end">
+                    <a href="{% url 'inventory:category_edit' cat.pk %}" class="btn btn-sm btn-outline-secondary">Edit</a>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <p class="mb-0 p-4 text-muted">No categories yet. <a href="{% url 'inventory:category_create' %}">Add one</a> or create a category when <a href="{% url 'inventory:item_create' %}">adding an item</a>.</p>
+      {% endif %}
+    </div>
+  </div>
+{% endblock %}

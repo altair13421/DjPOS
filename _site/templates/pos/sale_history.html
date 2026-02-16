@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Sale History{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex flex-wrap align-items-center justify-content-between gap-2">
+  <h1 class="h2 mb-0">Sale History</h1>
+</div>
+
+<div class="mb-3">
+  <span class="text-muted me-2">Filter:</span>
+  {% for key, label in range_labels.items %}
+    <a href="?range={{ key }}" class="btn btn-sm {% if range_param == key %}btn-primary{% else %}btn-outline-secondary{% endif %} me-1">{{ label }}</a>
+  {% endfor %}
+</div>
+
+<div class="card">
+  <div class="card-body p-0">
+    {% if sales %}
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Date & time</th>
+            <th>Customer</th>
+            <th>Items sold</th>
+            <th class="text-end">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for sale in sales %}
+          <tr>
+            <td>{{ sale.created_at|date:"M d, Y g:i A" }}</td>
+            <td>{{ sale.customer.name|default:"Walk-in" }}</td>
+            <td>
+              <ul class="list-unstyled mb-0 small">
+                {% for ci in sale.sale_items.all %}
+                  <li class="border-bottom border-light pb-1 mb-1">
+                    <strong>{{ ci.item.name }}</strong> &times; {{ ci.quantity }}
+                    &ndash; PKR {{ ci.item.retail_price|floatformat:0 }} &times; {{ ci.quantity }} = PKR {{ ci.line_total|floatformat:0 }}
+                    {% if ci.stock_before is not None and ci.stock_after is not None %}
+                      <span class="text-muted">(stock {{ ci.stock_before }} &rarr; {{ ci.stock_after }})</span>
+                    {% else %}
+                      <span class="text-muted">(stock —)</span>
+                    {% endif %}
+                  </li>
+                {% endfor %}
+              </ul>
+            </td>
+            <td class="text-end fw-bold">PKR {{ sale.total|floatformat:0 }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="mb-0 p-4 text-muted">No sales in this period.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
