@@ -13,9 +13,9 @@ def index(request):
     """Basic POS app index view."""
     return render(request, 'pos/index.html', {})
 
-def terminal(request):
-    """POS Terminal view."""
-    return render(request, 'pos/terminal.html', {})
+def sale_panel(request):
+    """POS sale_panel view."""
+    return render(request, 'pos/sale_panel.html', {})
 
 
 class CustomerViewSet(viewsets.ModelViewSet):

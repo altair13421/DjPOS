@@ -4,7 +4,7 @@
 Build the user interface for the POS system to make the backend features accessible and usable.
 1.  **Frontend Architecture**: Move templates/static to root and adopt component-based design.
 2.  **Dashboard**: Visualize sales and profit data using Chart.js.
-3.  **POS Terminal**: A "Cash Register" screen for adding items to a cart and checking out.
+3.  **POS sale_panel**: A "Cash Register" screen for adding items to a cart and checking out.
 4.  **Stock UI**: Interface for managing stock (restocking) with proper logging.
 
 ## User Review Required
@@ -50,10 +50,10 @@ Visualize the data from `AnalyticsViewSet`.
 
 ---
 
-### Phase 6: POS Terminal (The "Cash Register")
+### Phase 6: POS sale_panel (The "Cash Register")
 A functional screen for making sales.
 
-#### [NEW] [templates/pos/terminal.html](file:///home/xraydisk/Programming/DjPOS/templates/pos/terminal.html)
+#### [NEW] [templates/pos/sale_panel.html](file:///home/xraydisk/Programming/DjPOS/templates/pos/sale_panel.html)
 *   **Layout**:
     *   **Left Panel**: Product Grid (Searchable, filterable by Category).
     *   **Right Panel**: Current Cart (List of items, quantities, total).
@@ -77,4 +77,4 @@ Better tools for the admin to manage inventory.
 1.  **Structure**: Verify the site still loads after moving templates.
 2.  **Components**: Verify the generic modal works in the Stock UI.
 3.  **Dashboard**: Load the page, check charts.
-4.  **POS Terminal**: Perform a full sales cycle (Add -> Checkout -> Verify Stock).
+4.  **POS sale_panel**: Perform a full sales cycle (Add -> Checkout -> Verify Stock).

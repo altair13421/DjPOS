@@ -12,8 +12,8 @@ I have successfully transformed the POS skeleton into a full-stack system with a
 ### 2. New Features (UI)
 *   **Dashboard (`/pos/`)**: 
     *   Visualizes Daily Sales (Line Chart) and Top Items (Doughnut Chart).
-    *   **Quick Actions**: Direct links to **POS Terminal** and Inventory.
-*   **POS Terminal (`/pos/terminal/`)**: A JS-driven interface to search products, build a cart, and checkout.
+    *   **Quick Actions**: Direct links to **POS sale_panel** and Inventory.
+*   **POS sale_panel (`/pos/sale_panel/`)**: A JS-driven interface to search products, build a cart, and checkout.
 *   **Stock Management**: Added a "Restock" button to the Item List for quick inventory updates.
 
 ### 3. Backend Enhancements
@@ -37,7 +37,7 @@ All checks passed (11 tests):
     ```
 2.  **Open Dashboard**: Go to `http://127.0.0.1:8000/pos/`.
 3.  **Make a Sale**:
-    *   Click **"POS Terminal"** on the Dashboard (or go to `/pos/terminal/`).
+    *   Click **"POS sale_panel"** on the Dashboard (or go to `/pos/sale_panel/`).
     *   Add items to cart and Checkout.
 4.  **Check Analytics**:
     *   Return to Dashboard to see the Sales Chart update.
