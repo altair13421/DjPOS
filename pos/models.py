@@ -29,6 +29,8 @@ class CartItem(models.Model):
     sale = models.ForeignKey(
         "Sale", on_delete=models.CASCADE, related_name="sale_items"
     )
+    stock_before = models.PositiveIntegerField(null=True, blank=True)
+    stock_after = models.PositiveIntegerField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -38,6 +40,10 @@ class CartItem(models.Model):
         verbose_name = "Cart Item"
         verbose_name_plural = "Cart Items"
         ordering = ["-created_at"]
+
+    @property
+    def line_total(self):
+        return self.item.retail_price * self.quantity
 
     def __str__(self):
         return f"CartItem #{self.pk} - {self.item.name} x {self.quantity}"

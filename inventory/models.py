@@ -55,7 +55,7 @@ class Bundle(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"Bundle: {self.name} (${self.price})"
+        return f"Bundle: {self.name} (PKR {self.price})"
 
 
 class BundleItem(models.Model):

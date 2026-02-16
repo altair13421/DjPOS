@@ -38,11 +38,16 @@ class StockManager:
     @transaction.atomic
     def process_sale(sale):
         """Process stock deduction for a completed sale."""
-        # Iterate over directly related Sale items
-        for cart_item in sale.sale_items.all():
+        for cart_item in sale.sale_items.select_related('item').all():
+            item = cart_item.item
+            cart_item.stock_before = item.quantity
+            cart_item.save(update_fields=['stock_before'])
             StockManager.deduct_stock(
-                item=cart_item.item,
+                item=item,
                 quantity=cart_item.quantity,
                 reason=StockChangeReason.SALE,
                 note=f"Sale #{sale.id}"
             )
+            item.refresh_from_db()
+            cart_item.stock_after = item.quantity
+            cart_item.save(update_fields=['stock_after'])

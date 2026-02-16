@@ -18,8 +18,8 @@
             <th>SKU</th>
             <th>Category</th>
             <th class="text-end">Qty</th>
-            <th class="text-end">Retail price</th>
-            <th class="text-end">Wholesale price</th>
+            <th class="text-end">Retail price (PKR)</th>
+            <th class="text-end">Wholesale price (PKR)</th>
             <th class="text-end">Actions</th>
           </tr>
         </thead>
@@ -30,8 +30,8 @@
             <td class="text-muted">{{ item.sku|default:"—" }}</td>
             <td>{{ item.category.name|default:"—" }}</td>
             <td class="text-end">{{ item.quantity }}</td>
-            <td class="text-end">{{ item.retail_price }}</td>
-            <td class="text-end">{{ item.wholesale_price }}</td>
+            <td class="text-end">PKR {{ item.retail_price|floatformat:2 }}</td>
+            <td class="text-end">PKR {{ item.wholesale_price|floatformat:2 }}</td>
             <td class="text-end">
               <button class="btn btn-sm btn-outline-success me-1"
                 onclick="openRestockModal('{{ item.pk }}', '{{ item.name|escapejs }}')">

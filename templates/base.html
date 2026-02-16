@@ -83,6 +83,10 @@
               href="{% url 'pos:sale_panel' %}">Sale Panel</a>
           </li>
           <li class="nav-item">
+            <a class="nav-link {% if 'pos' in request.resolver_match.app_name and request.resolver_match.url_name == 'sale_history' %}active{% endif %}"
+              href="{% url 'pos:sale_history' %}">Sale History</a>
+          </li>
+          <li class="nav-item">
             <a class="nav-link {% if 'inventory' in request.resolver_match.app_name and request.resolver_match.url_name == 'index' %}active{% endif %}"
               href="{% url 'inventory:index' %}">Inventory</a>
           </li>
