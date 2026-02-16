@@ -13,6 +13,10 @@ def index(request):
     """Basic POS app index view."""
     return render(request, 'pos/index.html', {})
 
+def terminal(request):
+    """POS Terminal view."""
+    return render(request, 'pos/terminal.html', {})
+
 
 class CustomerViewSet(viewsets.ModelViewSet):
     queryset = Customer.objects.all()

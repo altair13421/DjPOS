@@ -1,0 +1,131 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Inventory{% endblock %} | OSPOS</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --inventory-sidebar-bg: #1a1d23;
+      --inventory-sidebar-text: #e2e6eb;
+      --inventory-accent: #0d6efd;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .app-navbar {
+      background: var(--inventory-sidebar-bg) !important;
+    }
+
+    .app-navbar .navbar-brand,
+    .app-navbar .nav-link {
+      color: var(--inventory-sidebar-text) !important;
+    }
+
+    .app-navbar .nav-link:hover {
+      color: #fff !important;
+    }
+
+    .app-navbar .nav-link.active {
+      color: var(--inventory-accent) !important;
+      font-weight: 600;
+    }
+
+    main {
+      flex: 1;
+    }
+
+    .page-header {
+      margin-bottom: 1.5rem;
+    }
+
+    .card {
+      border: none;
+      box-shadow: 0 0.125rem 0.375rem rgba(0, 0, 0, .08);
+    }
+
+    .table th {
+      font-weight: 600;
+      color: #495057;
+    }
+
+    footer {
+      background: #f8f9fa;
+      border-top: 1px solid #dee2e6;
+    }
+  </style>
+  {% block extra_css %}{% endblock %}
+</head>
+
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark app-navbar">
+    <div class="container">
+      <a class="navbar-brand" href="/">OSPOS</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+        aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav me-auto">
+          <li class="nav-item">
+            <a class="nav-link {% if 'pos' in request.resolver_match.app_name %}active{% endif %}"
+              href="{% url 'pos:index' %}">POS</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {% if 'inventory' in request.resolver_match.app_name and request.resolver_match.url_name == 'index' %}active{% endif %}"
+              href="{% url 'inventory:index' %}">Inventory</a>
+          </li>
+          {% if 'inventory' in request.resolver_match.app_name %}
+          <li class="nav-item">
+            <a class="nav-link {% if 'category' in request.resolver_match.url_name %}active{% endif %}"
+              href="{% url 'inventory:category_list' %}">Categories</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {% if 'item' in request.resolver_match.url_name %}active{% endif %}"
+              href="{% url 'inventory:item_list' %}">Items</a>
+          </li>
+          {% endif %}
+        </ul>
+        <ul class="navbar-nav">
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'inventory:api_root' %}">API</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <main class="py-4">
+    <div class="container">
+      {% if messages %}
+      {% for message in messages %}
+      <div
+        class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show"
+        role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+      {% endfor %}
+      {% endif %}
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+
+  <footer class="py-3 mt-auto">
+    <div class="container text-muted small">
+      OSPOS Inventory — Categories &amp; Items
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  {% block extra_js %}{% endblock %}
+</body>
+
+</html>
