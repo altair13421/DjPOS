@@ -6,6 +6,12 @@ __pycache__/
 # C extensions
 *.so
 
+# Jekyll build artifacts
+_site/
+.jekyll-cache/
+# GitHub‑Actions workflow files (keep the workflow itself, ignore only the generated output)
+.github/workflows/jekyll-docker.yml
+
 # Distribution / packaging
 .Python
 build/
