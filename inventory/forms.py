@@ -1,5 +1,5 @@
 from django import forms
-from .models import Category, Item
+from .models import Category, Item, Bundle
 
 
 class CategoryForm(forms.ModelForm):
@@ -74,3 +74,16 @@ class ItemForm(forms.ModelForm):
         if commit:
             instance.save()
         return instance
+
+
+class BundleForm(forms.ModelForm):
+    """Bundle form (name, price, active). Items are handled in the view."""
+
+    class Meta:
+        model = Bundle
+        fields = ["name", "price", "active"]
+        widgets = {
+            "name": forms.TextInput(attrs={"class": "form-control", "placeholder": "Bundle name"}),
+            "price": forms.NumberInput(attrs={"class": "form-control", "min": 0, "step": "0.01"}),
+            "active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+        }

@@ -99,6 +99,10 @@
             <a class="nav-link {% if 'item' in request.resolver_match.url_name %}active{% endif %}"
               href="{% url 'inventory:item_list' %}">Items</a>
           </li>
+          <li class="nav-item">
+            <a class="nav-link {% if 'bundle' in request.resolver_match.url_name %}active{% endif %}"
+              href="{% url 'inventory:bundle_list' %}">Bundles</a>
+          </li>
           {% endif %}
         </ul>
         <ul class="navbar-nav">

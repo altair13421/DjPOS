@@ -28,29 +28,39 @@ class AnalyticsViewSet(viewsets.ViewSet):
 
     @action(detail=False, methods=['get'])
     def top_items(self, request):
-        """Top selling items."""
-        items = CartItem.objects.filter(sale__isnull=False).values(
+        """Top selling items (excludes bundle-only lines)."""
+        items = CartItem.objects.filter(item__isnull=False).values(
             'item__name'
         ).annotate(
             total_sold=Sum('quantity')
         ).order_by('-total_sold')[:5]
-        
+
         return Response(items)
 
     @action(detail=False, methods=['get'])
     def profit(self, request):
         """Calculate gross profit for today (revenue, cost, profit)."""
         today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
-        sales = Sale.objects.filter(created_at__gte=today_start).prefetch_related('sale_items__item')
+        sales = Sale.objects.filter(created_at__gte=today_start).prefetch_related(
+            'sale_items__item',
+            'sale_items__bundle__bundleitem_set__item',
+        )
 
         revenue = sales.aggregate(Sum('total'))['total__sum'] or 0
         total_cost = 0
         for sale in sales:
             for cart_item in sale.sale_items.all():
-                total_cost = total_cost + cart_item.item.wholesale_price * cart_item.quantity
+                if cart_item.item_id:
+                    total_cost += float(cart_item.item.wholesale_price) * cart_item.quantity
+                elif cart_item.bundle_id:
+                    for bi in cart_item.bundle.bundleitem_set.all():
+                        total_cost += (
+                            float(bi.item.wholesale_price)
+                            * bi.quantity
+                            * cart_item.quantity
+                        )
 
         revenue = float(revenue)
-        total_cost = float(total_cost)
         profit = revenue - total_cost
 
         return Response({

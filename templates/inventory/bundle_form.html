@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block title %}{% if is_edit %}Edit bundle{% else %}Add bundle{% endif %}{% endblock %}
+
+{% block content %}
+  <div class="page-header">
+    <h1 class="h2">{% if is_edit %}Edit bundle{% else %}Add bundle{% endif %}</h1>
+    <p class="text-muted mb-0 mt-1">Set the bundle name, add items with quantities, and set the final bundle price.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      <form method="post" action="" id="bundle-form">
+        {% csrf_token %}
+        <div class="row g-3 mb-4">
+          <div class="col-md-6">
+            <label for="id_name" class="form-label">Bundle name</label>
+            {{ form.name }}
+            {% if form.name.errors %}
+              <div class="invalid-feedback d-block">{{ form.name.errors.0 }}</div>
+            {% endif %}
+          </div>
+          <div class="col-md-3">
+            <label for="id_price" class="form-label">Bundle price (PKR)</label>
+            {{ form.price }}
+            {% if form.price.errors %}
+              <div class="invalid-feedback d-block">{{ form.price.errors.0 }}</div>
+            {% endif %}
+          </div>
+          <div class="col-md-3 d-flex align-items-end">
+            <div class="form-check mb-3">
+              {{ form.active }}
+              <label class="form-check-label" for="id_active">Active</label>
+            </div>
+          </div>
+        </div>
+
+        <h6 class="mb-2">Items in bundle</h6>
+        <div id="bundle-items-container" class="mb-3">
+          <div class="table-responsive">
+            <table class="table table-sm" id="bundle-items-table">
+              <thead class="table-light">
+                <tr>
+                  <th>Item</th>
+                  <th class="text-end" style="width: 120px;">Quantity</th>
+                  <th class="text-end">Retail</th>
+                  <th class="text-end">Wholesale</th>
+                  <th style="width: 60px;"></th>
+                </tr>
+              </thead>
+              <tbody id="bundle-items-tbody">
+                <!-- Rows added by JS -->
+              </tbody>
+            </table>
+          </div>
+          <button type="button" class="btn btn-sm btn-outline-primary" id="add-bundle-item-row">+ Add item</button>
+        </div>
+
+        <div class="row g-3 mb-3">
+          <div class="col-md-4">
+            <p class="mb-0 small text-muted">Component total (retail): <strong id="component-retail">PKR 0</strong></p>
+          </div>
+          <div class="col-md-4">
+            <p class="mb-0 small text-muted">Component total (wholesale): <strong id="component-wholesale">PKR 0</strong></p>
+          </div>
+        </div>
+
+        <input type="hidden" name="items_json" id="items_json" value="[]">
+
+        <div class="d-flex gap-2 mt-4">
+          <button type="submit" class="btn btn-primary">{% if is_edit %}Update{% else %}Create{% endif %} bundle</button>
+          <a href="{% url 'inventory:bundle_list' %}" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+  const items = {{ items_json|safe }};
+  const bundleItems = {{ bundle_items_json|safe }};
+
+  function getItemsJson() {
+    const rows = document.querySelectorAll('#bundle-items-tbody tr[data-item-id]');
+    const out = [];
+    rows.forEach(r => {
+      const itemId = r.getAttribute('data-item-id');
+      const qty = parseInt(r.querySelector('input[name="qty"]').value, 10) || 1;
+      if (itemId) out.push({ item_id: parseInt(itemId, 10), quantity: qty });
+    });
+    return out;
+  }
+
+  function updateTotals() {
+    const rows = document.querySelectorAll('#bundle-items-tbody tr[data-item-id]');
+    let retail = 0, wholesale = 0;
+    rows.forEach(r => {
+      const itemId = r.getAttribute('data-item-id');
+      const item = items.find(i => i.id == itemId);
+      const qty = parseInt(r.querySelector('input[name="qty"]').value, 10) || 1;
+      if (item) {
+        retail += parseFloat(item.retail_price || 0) * qty;
+        wholesale += parseFloat(item.wholesale_price || 0) * qty;
+      }
+    });
+    document.getElementById('component-retail').textContent = 'PKR ' + Math.round(retail);
+    document.getElementById('component-wholesale').textContent = 'PKR ' + Math.round(wholesale);
+    document.getElementById('items_json').value = JSON.stringify(getItemsJson());
+  }
+
+  function addRow(data) {
+    const tbody = document.getElementById('bundle-items-tbody');
+    const tr = document.createElement('tr');
+    tr.setAttribute('data-item-id', data ? data.item_id : '');
+    const options = items.map(i =>
+      '<option value="' + i.id + '" data-retail="' + i.retail_price + '" data-wholesale="' + i.wholesale_price + '"' +
+      (data && data.item_id == i.id ? ' selected' : '') + '>' + (i.name || '') + '</option>'
+    ).join('');
+    tr.innerHTML =
+      '<td><select class="form-select form-select-sm item-select" name="item">' +
+      '<option value="">— Select item —</option>' + options + '</select></td>' +
+      '<td class="text-end"><input type="number" class="form-control form-control-sm text-end" name="qty" min="1" value="' + (data ? data.quantity : 1) + '"></td>' +
+      '<td class="text-end line-retail">—</td>' +
+      '<td class="text-end line-wholesale">—</td>' +
+      '<td><button type="button" class="btn btn-sm btn-outline-danger remove-row">×</button></td>';
+    tbody.appendChild(tr);
+
+    const select = tr.querySelector('.item-select');
+    const qtyInput = tr.querySelector('input[name="qty"]');
+    function updateLine() {
+      const opt = select.options[select.selectedIndex];
+      const retail = opt ? parseFloat(opt.getAttribute('data-retail') || 0) : 0;
+      const wholesale = opt ? parseFloat(opt.getAttribute('data-wholesale') || 0) : 0;
+      const qty = parseInt(qtyInput.value, 10) || 1;
+      tr.setAttribute('data-item-id', select.value || '');
+      tr.querySelector('.line-retail').textContent = opt ? 'PKR ' + Math.round(retail * qty) : '—';
+      tr.querySelector('.line-wholesale').textContent = opt ? 'PKR ' + Math.round(wholesale * qty) : '—';
+      updateTotals();
+    }
+    select.addEventListener('change', updateLine);
+    qtyInput.addEventListener('input', updateLine);
+    tr.querySelector('.remove-row').addEventListener('click', () => { tr.remove(); updateTotals(); });
+    updateLine();
+  }
+
+  document.getElementById('add-bundle-item-row').addEventListener('click', () => addRow(null));
+  bundleItems.forEach(bi => addRow({ item_id: bi.item_id, quantity: bi.quantity }));
+  if (bundleItems.length === 0) addRow(null);
+
+  document.getElementById('bundle-form').addEventListener('submit', () => {
+    document.getElementById('items_json').value = JSON.stringify(getItemsJson());
+  });
+})();
+</script>
+{% endblock %}

@@ -54,6 +54,20 @@ class Bundle(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    @property
+    def total_wholesale(self):
+        return sum(
+            bi.item.wholesale_price * bi.quantity
+            for bi in self.bundleitem_set.select_related('item').all()
+        )
+
+    @property
+    def total_retail(self):
+        return sum(
+            bi.item.retail_price * bi.quantity
+            for bi in self.bundleitem_set.select_related('item').all()
+        )
+
     def __str__(self):
         return f"Bundle: {self.name} (PKR {self.price})"
 
