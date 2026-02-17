@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=302">
+  <title>Receipt #{{ sale.id }}</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 12px;
+      line-height: 1.3;
+      margin: 0;
+      padding: 10px;
+      width: 302px;
+      max-width: 302px;
+      background: #fff;
+      color: #000;
+    }
+    .receipt {
+      width: 100%;
+    }
+    .center { text-align: center; }
+    .bold { font-weight: bold; }
+    .divider { border-bottom: 1px dashed #000; margin: 6px 0; }
+    .line { display: flex; justify-content: space-between; gap: 8px; margin: 2px 0; }
+    .line .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .line .amt { flex-shrink: 0; }
+    .total { margin-top: 6px; font-weight: bold; font-size: 14px; }
+    .footer { margin-top: 12px; font-size: 10px; text-align: center; }
+    @media print {
+      body { margin: 0; padding: 4px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .no-print { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="receipt">
+    <div class="center bold" style="font-size: 14px;">{{ store_name }}</div>
+    <div class="center" style="font-size: 10px;">Receipt #{{ sale.id }}</div>
+    <div class="center" style="font-size: 10px;">{{ sale.created_at|date:"M d, Y g:i A" }}</div>
+    <div class="divider"></div>
+    {% if sale.customer %}
+    <div class="line"><span>Customer:</span><span>{{ sale.customer.name }}</span></div>
+    <div class="divider"></div>
+    {% endif %}
+    {% for ci in sale.sale_items.all %}
+    <div class="line">
+      <span class="name">{% if ci.bundle_id %}{{ ci.bundle.name }} (Bdl){% else %}{{ ci.item.name }}{% endif %} x{{ ci.quantity }}</span>
+      <span class="amt">{{ currency }} {{ ci.line_total|floatformat:0 }}</span>
+    </div>
+    {% endfor %}
+    <div class="divider"></div>
+    <div class="line total">
+      <span>TOTAL</span>
+      <span>{{ currency }} {{ sale.total|floatformat:0 }}</span>
+    </div>
+    <div class="divider"></div>
+    <div class="footer">Thank you</div>
+  </div>
+  <p class="no-print center" style="margin-top: 12px; font-size: 10px;">
+    <button type="button" onclick="window.print();">Print</button>
+    <button type="button" id="back-btn" onclick="goBackToSalePanel();">Back to Sale Panel</button>
+  </p>
+  <script>
+    var isAutoPrint = window.location.search.indexOf('auto') !== -1;
+    function goBackToSalePanel() {
+      if (window.opener) {
+        try { window.opener.focus(); } catch (e) {}
+        window.close();
+      } else {
+        window.location.href = '/pos/sale_panel/';
+      }
+    }
+    if (isAutoPrint) window.print();
+    window.onafterprint = function() {
+      if (isAutoPrint && window.opener) {
+        try { window.opener.focus(); } catch (e) {}
+        window.close();
+      }
+    };
+    document.addEventListener('visibilitychange', function() {
+      if (document.hidden && isAutoPrint && window.opener) {
+        window.close();
+      }
+    });
+  </script>
+</body>
+</html>

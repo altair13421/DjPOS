@@ -1,8 +1,9 @@
-from django.shortcuts import render
+from django.conf import settings
+from django.shortcuts import render, get_object_or_404
 from django.utils import timezone
 from datetime import timedelta
-from rest_framework import viewsets
-from rest_framework.decorators import api_view
+from rest_framework import viewsets, status
+from rest_framework.decorators import api_view, action
 from rest_framework.response import Response
 
 from utils.stock_manager import StockManager
@@ -18,7 +19,9 @@ def index(request):
 
 def sale_panel(request):
     """POS sale_panel view."""
-    return render(request, 'pos/sale_panel.html', {})
+    return render(request, 'pos/sale_panel.html', {
+        'use_web_print': getattr(settings, 'USE_WEB_PRINT', True),
+    })
 
 
 def sale_history(request):
@@ -47,6 +50,22 @@ def sale_history(request):
         'sales': sales,
         'range_param': range_param,
         'range_labels': range_labels,
+        'use_web_print': getattr(settings, 'USE_WEB_PRINT', True),
+    })
+
+
+def receipt(request, sale_id):
+    """Thermal-styled receipt view for web print (opens in new window)."""
+    sale = get_object_or_404(
+        Sale.objects.select_related('customer').prefetch_related(
+            'sale_items__item', 'sale_items__bundle'
+        ),
+        pk=sale_id,
+    )
+    return render(request, 'pos/receipt.html', {
+        'sale': sale,
+        'store_name': getattr(settings, 'RECEIPT_STORE_NAME', 'DJPOS'),
+        'currency': getattr(settings, 'CURRENCY_CODE', 'PKR'),
     })
 
 
@@ -64,6 +83,38 @@ class SaleViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         sale = serializer.save()
         StockManager.process_sale(sale)
+
+    @action(detail=True, methods=["post"], url_path="print_receipt")
+    def print_receipt(self, request, pk=None):
+        """Send receipt to direct thermal printer (when USE_WEB_PRINT is False)."""
+        if getattr(settings, 'USE_WEB_PRINT', True):
+            return Response(
+                {"error": "Direct printing is disabled (USE_WEB_PRINT is True). Use the receipt page to print."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        sale = self.get_object()
+        try:
+            self._print_receipt_direct(sale)
+            return Response({"status": "ok", "message": "Receipt sent to printer."})
+        except ValueError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except OSError as e:
+            return Response(
+                {"error": f"Could not reach printer: {e}"},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+    @staticmethod
+    def _print_receipt_direct(sale):
+        from utils.receipt_escpos import build_receipt, send_to_printer
+        host = getattr(settings, 'PRINTER_HOST', '').strip()
+        if not host:
+            raise ValueError("PRINTER_HOST is not set. Configure it for direct thermal printing.")
+        port = getattr(settings, 'PRINTER_PORT', 9100)
+        store = getattr(settings, 'RECEIPT_STORE_NAME', 'DJPOS')
+        currency = getattr(settings, 'CURRENCY_CODE', 'PKR')
+        data = build_receipt(sale, store_name=store, currency=currency)
+        send_to_printer(data, host, port)
 
 
 @api_view(['GET'])

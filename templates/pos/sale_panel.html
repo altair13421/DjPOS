@@ -72,6 +72,7 @@
 
 {% block extra_js %}
 <script>
+    const useWebPrint = {{ use_web_print|yesno:"true,false" }};
     let allProducts = [];
     let allBundles = []; // active bundles with .items[] { item, quantity, item_name, ... }
     let cart = []; // { type: 'item'|'bundle', id, name, price, quantity }
@@ -388,9 +389,34 @@
             });
 
             if (res.ok) {
+                const data = await res.json();
+                const saleId = data && data.id;
                 showToast('Success', 'Sale completed successfully!');
                 cart = [];
                 renderCart();
+                if (saleId) {
+                    if (useWebPrint) {
+                        window.open('/pos/sale/' + saleId + '/receipt/?auto=1', '_blank');
+                    } else {
+                        try {
+                            const printRes = await fetch('/pos/api/sales/' + saleId + '/print_receipt/', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRFToken': getCookie('csrftoken')
+                                }
+                            });
+                            const printData = await printRes.json();
+                            if (printRes.ok) {
+                                showToast('Receipt', 'Receipt sent to printer.');
+                            } else {
+                                showToast('Print', 'Print failed: ' + (printData.error || printRes.statusText));
+                            }
+                        } catch (e) {
+                            showToast('Print', 'Could not send to printer.');
+                        }
+                    }
+                }
                 setTimeout(() => location.reload(), 1200);
             } else {
                 const err = await res.json();

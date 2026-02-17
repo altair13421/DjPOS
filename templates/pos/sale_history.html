@@ -24,6 +24,7 @@
             <th>Customer</th>
             <th>Items sold</th>
             <th class="text-end">Total</th>
+            <th class="text-end">Receipt</th>
           </tr>
         </thead>
         <tbody>
@@ -53,6 +54,13 @@
               </ul>
             </td>
             <td class="text-end fw-bold">PKR {{ sale.total|floatformat:0 }}</td>
+            <td class="text-end">
+              {% if use_web_print %}
+                <a href="{% url 'pos:receipt' sale.id %}?auto=1" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">Print receipt</a>
+              {% else %}
+                <button type="button" class="btn btn-sm btn-outline-secondary receipt-direct-print" data-sale-id="{{ sale.id }}">Print receipt</button>
+              {% endif %}
+            </td>
           </tr>
           {% endfor %}
         </tbody>
@@ -63,4 +71,40 @@
     {% endif %}
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+{% if not use_web_print %}
+<script>
+(function() {
+  function getCookie(name) {
+    var v = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
+    return v ? decodeURIComponent(v[2]) : null;
+  }
+  document.querySelectorAll('.receipt-direct-print').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var id = this.getAttribute('data-sale-id');
+      var url = '/pos/api/sales/' + id + '/print_receipt/';
+      this.disabled = true;
+      fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken')
+        }
+      }).then(function(r) {
+        return r.json().then(function(data) {
+          if (r.ok) alert('Receipt sent to printer.');
+          else alert('Error: ' + (data.error || r.statusText));
+        });
+      }).catch(function() {
+        alert('Network error.');
+      }).finally(function() {
+        btn.disabled = false;
+      });
+    });
+  });
+})();
+</script>
+{% endif %}
 {% endblock %}

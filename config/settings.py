@@ -103,6 +103,14 @@ REST_FRAMEWORK = {
 # Currency for all amounts in the application
 CURRENCY_CODE = "PKR"
 
+# Receipt printing: True = web print (browser, thermal-styled); False = direct ESC/POS to network printer
+USE_WEB_PRINT = os.environ.get("USE_WEB_PRINT", "true").lower() in ("true", "1", "yes")
+# For direct thermal (USE_WEB_PRINT=False): printer IP/host and raw port (e.g. 9100)
+PRINTER_HOST = os.environ.get("PRINTER_HOST", "")
+PRINTER_PORT = int(os.environ.get("PRINTER_PORT", "9100") or "9100")
+# Receipt header (store name)
+RECEIPT_STORE_NAME = os.environ.get("RECEIPT_STORE_NAME", "DJPOS")
+
 # 12-hour time format project-wide (e.g. 2:30 PM)
 TIME_FORMAT = "g:i A"
 DATE_FORMAT = "M j, Y"
