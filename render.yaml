@@ -1,2 +1,18 @@
-# render.yaml (optional)
-buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
+services:
+  - type: web
+    name: djpos
+    env: python
+    buildCommand: |
+      pip install -r requirements.txt
+      python manage.py collectstatic --noinput
+    # Run migrations, then start the server
+    startCommand: |
+      python manage.py migrate --noinput && \
+      gunicorn config.wsgi:application
+    envVars:
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: ALLOWED_HOSTS
+        value: djpos.onrender.com
+      - key: DEBUG
+        value: "False"
