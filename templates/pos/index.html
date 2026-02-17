@@ -46,15 +46,15 @@
 <div class="row">
     <div class="col-md-8 mb-4">
         <div class="card">
-            <div class="card-header">Sales History (Last 7 Days)</div>
+            <div class="card-header">Items Sold (Last 7 Days)</div>
             <div class="card-body">
-                <canvas id="salesChart"></canvas>
+                <canvas id="itemsSoldChart"></canvas>
             </div>
         </div>
     </div>
     <div class="col-md-4 mb-4">
         <div class="card">
-            <div class="card-header">Top 5 Items</div>
+            <div class="card-header">Top 5 Items (Last 7 Days)</div>
             <div class="card-body">
                 <canvas id="topItemsChart"></canvas>
             </div>
@@ -76,43 +76,61 @@
             document.getElementById('cost-display').innerText = 'PKR ' + Math.round(parseFloat(profitData.cost));
         } catch (e) { console.error("Error fetching profit:", e); }
 
-        // 2. Fetch Daily Sales for Chart
+        // 2. Items Sold (Last 7 Days) – bar chart, one bar per item
         try {
-            const salesRes = await fetch('/pos/api/analytics/daily_sales/');
-            const salesData = await salesRes.json();
+            const itemsRes = await fetch('/pos/api/analytics/items_sold_7d/');
+            const itemsData = await itemsRes.json();
+            const itemLabels = itemsData.map(d => d.item_name);
+            const itemCounts = itemsData.map(d => d.total_sold);
 
-            const labels = salesData.map(d => d.created_at__date);
-            const data = salesData.map(d => d.total);
+            if (itemLabels.length === 0) {
+                document.getElementById('itemsSoldChart').parentElement.innerHTML = '<p class="text-muted text-center mb-0">No items sold in the last 7 days.</p>';
+            } else {
+                new Chart(document.getElementById('itemsSoldChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: itemLabels,
+                        datasets: [{
+                            label: 'Quantity sold',
+                            data: itemCounts,
+                            backgroundColor: 'rgba(13, 110, 253, 0.7)',
+                            borderColor: '#0d6efd',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        scales: {
+                            x: { beginAtZero: true, title: { display: true, text: 'Quantity sold' } },
+                            y: { title: { display: true, text: 'Item' } }
+                        },
+                        plugins: { legend: { display: false } }
+                    }
+                });
+            }
+        } catch (e) { console.error("Error fetching items sold:", e); }
 
-            new Chart(document.getElementById('salesChart'), {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Sales (PKR)',
-                        data: data,
-                        borderColor: '#0d6efd',
-                        tension: 0.1
-                    }]
-                }
-            });
-        } catch (e) { console.error("Error fetching sales:", e); }
-
-        // 3. Fetch Top Items
+        // 3. Top 5 Items (doughnut) – includes items from bundles
         try {
             const topRes = await fetch('/pos/api/analytics/top_items/');
             const topData = await topRes.json();
+            const topLabels = topData.map(d => d.item_name);
+            const topCounts = topData.map(d => d.total_sold);
 
-            new Chart(document.getElementById('topItemsChart'), {
-                type: 'doughnut',
-                data: {
-                    labels: topData.map(d => d.item__name),
-                    datasets: [{
-                        data: topData.map(d => d.total_sold),
-                        backgroundColor: ['#0d6efd', '#6610f2', '#6f42c1', '#d63384', '#dc3545']
-                    }]
-                }
-            });
+            if (topLabels.length === 0) {
+                document.getElementById('topItemsChart').parentElement.innerHTML = '<p class="text-muted text-center mb-0">No sales in the last 7 days.</p>';
+            } else {
+                new Chart(document.getElementById('topItemsChart'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: topLabels,
+                        datasets: [{
+                            data: topCounts,
+                            backgroundColor: ['#0d6efd', '#6610f2', '#6f42c1', '#d63384', '#dc3545']
+                        }]
+                    }
+                });
+            }
         } catch (e) { console.error("Error fetching top items:", e); }
     });
 </script>
