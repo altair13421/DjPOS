@@ -30,8 +30,18 @@
     <div class="col-md-6 col-lg-4">
       <div class="card h-100">
         <div class="card-body">
+          <h5 class="card-title">Bundles</h5>
+          <p class="card-text text-muted">Sell items together as bundles with a custom price.</p>
+          <a href="{% url 'inventory:bundle_list' %}" class="btn btn-outline-primary">View bundles</a>
+          <a href="{% url 'inventory:bundle_create' %}" class="btn btn-primary">Add bundle</a>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6 col-lg-4">
+      <div class="card h-100">
+        <div class="card-body">
           <h5 class="card-title">API</h5>
-          <p class="card-text text-muted">REST API for categories and items.</p>
+          <p class="card-text text-muted">REST API for categories, items, and bundles.</p>
           <a href="{% url 'inventory:api_root' %}" class="btn btn-outline-secondary">API root</a>
         </div>
       </div>

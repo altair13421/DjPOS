@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Delete bundle{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="h2">Delete bundle</h1>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    <p class="mb-3">Are you sure you want to delete the bundle <strong>{{ bundle.name }}</strong>? This cannot be undone.</p>
+    <p class="text-muted small mb-0">If this bundle has been used in any sale, deletion will be blocked.</p>
+    <form method="post" action="" class="mt-3">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-danger">Delete bundle</button>
+      <a href="{% url 'inventory:bundle_list' %}" class="btn btn-outline-secondary">Cancel</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -27,7 +27,9 @@ def sale_history(request):
     range_param = request.GET.get('range', '7d')
     range_labels = {'1d': '1 day', '7d': '7 days', '30d': '1 month', 'all': 'All time'}
 
-    qs = Sale.objects.select_related('customer').prefetch_related('sale_items__item').order_by('-created_at')
+    qs = Sale.objects.select_related('customer').prefetch_related(
+        'sale_items__item', 'sale_items__bundle'
+    ).order_by('-created_at')
 
     if range_param == '1d':
         start = now - timedelta(days=1)
@@ -54,7 +56,9 @@ class CustomerViewSet(viewsets.ModelViewSet):
 
 
 class SaleViewSet(viewsets.ModelViewSet):
-    queryset = Sale.objects.select_related('customer').all()
+    queryset = Sale.objects.select_related('customer').prefetch_related(
+        'sale_items__item', 'sale_items__bundle'
+    ).all()
     serializer_class = SaleSerializer
 
     def perform_create(self, serializer):

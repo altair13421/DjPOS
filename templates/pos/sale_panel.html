@@ -6,12 +6,17 @@
 <div class="row h-100">
     <!-- Left: Product Grid -->
     <div class="col-md-8 d-flex flex-column h-100">
-        <div class="mb-3 d-flex gap-2">
+        <div class="mb-3 d-flex gap-2 flex-wrap">
             <input type="text" id="search-input" class="form-control" placeholder="Search products...">
             <select id="category-filter" class="form-select w-auto">
                 <option value="">All Categories</option>
-                <!-- Categories populated by JS -->
             </select>
+            <div class="btn-group btn-group-sm" role="group">
+                <input type="radio" class="btn-check" name="grid-mode" id="mode-products" value="products" checked>
+                <label class="btn btn-outline-secondary" for="mode-products">Products</label>
+                <input type="radio" class="btn-check" name="grid-mode" id="mode-bundles" value="bundles">
+                <label class="btn btn-outline-secondary" for="mode-bundles">Bundles</label>
+            </div>
         </div>
 
         <div id="product-grid" class="row row-cols-3 g-3 overflow-auto" style="max-height: 80vh;">
@@ -68,12 +73,13 @@
 {% block extra_js %}
 <script>
     let allProducts = [];
-    let cart = []; // {id, name, price, quantity}
+    let allBundles = []; // active bundles with .items[] { item, quantity, item_name, ... }
+    let cart = []; // { type: 'item'|'bundle', id, name, price, quantity }
     let customers = [];
 
     document.addEventListener("DOMContentLoaded", async () => {
-        await Promise.all([loadProducts(), loadCategories(), loadCustomers()]);
-        renderProducts(allProducts);
+        await Promise.all([loadProducts(), loadBundles(), loadCategories(), loadCustomers()]);
+        renderGrid();
     });
 
     // --- Data Loading ---
@@ -85,6 +91,17 @@
         } catch (e) {
             console.error("Error loading products:", e);
             document.getElementById('product-grid').innerHTML = '<div class="text-danger p-3">Failed to load products.</div>';
+        }
+    }
+
+    async function loadBundles() {
+        try {
+            const res = await fetch('/inventory/api/bundles/');
+            const data = await res.json();
+            const list = Array.isArray(data) ? data : (data.results || []);
+            allBundles = list.filter(b => b.active !== false);
+        } catch (e) {
+            console.error("Error loading bundles:", e);
         }
     }
 
@@ -119,6 +136,21 @@
     }
 
     // --- Rendering ---
+    function renderGrid() {
+        const mode = document.querySelector('input[name="grid-mode"]:checked').value;
+        if (mode === 'bundles') {
+            renderBundles(allBundles);
+        } else {
+            const term = document.getElementById('search-input').value.toLowerCase();
+            const catId = document.getElementById('category-filter').value;
+            let products = allProducts;
+            if (term) products = products.filter(p =>
+                (p.name || '').toLowerCase().includes(term) || (p.sku || '').toLowerCase().includes(term));
+            if (catId) products = products.filter(p => p.category == catId);
+            renderProducts(products);
+        }
+    }
+
     function renderProducts(products) {
         const grid = document.getElementById('product-grid');
         grid.innerHTML = '';
@@ -135,19 +167,66 @@
             const outOfStock = inStock <= 0;
             const cardClass = outOfStock ? 'card h-100 shadow-sm product-card product-card--out' : 'card h-100 shadow-sm product-card';
             col.innerHTML = `
-            <div class="${cardClass}" onclick="addToCart(${p.id})" data-product-id="${p.id}">
+            <div class="${cardClass}" data-product-id="${p.id}" data-type="item">
                 <div class="card-body">
-                    <h6 class="card-title text-truncate">${p.name}</h6>
+                    <h6 class="card-title text-truncate">${(p.name || '').replace(/</g, '&lt;')}</h6>
                     <div class="d-flex justify-content-between align-items-center mt-2">
-                         <span class="badge bg-secondary">${p.sku || ''}</span>
-                         <span class="fw-bold text-primary">PKR ${Math.round(parseFloat(p.retail_price))}</span>
+                         <span class="badge bg-secondary">${(p.sku || '').replace(/</g, '&lt;')}</span>
+                         <span class="fw-bold text-primary">PKR ${Math.round(parseFloat(p.retail_price || 0))}</span>
                     </div>
                     <div class="small mt-1 text-muted">In stock: ${inStock}</div>
                 </div>
             </div>
         `;
+            col.querySelector('.card').onclick = () => addToCart(p.id);
             grid.appendChild(col);
         });
+    }
+
+    function renderBundles(bundles) {
+        const grid = document.getElementById('product-grid');
+        grid.innerHTML = '';
+        const term = document.getElementById('search-input').value.toLowerCase();
+        if (term) bundles = bundles.filter(b => (b.name || '').toLowerCase().includes(term));
+        if (bundles.length === 0) {
+            grid.innerHTML = '<div class="col-12 text-center text-muted py-5">No active bundles.</div>';
+            return;
+        }
+        bundles.forEach(b => {
+            const col = document.createElement('div');
+            col.className = 'col';
+            const canAdd = canAddBundle(b.id, 1);
+            const cardClass = !canAdd ? 'card h-100 shadow-sm product-card product-card--out' : 'card h-100 shadow-sm product-card';
+            col.innerHTML = `
+            <div class="${cardClass}" data-bundle-id="${b.id}" data-type="bundle">
+                <div class="card-body">
+                    <h6 class="card-title text-truncate">${(b.name || '').replace(/</g, '&lt;')}</h6>
+                    <div class="d-flex justify-content-between align-items-center mt-2">
+                         <span class="badge bg-info">Bundle</span>
+                         <span class="fw-bold text-primary">PKR ${Math.round(parseFloat(b.price || 0))}</span>
+                    </div>
+                    <div class="small mt-1 text-muted">${canAdd ? 'In stock' : 'Insufficient component stock'}</div>
+                </div>
+            </div>
+        `;
+            col.querySelector('.card').onclick = () => addBundleToCart(b.id);
+            grid.appendChild(col);
+        });
+    }
+
+    function canAddBundle(bundleId, extraQty) {
+        const bundle = allBundles.find(b => b.id === bundleId);
+        if (!bundle || !bundle.items || !bundle.items.length) return false;
+        const cartQty = cart.filter(c => c.type === 'bundle' && c.id === bundleId).reduce((s, c) => s + c.quantity, 0);
+        const needQty = cartQty + extraQty;
+        for (const bi of bundle.items) {
+            const itemId = bi.item;
+            const need = (bi.quantity || 1) * needQty;
+            const product = allProducts.find(p => p.id === itemId);
+            const available = product ? (parseInt(product.quantity, 10) || 0) : 0;
+            if (available < need) return false;
+        }
+        return true;
     }
 
     function renderCart() {
@@ -162,25 +241,27 @@
             return;
         }
 
-        cart.forEach((item, index) => {
-            const itemTotal = item.price * item.quantity;
-            total += itemTotal;
-
+        cart.forEach((entry, index) => {
+            const lineTotal = entry.price * entry.quantity;
+            total += lineTotal;
+            const label = entry.type === 'bundle' ? 'Bundle' : '';
             const el = document.createElement('div');
             el.className = 'd-flex justify-content-between align-items-center mb-2 p-2 border-bottom';
             el.innerHTML = `
             <div>
-                <div class="fw-bold">${item.name}</div>
-                <div class="small text-muted">PKR ${Math.round(parseFloat(item.price))} x ${item.quantity}</div>
+                <div class="fw-bold">${(entry.name || '').replace(/</g, '&lt;')}${label ? ' <span class="badge bg-info">' + label + '</span>' : ''}</div>
+                <div class="small text-muted">PKR ${Math.round(parseFloat(entry.price))} x ${entry.quantity}</div>
             </div>
             <div class="text-end">
-                <div class="fw-bold">PKR ${Math.round(itemTotal)}</div>
+                <div class="fw-bold">PKR ${Math.round(lineTotal)}</div>
                 <div class="btn-group btn-group-sm mt-1">
-                     <button class="btn btn-outline-secondary" onclick="updateQty(${index}, -1)">-</button>
-                     <button class="btn btn-outline-danger" onclick="removeFromCart(${index})">×</button>
+                     <button type="button" class="btn btn-outline-secondary" data-index="${index}" data-delta="-1">-</button>
+                     <button type="button" class="btn btn-outline-danger" data-index="${index}" data-remove>×</button>
                 </div>
             </div>
         `;
+            el.querySelector('[data-delta="-1"]').onclick = () => updateQty(index, -1);
+            el.querySelector('[data-remove]').onclick = () => removeFromCart(index);
             container.appendChild(el);
         });
 
@@ -194,11 +275,10 @@
         if (!product) return;
         const available = parseInt(product.quantity, 10) || 0;
         if (available <= 0) {
-            showToast('Out of stock', product.name + ' has no stock.');
+            showToast('Out of stock', (product.name || 'Item') + ' has no stock.');
             return;
         }
-
-        const existing = cart.find(i => i.id === id);
+        const existing = cart.find(c => c.type === 'item' && c.id === id);
         if (existing) {
             if (existing.quantity >= available) {
                 showToast('Max stock', 'Cannot add more than ' + available + ' (in stock).');
@@ -207,28 +287,63 @@
             existing.quantity += 1;
         } else {
             cart.push({
+                type: 'item',
                 id: product.id,
                 name: product.name,
-                price: parseFloat(product.retail_price),
+                price: parseFloat(product.retail_price || 0),
                 quantity: 1
             });
         }
         renderCart();
-    }; // Attached to window for inline onclick
+    };
+
+    window.addBundleToCart = (bundleId) => {
+        const bundle = allBundles.find(b => b.id === bundleId);
+        if (!bundle) return;
+        if (!canAddBundle(bundleId, 1)) {
+            showToast('Insufficient stock', 'Not enough component stock for this bundle.');
+            return;
+        }
+        const existing = cart.find(c => c.type === 'bundle' && c.id === bundleId);
+        if (existing) {
+            if (!canAddBundle(bundleId, existing.quantity + 1 - existing.quantity)) {
+                showToast('Insufficient stock', 'Cannot add more of this bundle.');
+                return;
+            }
+            existing.quantity += 1;
+        } else {
+            cart.push({
+                type: 'bundle',
+                id: bundle.id,
+                name: bundle.name,
+                price: parseFloat(bundle.price || 0),
+                quantity: 1
+            });
+        }
+        renderCart();
+    };
 
     window.updateQty = (index, delta) => {
-        const product = allProducts.find(p => p.id === cart[index].id);
-        const available = product ? (parseInt(product.quantity, 10) || 0) : 0;
-        const newQty = cart[index].quantity + delta;
+        const entry = cart[index];
+        const newQty = entry.quantity + delta;
         if (newQty <= 0) {
             removeFromCart(index);
             return;
         }
-        if (newQty > available) {
-            showToast('Max stock', 'Cannot add more than ' + available + ' (in stock).');
-            return;
+        if (entry.type === 'item') {
+            const product = allProducts.find(p => p.id === entry.id);
+            const available = product ? (parseInt(product.quantity, 10) || 0) : 0;
+            if (newQty > available) {
+                showToast('Max stock', 'Cannot add more than ' + available + ' (in stock).');
+                return;
+            }
+        } else {
+            if (!canAddBundle(entry.id, newQty)) {
+                showToast('Insufficient stock', 'Cannot add more of this bundle.');
+                return;
+            }
         }
-        cart[index].quantity = newQty;
+        entry.quantity = newQty;
         renderCart();
     };
 
@@ -237,25 +352,11 @@
         renderCart();
     };
 
-    // --- Filter ---
-    document.getElementById('search-input').addEventListener('input', (e) => {
-        const term = e.target.value.toLowerCase();
-        const filtered = allProducts.filter(p => {
-            const nameMatch = p.name.toLowerCase().includes(term);
-            const skuMatch = p.sku ? p.sku.toLowerCase().includes(term) : false;
-            return nameMatch || skuMatch;
-        });
-        renderProducts(filtered);
-    });
-
-    document.getElementById('category-filter').addEventListener('change', (e) => {
-        const catId = e.target.value;
-        if (!catId) {
-            renderProducts(allProducts);
-            return;
-        }
-        const filtered = allProducts.filter(p => p.category == catId);
-        renderProducts(filtered);
+    // --- Filter & Mode ---
+    document.getElementById('search-input').addEventListener('input', () => renderGrid());
+    document.getElementById('category-filter').addEventListener('change', () => renderGrid());
+    document.querySelectorAll('input[name="grid-mode"]').forEach(radio => {
+        radio.addEventListener('change', () => renderGrid());
     });
 
     // --- Checkout ---
@@ -270,7 +371,10 @@
 
         const payload = {
             customer: customerId || null,
-            items: cart.map(i => ({ item_id: i.id, quantity: i.quantity }))
+            items: cart.map(i => {
+                if (i.type === 'bundle') return { bundle_id: i.id, quantity: i.quantity };
+                return { item_id: i.id, quantity: i.quantity };
+            })
         };
 
         try {

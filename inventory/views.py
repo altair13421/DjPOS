@@ -1,18 +1,22 @@
+import json
+from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
+from django.db import transaction
 from django.urls import reverse_lazy
 from django.views.generic import (
     TemplateView,
     ListView,
     CreateView,
     UpdateView,
+    DeleteView,
 )
 from rest_framework import viewsets
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
-from .models import Category, Item, Bundle, StockLog
+from .models import Category, Item, Bundle, BundleItem, StockLog
 from .serializers import CategorySerializer, ItemSerializer, BundleSerializer, StockLogSerializer
-from .forms import CategoryForm, ItemForm
+from .forms import CategoryForm, ItemForm, BundleForm
 from rest_framework.decorators import action
 from utils.stock_manager import StockManager
 from .choices import StockChangeReason
@@ -93,6 +97,114 @@ class ItemUpdateView(SuccessMessageMixin, UpdateView):
         context = super().get_context_data(**kwargs)
         context["is_edit"] = True
         return context
+
+
+# ——— Bundle UI ———
+
+class BundleListView(ListView):
+    model = Bundle
+    queryset = Bundle.objects.prefetch_related("bundleitem_set").order_by("-created_at")
+    context_object_name = "bundles"
+    template_name = "inventory/bundle_list.html"
+
+
+class BundleCreateView(SuccessMessageMixin, CreateView):
+    model = Bundle
+    form_class = BundleForm
+    template_name = "inventory/bundle_form.html"
+    success_url = reverse_lazy("inventory:bundle_list")
+    success_message = "Bundle created."
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["is_edit"] = False
+        items = Item.objects.all().order_by("name")
+        context["items_json"] = json.dumps([
+            {"id": i.id, "name": i.name, "retail_price": str(i.retail_price), "wholesale_price": str(i.wholesale_price)}
+            for i in items
+        ])
+        context["bundle_items_json"] = "[]"
+        return context
+
+    def form_valid(self, form):
+        items_json = self.request.POST.get("items_json", "[]")
+        try:
+            item_ids = json.loads(items_json)
+        except (json.JSONDecodeError, TypeError):
+            item_ids = []
+        with transaction.atomic():
+            bundle = form.save()
+            BundleItem.objects.filter(bundle=bundle).delete()
+            for entry in item_ids:
+                if isinstance(entry, dict) and "item_id" in entry:
+                    BundleItem.objects.create(
+                        bundle=bundle,
+                        item_id=int(entry["item_id"]),
+                        quantity=int(entry.get("quantity", 1)),
+                    )
+        return super().form_valid(form)
+
+
+class BundleUpdateView(SuccessMessageMixin, UpdateView):
+    model = Bundle
+    form_class = BundleForm
+    context_object_name = "bundle"
+    template_name = "inventory/bundle_form.html"
+    success_url = reverse_lazy("inventory:bundle_list")
+    success_message = "Bundle updated."
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["is_edit"] = True
+        items = Item.objects.all().order_by("name")
+        context["items_json"] = json.dumps([
+            {"id": i.id, "name": i.name, "retail_price": str(i.retail_price), "wholesale_price": str(i.wholesale_price)}
+            for i in items
+        ])
+        bundle_items = list(
+            self.object.bundleitem_set.select_related("item").values(
+                "item_id", "quantity"
+            )
+        ) if self.object.pk else []
+        context["bundle_items_json"] = json.dumps(bundle_items)
+        return context
+
+    def form_valid(self, form):
+        items_json = self.request.POST.get("items_json", "[]")
+        try:
+            item_ids = json.loads(items_json)
+        except (json.JSONDecodeError, TypeError):
+            item_ids = []
+        with transaction.atomic():
+            bundle = form.save()
+            BundleItem.objects.filter(bundle=bundle).delete()
+            for entry in item_ids:
+                if isinstance(entry, dict) and "item_id" in entry:
+                    BundleItem.objects.create(
+                        bundle=bundle,
+                        item_id=int(entry["item_id"]),
+                        quantity=int(entry.get("quantity", 1)),
+                    )
+        return super().form_valid(form)
+
+
+class BundleDeleteView(DeleteView):
+    model = Bundle
+    context_object_name = "bundle"
+    template_name = "inventory/bundle_confirm_delete.html"
+    success_url = reverse_lazy("inventory:bundle_list")
+
+    def delete(self, request, *args, **kwargs):
+        from django.db.models.deletion import ProtectedError
+        from django.shortcuts import redirect
+        try:
+            return super().delete(request, *args, **kwargs)
+        except ProtectedError:
+            messages.error(
+                request,
+                "Cannot delete this bundle because it has been used in at least one sale.",
+            )
+            return redirect("inventory:bundle_list")
 
 
 # ——— API (DRF) ———
