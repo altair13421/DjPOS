@@ -18,6 +18,8 @@
             <th>Total Sold</th>
             <th>Total Restocked</th>
             <th>Current Quantity</th>
+            <th>CashFlow</th>
+            <th>Profit</th>
           </tr>
         </thead>
         <tbody>
@@ -28,10 +30,14 @@
             <td>{{ item.total_sold }}</td>
             <td>{{ item.total_restocked }}</td>
             <td>{{ item.quantity }}</td>
+            <td class="text-success">PKR {{ item.total_revenue|floatformat:2 }}</td>
+            <td class="{% if item.profit >= 0 %}text-success{% else %}text-danger{% endif %}">
+              PKR {{ item.profit|floatformat:2 }}
+            </td>
           </tr>
           {% empty %}
           <tr>
-            <td colspan="5" class="text-center text-muted">No items found.</td>
+            <td colspan="7" class="text-center text-muted">No items found.</td>
           </tr>
           {% endfor %}
         </tbody>

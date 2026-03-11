@@ -87,6 +87,8 @@ class StockLog(models.Model):
     item = models.ForeignKey(Item, on_delete=models.CASCADE, related_name='stock_logs')
     change_quantity = models.IntegerField()  # Positive for add, negative for remove
     reason = models.CharField(max_length=50, choices=StockChangeReason.choices)
+    revenue = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    cost = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     note = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 

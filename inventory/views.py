@@ -4,6 +4,7 @@ from django.contrib.messages.views import SuccessMessageMixin
 from django.db import transaction
 from django.urls import reverse_lazy
 from django.db.models import Sum, Q
+from decimal import Decimal
 from django.db.models.functions import Coalesce
 from django.views.generic import (
     TemplateView,
@@ -224,11 +225,20 @@ class InventoryStatsView(TemplateView):
             total_restocked=Coalesce(
                 Sum('stock_logs__change_quantity', filter=Q(stock_logs__reason=StockChangeReason.RESTOCK)),
                 0
-            )
+            ),
+            total_revenue=Coalesce(
+                Sum('stock_logs__revenue', filter=Q(stock_logs__reason=StockChangeReason.SALE)),
+                Decimal('0.00')
+            ),
+            total_cost=Coalesce(
+                Sum('stock_logs__cost', filter=Q(stock_logs__reason=StockChangeReason.SALE)),
+                Decimal('0.00')
+            ) # We only consider the cost at the time of sale.
         ).select_related('category').order_by('name'))
         
         for item in items:
             item.total_sold = -item.total_sold_raw if item.total_sold_raw else 0
+            item.profit = item.total_revenue - item.total_cost
 
         context['items'] = items
         return context
