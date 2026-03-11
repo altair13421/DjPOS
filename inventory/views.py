@@ -3,6 +3,8 @@ from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
 from django.db import transaction
 from django.urls import reverse_lazy
+from django.db.models import Sum, Q
+from django.db.models.functions import Coalesce
 from django.views.generic import (
     TemplateView,
     ListView,
@@ -205,6 +207,31 @@ class BundleDeleteView(DeleteView):
                 "Cannot delete this bundle because it has been used in at least one sale.",
             )
             return redirect("inventory:bundle_list")
+
+
+class InventoryStatsView(TemplateView):
+    """Overall inventory stats view."""
+    template_name = "inventory/stats.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        items = list(Item.objects.annotate(
+            total_sold_raw=Coalesce(
+                Sum('stock_logs__change_quantity', filter=Q(stock_logs__reason=StockChangeReason.SALE)),
+                0
+            ),
+            total_restocked=Coalesce(
+                Sum('stock_logs__change_quantity', filter=Q(stock_logs__reason=StockChangeReason.RESTOCK)),
+                0
+            )
+        ).select_related('category').order_by('name'))
+        
+        for item in items:
+            item.total_sold = -item.total_sold_raw if item.total_sold_raw else 0
+
+        context['items'] = items
+        return context
 
 
 # ——— API (DRF) ———

@@ -5,6 +5,7 @@ app_name = "inventory"
 
 urlpatterns = [
     path("", views.IndexView.as_view(), name="index"),
+    path("stats/", views.InventoryStatsView.as_view(), name="stats"),
     path("categories/", views.CategoryListView.as_view(), name="category_list"),
     path("categories/new/", views.CategoryCreateView.as_view(), name="category_create"),
     path("categories/<int:pk>/edit/", views.CategoryUpdateView.as_view(), name="category_edit"),

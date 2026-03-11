@@ -40,6 +40,15 @@
     <div class="col-md-6 col-lg-4">
       <div class="card h-100">
         <div class="card-body">
+          <h5 class="card-title">Statistics</h5>
+          <p class="card-text text-muted">Overall view of items sold and restocked.</p>
+          <a href="{% url 'inventory:stats' %}" class="btn btn-outline-primary">View stats</a>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6 col-lg-4">
+      <div class="card h-100">
+        <div class="card-body">
           <h5 class="card-title">API</h5>
           <p class="card-text text-muted">REST API for categories, items, and bundles.</p>
           <a href="{% url 'inventory:api_root' %}" class="btn btn-outline-secondary">API root</a>
