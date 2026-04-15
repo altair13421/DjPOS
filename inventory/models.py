@@ -31,10 +31,12 @@ class Item(models.Model):
         blank=True,
         related_name="items",
     )
-    quantity = models.PositiveIntegerField(default=0)
+    quantity = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     cost_price = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     retail_price = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     wholesale_price = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    is_active = models.BooleanField(default=True)
+    is_ingredient = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -76,7 +78,21 @@ class BundleItem(models.Model):
     """Intermediate model for Bundle-Item relationship."""
     bundle = models.ForeignKey(Bundle, on_delete=models.CASCADE)
     item = models.ForeignKey(Item, on_delete=models.CASCADE)
-    quantity = models.PositiveIntegerField(default=1)
+    quantity = models.DecimalField(max_digits=12, decimal_places=2, default=1)
+
+    @property
+    def item_data(self):
+        return {
+            'name': self.item.name,
+            'quantity': self.quantity,
+            'wholesale_price': self.item.wholesale_price,
+            'retail_price': self.item.retail_price,
+        }
+
+    def consume_stock(self):
+        self.item.quantity -= self.quantity
+        self.item.save()
+        self.save()
 
     def __str__(self):
         return f"{self.quantity} x {self.item.name} in {self.bundle.name}"

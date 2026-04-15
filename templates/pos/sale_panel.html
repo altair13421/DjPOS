@@ -162,6 +162,7 @@
         }
 
         products.forEach(p => {
+            if (p.is_ingredient) return;
             const col = document.createElement('div');
             col.className = 'col';
             const inStock = parseInt(p.quantity, 10) || 0;
@@ -174,6 +175,7 @@
                     <div class="d-flex justify-content-between align-items-center mt-2">
                          <span class="badge bg-secondary">${(p.sku || '').replace(/</g, '&lt;')}</span>
                          <span class="fw-bold text-primary">PKR ${Math.round(parseFloat(p.retail_price || 0))}</span>
+                         ${p.is_active ? '<span class="badge bg-danger">Ingredient</span>' : ''}
                     </div>
                     <div class="small mt-1 text-muted">In stock: ${inStock}</div>
                 </div>

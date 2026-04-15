@@ -31,7 +31,7 @@ class ItemForm(forms.ModelForm):
 
     class Meta:
         model = Item
-        fields = ["name", "sku", "category", "quantity", "retail_price", "wholesale_price"]
+        fields = ["name", "sku", "category", "quantity", "retail_price", "wholesale_price", "is_ingredient", "is_active"]
         widgets = {
             "name": forms.TextInput(attrs={"class": "form-control", "placeholder": "Item name"}),
             "sku": forms.TextInput(attrs={"class": "form-control", "placeholder": "SKU (optional)"}),
