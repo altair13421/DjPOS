@@ -18,6 +18,13 @@
           {% endif %}
         </div>
         <div class="mb-3">
+          <label for="id_identifier">Indentifier</label>
+          {{ form.identifier }}
+          {% if form.identifier.errors %}
+            <div class="invalid-feedback d-block">{{ forms.identifier.errors.0 }}</div>
+          {% endif%}
+        </div>
+        <div class="mb-3">
           <label for="id_description" class="form-label">Description</label>
           {{ form.description }}
           {% if form.description.errors %}

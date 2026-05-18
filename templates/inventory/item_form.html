@@ -46,7 +46,7 @@
           </div>
           {% endif %}
           <div class="col-md-6">
-            <label for="id_quantity" class="form-label">Quantity</label>
+            <label for="id_quantity" class="form-label">Quantity (metric Unit)</label>
             {{ form.quantity }}
             {% if form.quantity.errors %}
               <div class="invalid-feedback d-block">{{ form.quantity.errors.0 }}</div>
@@ -64,6 +64,18 @@
             {{ form.wholesale_price }}
             {% if form.wholesale_price.errors %}
               <div class="invalid-feedback d-block">{{ form.wholesale_price.errors.0 }}</div>
+            {% endif %}
+          </div>
+          <div class="col-md-6">
+            <label for="id_is_ingredient" class="form-label">Is Ingredient</label>
+            {{ form.is_ingredient }}
+            {% if form.is_ingredient.errors %}
+              <div class="invalid-feedback d-block">{{ form.is_ingredient.errors.0 }}</div>
+            {% endif %}
+            <label for="id_is_active" class="form-label">Is active</label>
+            {{ form.is_active}}
+            {% if form.is_active.errors %}
+              <div class="invalid-feedback d-block">{{ form.is_active.errors.0 }}</div>
             {% endif %}
           </div>
         </div>

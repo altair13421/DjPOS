@@ -15,6 +15,7 @@
             <thead class="table-light">
               <tr>
                 <th>Name</th>
+                <th>ID</th>
                 <th>Description</th>
                 <th class="text-end">Actions</th>
               </tr>
@@ -23,6 +24,7 @@
               {% for cat in categories %}
                 <tr>
                   <td>{{ cat.name }}</td>
+                  <td>{{ cat.identifier }}</td>
                   <td class="text-muted">{{ cat.description|truncatewords:12|default:"—" }}</td>
                   <td class="text-end">
                     <a href="{% url 'inventory:category_edit' cat.pk %}" class="btn btn-sm btn-outline-secondary">Edit</a>

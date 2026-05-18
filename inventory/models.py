@@ -6,12 +6,18 @@ class Category(models.Model):
 
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
+    identifier = models.CharField(max_length=255, unique=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["-created_at"]
         verbose_name_plural = "categories"
+
+    def save(self, *args, **kwargs):
+        if self.identifier == "":
+            self.identifier = f"{self.name[:4].upper}"
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"Category #{self.pk} - {self.name}"
@@ -32,6 +38,7 @@ class Item(models.Model):
         related_name="items",
     )
     quantity = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    # quanitiy_type = models.CharField(max_length=255, default="metric")
     cost_price = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     retail_price = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     wholesale_price = models.DecimalField(max_digits=12, decimal_places=2, default=0)
@@ -42,6 +49,21 @@ class Item(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+
+
+    def save(self, *args, **kwargs):
+        if self.sku == "":
+            count = self.counter()
+            count += 1
+            self.sku = f"{self.category.identifier}-0{count}"
+        if self.quantity == 0:
+            self.is_active = False
+        super().save(*args, **kwargs)
+
+
+    @classmethod
+    def counter(cls) -> int:
+        return cls.objects.count()
 
     def __str__(self):
         return f"Item #{self.pk} - {self.name}"

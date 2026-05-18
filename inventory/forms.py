@@ -5,9 +5,10 @@ from .models import Category, Item, Bundle
 class CategoryForm(forms.ModelForm):
     class Meta:
         model = Category
-        fields = ["name", "description"]
+        fields = ["name", "description", "identifier"]
         widgets = {
             "name": forms.TextInput(attrs={"class": "form-control", "placeholder": "Category name"}),
+            "identifier": forms.TextInput(attrs={"class": "form-control", "placeholder": "Identifier (Optional)"}),
             "description": forms.Textarea(
                 attrs={"class": "form-control", "rows": 3, "placeholder": "Optional description"}
             ),
