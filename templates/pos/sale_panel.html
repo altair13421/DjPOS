@@ -219,14 +219,14 @@
 
     function canAddBundle(bundleId, extraQty) {
         const bundle = allBundles.find(b => b.id === bundleId);
-        if (!bundle || !bundle.items || !bundle.items.length) return false;
+        if (!bundle.items && !bundle.bundle_included) return false;
         const cartQty = cart.filter(c => c.type === 'bundle' && c.id === bundleId).reduce((s, c) => s + c.quantity, 0);
         const needQty = cartQty + extraQty;
         for (const bi of bundle.items) {
             const itemId = bi.item;
             const need = (bi.quantity || 1) * needQty;
             const product = allProducts.find(p => p.id === itemId);
-            const available = product ? (parseInt(product.quantity, 10) || 0) : 0;
+            const available = product ? (parseFloat(product.quantity) || 0) : 0;
             if (available < need) return false;
         }
         return true;

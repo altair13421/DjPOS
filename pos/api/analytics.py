@@ -89,7 +89,7 @@ class AnalyticsViewSet(viewsets.ViewSet):
                 elif cart_item.bundle_id:
                     for bi in cart_item.bundle.bundleitem_set.all():
                         total_cost += (
-                            float(bi.item.wholesale_price)
+                            bi.item.wholesale_price
                             * bi.quantity
                             * cart_item.quantity
                         )

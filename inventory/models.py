@@ -16,7 +16,7 @@ class Category(models.Model):
 
     def save(self, *args, **kwargs):
         if self.identifier == "":
-            self.identifier = f"{self.name[:4].upper}"
+            self.identifier = f"{self.name[:4].upper()}"
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -72,7 +72,7 @@ class Item(models.Model):
 class Bundle(models.Model):
     """A bundle of items sold together."""
     name = models.CharField(max_length=255)
-    items = models.ManyToManyField(Item, through='BundleItem', related_name='bundles')
+    items = models.ManyToManyField("self", through='BundleItem', related_name='bundles', symmetrical=False)
     price = models.DecimalField(max_digits=12, decimal_places=2)  # The deal price
     active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -80,30 +80,43 @@ class Bundle(models.Model):
 
     @property
     def total_wholesale(self):
-        return sum(
-            bi.item.wholesale_price * bi.quantity
-            for bi in self.bundleitem_set.select_related('item').all()
-        )
+        wholesale = 0
+        bundleitems = BundleItem.objects.filter(bundle=self)
+        for bi in bundleitems.all():
+            if bi.item:
+                wholesale += bi.item.wholesale_price * bi.quantity
+            if bi.bundle_included:
+                wholesale += bi.bundle_included.total_wholesale * bi.quantity
+        return wholesale
+
+    @property
+    def bundle_items(self):
+        return self.bundleitem_set.select_related('item', 'bundle_included').all()
 
     @property
     def total_retail(self):
-        return sum(
-            bi.item.retail_price * bi.quantity
-            for bi in self.bundleitem_set.select_related('item').all()
-        )
+        retail_price = 0
+        bundleitems = BundleItem.objects.filter(bundle=self)
+        for bi in bundleitems.all():
+            if bi.item:
+                retail_price += bi.item.retail_price * bi.quantity
+            if bi.bundle_included:
+                retail_price += bi.bundle_included.total_retail * bi.quantity
+        return retail_price
 
     @property
     def requires(self):
-        return [bi.item_data for bi in self.bundleitem_set.select_related('item'.all())]
+        return [bi.item_data for bi in self.bundleitem_set.select_related('item').all()]
 
     def __str__(self):
         return f"Bundle: {self.name} (PKR {self.price})"
 
 
 class BundleItem(models.Model):
-    """Intermediate model for Bundle-Item relationship."""
+    """Intermediate model for Bundle-Item relationship.""" 
     bundle = models.ForeignKey(Bundle, on_delete=models.CASCADE)
-    item = models.ForeignKey(Item, on_delete=models.CASCADE)
+    item = models.ForeignKey(Item, on_delete=models.SET_NULL, null=True, blank=True)
+    bundle_included = models.ForeignKey(Bundle, null=True, blank=True, on_delete=models.SET_NULL, related_name="included_by")
     quantity = models.DecimalField(max_digits=12, decimal_places=2, default=1)
 
     @property
@@ -117,11 +130,13 @@ class BundleItem(models.Model):
 
     def consume_stock(self):
         self.item.quantity -= self.quantity
+        for bundle in self.bundle_included:
+            bundle.consume_stock()
         self.item.save()
         self.save()
 
     def __str__(self):
-        return f"{self.quantity} x {self.item.name} in {self.bundle.name}"
+        return f"{self.quantity} x {self.item.name if self.item else ''} {self.bundle_included.name if self.bundle_included else ''} in {self.bundle.name}"
 
 
 class StockLog(models.Model):

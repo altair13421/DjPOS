@@ -87,7 +87,7 @@
     rows.forEach(r => {
       const itemId = r.getAttribute('data-item-id');
       const qty = parseFloat(r.querySelector('input[name="qty"]').value) || 1;
-      if (itemId) out.push({ item_id: parseInt(itemId, 10), quantity: qty });
+      if (itemId) out.push({ item_id: itemId, quantity: qty });
     });
     return out;
   }
@@ -97,7 +97,8 @@
     let retail = 0, wholesale = 0;
     rows.forEach(r => {
       const itemId = r.getAttribute('data-item-id');
-      const item = items.find(i => i.id == itemId);
+      const bundle = itemId.split("-")[0] == "bundle" ;
+      const item = items.find(i => i.id == itemId.split("-")[1] && i.bundle == bundle);
       const qty = parseFloat(r.querySelector('input[name="qty"]').value) || 1;
       if (item) {
         retail += parseFloat(item.retail_price || 0) * qty;
@@ -113,9 +114,10 @@
     const tbody = document.getElementById('bundle-items-tbody');
     const tr = document.createElement('tr');
     tr.setAttribute('data-item-id', data ? data.item_id : '');
+    console.log(data);
     const options = items.map(i =>
-      '<option value="' + i.id + '" data-retail="' + i.retail_price + '" data-wholesale="' + i.wholesale_price + '"' +
-      (data && data.item_id == i.id ? ' selected' : '') + '>' + (i.name || '') + '</option>'
+      '<option value="' + (i.bundle ? 'bundle-': 'item-') + i.id + '" data-retail="' + i.retail_price + '" data-wholesale="' + i.wholesale_price + '"' +
+      (data && data.item_id == i.id ? ' selected' : '') + '>'+ (i.bundle ? '(BUNDLE)' : '') + ' ' + (i.name || '') + '</option>'
     ).join('');
     tr.innerHTML =
       '<td><select class="form-select form-select-sm item-select" name="item">' +
@@ -145,7 +147,7 @@
   }
 
   document.getElementById('add-bundle-item-row').addEventListener('click', () => addRow(null));
-  bundleItems.forEach(bi => addRow({ item_id: bi.item_id, quantity: bi.quantity }));
+  bundleItems.forEach(bi => addRow({ item_id: bi.item_id || bi.bundle_included_id, quantity: bi.quantity }));
   if (bundleItems.length === 0) addRow(null);
 
   document.getElementById('bundle-form').addEventListener('submit', () => {

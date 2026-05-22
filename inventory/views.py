@@ -1,4 +1,6 @@
 import json
+from icecream import ic
+
 from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
 from django.db import transaction
@@ -127,10 +129,17 @@ class BundleCreateView(SuccessMessageMixin, CreateView):
         context = super().get_context_data(**kwargs)
         context["is_edit"] = False
         items = Item.objects.all().order_by("name")
-        context["items_json"] = json.dumps([
+        bundles = Bundle.objects.all().order_by("name")
+        bundles_json = [
+            {"id": b.id, "name": b.name, "retail_price": str(b.total_retail), "wholesale_price": str(b.total_wholesale), "bundle": True}
+            for b in bundles
+        ]
+        items_json = [
             {"id": i.id, "name": i.name, "retail_price": str(i.retail_price), "wholesale_price": str(i.wholesale_price)}
             for i in items
-        ])
+        ]
+
+        context["items_json"] = json.dumps(items_json + bundles_json)
         context["bundle_items_json"] = "[]"
         return context
 
@@ -145,11 +154,18 @@ class BundleCreateView(SuccessMessageMixin, CreateView):
             BundleItem.objects.filter(bundle=bundle).delete()
             for entry in item_ids:
                 if isinstance(entry, dict) and "item_id" in entry:
-                    BundleItem.objects.create(
-                        bundle=bundle,
-                        item_id=int(entry["item_id"]),
-                        quantity=int(entry.get("quantity", 1)),
-                    )
+                    if (item_id := entry["item_id"].split("-"))[0] == "bundle":
+                        BundleItem.objects.create(
+                            bundle=bundle,
+                            bundle_included_id=int(item_id[1]),
+                            quantity=Decimal(entry.get("quantity", 1))
+                        )
+                    else:
+                        BundleItem.objects.create(
+                            bundle=bundle,
+                            item_id=int(item_id[1]),
+                            quantity=Decimal(entry.get("quantity", 1)),
+                        )
         return super().form_valid(form)
 
 
@@ -165,21 +181,30 @@ class BundleUpdateView(SuccessMessageMixin, UpdateView):
         context = super().get_context_data(**kwargs)
         context["is_edit"] = True
         items = Item.objects.all().order_by("name")
-        context["items_json"] = json.dumps([
-            {"id": i.id, "name": i.name, "retail_price": str(i.retail_price), "wholesale_price": str(i.wholesale_price)}
+        bundles = Bundle.objects.all().order_by("name")
+        bundles_json = []
+        for b in bundles:
+            if b.id != self.object.id:
+                bundles_json += [
+                    {"id": b.id, "name": b.name, "retail_price": str(b.total_retail), "wholesale_price": str(b.total_wholesale), "bundle": True}
+                ]
+        items_json = [
+            {"id": i.id, "name": i.name, "retail_price": str(i.retail_price), "wholesale_price": str(i.wholesale_price), "bundle": False}
             for i in items
-        ])
+        ]
+        context["items_json"] = json.dumps((items_json + bundles_json), default=dec_to_native)
         bundle_items = list(
-            self.object.bundleitem_set.select_related("item").values(
-                "item_id", "quantity"
+            self.object.bundleitem_set.select_related("item", "bundle_included").values(
+
+                "item_id", "quantity", "bundle_included_id"
             )
         ) if self.object.pk else []
         context["bundle_items_json"] = json.dumps(bundle_items, default=dec_to_native)
+        ic(bundle_items)
         return context
 
     def form_valid(self, form):
         items_json = self.request.POST.get("items_json", "[]")
-        print(items_json)
         try:
             item_ids = json.loads(items_json)
         except (json.JSONDecodeError, TypeError):
@@ -187,13 +212,22 @@ class BundleUpdateView(SuccessMessageMixin, UpdateView):
         with transaction.atomic():
             bundle = form.save()
             BundleItem.objects.filter(bundle=bundle).delete()
+            # ic(item_ids)
             for entry in item_ids:
                 if isinstance(entry, dict) and "item_id" in entry:
-                    BundleItem.objects.create(
-                        bundle=bundle,
-                        item_id=int(entry["item_id"]),
-                        quantity=Decimal(entry.get("quantity", 1)),
-                    )
+                    if (item_id := entry["item_id"].split("-"))[0] == "bundle":
+                        BundleItem.objects.create(
+                            bundle=bundle,
+                            bundle_included_id=int(item_id[1]),
+                            quantity=Decimal(entry.get("quantity", 1))
+                        )
+                    else:
+                        BundleItem.objects.create(
+                            bundle=bundle,
+                            item_id=int(item_id[1]),
+                            quantity=Decimal(entry.get("quantity", 1)),
+                        )
+            ic(BundleItem.objects.filter(bundle=bundle))
         return super().form_valid(form)
 
 
