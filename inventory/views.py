@@ -24,6 +24,11 @@ from rest_framework.decorators import action
 from utils.stock_manager import StockManager
 from .choices import StockChangeReason
 
+def dec_to_native(obj):
+    if isinstance(obj, Decimal):
+        return float(obj)
+    raise TypeError
+
 
 class IndexView(TemplateView):
     """Inventory app dashboard."""
@@ -169,11 +174,12 @@ class BundleUpdateView(SuccessMessageMixin, UpdateView):
                 "item_id", "quantity"
             )
         ) if self.object.pk else []
-        context["bundle_items_json"] = json.dumps(bundle_items)
+        context["bundle_items_json"] = json.dumps(bundle_items, default=dec_to_native)
         return context
 
     def form_valid(self, form):
         items_json = self.request.POST.get("items_json", "[]")
+        print(items_json)
         try:
             item_ids = json.loads(items_json)
         except (json.JSONDecodeError, TypeError):
@@ -186,7 +192,7 @@ class BundleUpdateView(SuccessMessageMixin, UpdateView):
                     BundleItem.objects.create(
                         bundle=bundle,
                         item_id=int(entry["item_id"]),
-                        quantity=int(entry.get("quantity", 1)),
+                        quantity=Decimal(entry.get("quantity", 1)),
                     )
         return super().form_valid(form)
 

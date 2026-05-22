@@ -86,7 +86,7 @@
     const out = [];
     rows.forEach(r => {
       const itemId = r.getAttribute('data-item-id');
-      const qty = parseInt(r.querySelector('input[name="qty"]').value, 10) || 1;
+      const qty = parseFloat(r.querySelector('input[name="qty"]').value) || 1;
       if (itemId) out.push({ item_id: parseInt(itemId, 10), quantity: qty });
     });
     return out;
@@ -98,7 +98,7 @@
     rows.forEach(r => {
       const itemId = r.getAttribute('data-item-id');
       const item = items.find(i => i.id == itemId);
-      const qty = parseInt(r.querySelector('input[name="qty"]').value, 10) || 1;
+      const qty = parseFloat(r.querySelector('input[name="qty"]').value) || 1;
       if (item) {
         retail += parseFloat(item.retail_price || 0) * qty;
         wholesale += parseFloat(item.wholesale_price || 0) * qty;
@@ -120,7 +120,7 @@
     tr.innerHTML =
       '<td><select class="form-select form-select-sm item-select" name="item">' +
       '<option value="">— Select item —</option>' + options + '</select></td>' +
-      '<td class="text-end"><input type="number" class="form-control form-control-sm text-end" name="qty" min="1" value="' + (data ? data.quantity : 1) + '"></td>' +
+      '<td class="text-end"><input type="number" class="form-control form-control-sm text-end" name="qty" min="0" step="0.01" value="' + (data ? data.quantity : 1.00) + '"></td>' +
       '<td class="text-end line-retail">—</td>' +
       '<td class="text-end line-wholesale">—</td>' +
       '<td><button type="button" class="btn btn-sm btn-outline-danger remove-row">×</button></td>';
@@ -132,7 +132,7 @@
       const opt = select.options[select.selectedIndex];
       const retail = opt ? parseFloat(opt.getAttribute('data-retail') || 0) : 0;
       const wholesale = opt ? parseFloat(opt.getAttribute('data-wholesale') || 0) : 0;
-      const qty = parseInt(qtyInput.value, 10) || 1;
+      const qty = Number(parseFloat(qtyInput.value).toFixed(2)) || 1;
       tr.setAttribute('data-item-id', select.value || '');
       tr.querySelector('.line-retail').textContent = opt ? 'PKR ' + Math.round(retail * qty) : '—';
       tr.querySelector('.line-wholesale').textContent = opt ? 'PKR ' + Math.round(wholesale * qty) : '—';

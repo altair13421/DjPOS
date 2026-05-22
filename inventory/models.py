@@ -92,6 +92,10 @@ class Bundle(models.Model):
             for bi in self.bundleitem_set.select_related('item').all()
         )
 
+    @property
+    def requires(self):
+        return [bi.item_data for bi in self.bundleitem_set.select_related('item'.all())]
+
     def __str__(self):
         return f"Bundle: {self.name} (PKR {self.price})"
 
