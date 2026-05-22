@@ -114,10 +114,15 @@
     const tbody = document.getElementById('bundle-items-tbody');
     const tr = document.createElement('tr');
     tr.setAttribute('data-item-id', data ? data.item_id : '');
-    console.log(data);
+    tr.setAttribute('data-bundle-id', data ? data.bundle_included_id : '');
     const options = items.map(i =>
-      '<option value="' + (i.bundle ? 'bundle-': 'item-') + i.id + '" data-retail="' + i.retail_price + '" data-wholesale="' + i.wholesale_price + '"' +
-      (data && data.item_id == i.id ? ' selected' : '') + '>'+ (i.bundle ? '(BUNDLE)' : '') + ' ' + (i.name || '') + '</option>'
+      (i.bundle ?
+        '<option value="' + "bundle-" + i.id + '" data-retail="' + i.retail_price + '" data-wholesale="' + i.wholesale_price + '"' +
+        (data && data.bundle_included_id == i.id ? ' selected' : '') + '>'+ (i.bundle ? '(BUNDLE)' : '') + ' ' + (i.name || '') + '</option>'
+      :
+        '<option value="' + "item-" + i.id + '" data-retail="' + i.retail_price + '" data-wholesale="' + i.wholesale_price + '"' +
+        (data && data.item_id == i.id ? ' selected' : '') + '>'+ (i.bundle ? '(BUNDLE)' : '') + ' ' + (i.name || '') + '</option>'
+      )
     ).join('');
     tr.innerHTML =
       '<td><select class="form-select form-select-sm item-select" name="item">' +
@@ -147,7 +152,8 @@
   }
 
   document.getElementById('add-bundle-item-row').addEventListener('click', () => addRow(null));
-  bundleItems.forEach(bi => addRow({ item_id: bi.item_id || bi.bundle_included_id, quantity: bi.quantity }));
+  bundleItems.forEach(bi => addRow({ item_id: bi.item_id, quantity: bi.quantity, bundle_included_id: bi.bundle_included_id }));
+  console.log(bundleItems);
   if (bundleItems.length === 0) addRow(null);
 
   document.getElementById('bundle-form').addEventListener('submit', () => {

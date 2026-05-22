@@ -276,7 +276,7 @@
     window.addToCart = (id) => {
         const product = allProducts.find(p => p.id === id);
         if (!product) return;
-        const available = parseInt(product.quantity, 10) || 0;
+        const available = parseFloat(product.quantity) || 0;
         if (available <= 0) {
             showToast('Out of stock', (product.name || 'Item') + ' has no stock.');
             return;
