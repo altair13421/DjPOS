@@ -1,6 +1,12 @@
 from django.db import models
 from .choices import StockChangeReason
 
+# TODO:
+# - Add number_available property to bundle to count how many bundles can be bought
+# - this way it is easier in the select menu. It will give a basic stock.
+# - Suggestions Tab will give Suggestions on how many are low stocked. 
+#   Like chicken or Cheese is low stocked, please buy some more.
+
 class Category(models.Model):
     """Product category for inventory items."""
 
