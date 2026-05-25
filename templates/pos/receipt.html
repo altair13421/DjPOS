@@ -24,6 +24,7 @@
     .bold { font-weight: bold; }
     .divider { border-bottom: 1px dashed #000; margin: 6px 0; }
     .line { display: flex; justify-content: space-between; gap: 8px; margin: 2px 0; }
+    .subline { display: flex; justify-content: space-between; gap: 20px; margin: 3px 0; }
     .line .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .line .amt { flex-shrink: 0; }
     .total { margin-top: 6px; font-weight: bold; font-size: 14px; }
@@ -49,8 +50,9 @@
       <span class="name">{% if ci.bundle_id %}{{ ci.bundle.name }} (Bdl){% else %}{{ ci.item.name }}{% endif %} x{{ ci.quantity }}</span>
       <span class="amt">{{ currency }} {{ ci.line_total|floatformat:0 }}</span>
     </div>
-    {% endfor %}
+    {% include "pos/_bundle.html" with bundle=ci.bundle %}
     <div class="divider"></div>
+    {% endfor %}
     <div class="line total">
       <span>TOTAL</span>
       <span>{{ currency }} {{ sale.total|floatformat:0 }}</span>
@@ -63,6 +65,8 @@
     <button type="button" id="back-btn" onclick="goBackToSalePanel();">Back to Sale Panel</button>
   </p>
   <script>
+
+    console.log({{ci.bundle}});
     var isAutoPrint = window.location.search.indexOf('auto') !== -1;
     function goBackToSalePanel() {
       if (window.opener) {

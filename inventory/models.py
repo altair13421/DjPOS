@@ -105,7 +105,7 @@ class Bundle(models.Model):
                 items_available = bi.item.quantity // bi.quantity # Integer Division
                 possible_counts.append(items_available)
             if bi.bundle_included:
-                bundle_available = bi.bundle_included.how_many_available()
+                bundle_available = bi.bundle_included.how_many_available
                 possible_counts.append(bundle_available // bi.quantity)
         return min(possible_counts) if possible_counts else 0
 
@@ -161,11 +161,19 @@ class BundleItem(models.Model):
 
     def consume_stock(self):
         self.item.quantity -= self.quantity
-        for bundle in self.bundle_included:
+        for bundle in self.bundle_included.bundleitem_set.all():
             bundle.consume_stock()
         self.item.save()
         self.save()
 
+    @property
+    def retail_price(self):
+        price = 0
+        if self.item:
+            price += self.item.retail_price
+        elif self.bundle_included:
+            price += self.bundle_included.total_retail
+        return price
     def __str__(self):
         return f"{self.quantity} x {self.item.name if self.item else ''} {self.bundle_included.name if self.bundle_included else ''} in {self.bundle.name}"
 

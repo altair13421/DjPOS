@@ -1,0 +1,21 @@
+{# _bundle.html #}
+{% for bi in bundle.bundle_items %}
+  <div class="subline">
+    {% if bi.bundle.item %}
+      {% if not bi.bundle.item.is_ingredient %}
+        <span class="name">{{ bi.bundle.item.name }} x {{ bi.bundle.quantity }}</span>
+      {% endif %}
+      {% if bi.bundle.item.bundle_items %}
+        <div class="nested">
+          {% include "_bundle.html" with bundle=bi.bundle.item.bundle_items %}
+        </div>
+      {% endif %}
+    {% elif bi.bundle.bundle_included %}
+      {% if bi.bundle.bundle_included.items %}
+        <div class="nested">
+          {% include "_bundle.html" with bundle=bi.bundle.bundle_included.items %}
+        </div>
+      {% endif %}
+    {% endif %}
+  </div>
+{% endfor %}

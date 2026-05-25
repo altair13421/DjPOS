@@ -66,25 +66,45 @@ class StockManager:
                 cart_item.save(update_fields=['stock_after'])
             elif cart_item.bundle_id:
                 # Pro-rate the revenue for bundle items based on retail_price
-                bundle_items = cart_item.bundle.bundleitem_set.select_related('item').all()
-                total_retail = sum(bi.item.retail_price * bi.quantity for bi in bundle_items)
+                bundle_items = cart_item.bundle.bundleitem_set.select_related('item', 'bundle_included').all()
+                print([bi.retail_price for bi in bundle_items])
+                total_retail = sum([bi.retail_price for bi in bundle_items])
                 
                 for bi in bundle_items:
                     qty = bi.quantity * cart_item.quantity
                     
-                    if total_retail > 0:
-                        item_retail_share = (bi.item.retail_price * bi.quantity) / total_retail
-                    else:
-                        item_retail_share = 0 # Fallback if items are free
+                    if bi.item:
+                        if total_retail > 0:
+                            item_retail_share = (bi.item.retail_price * bi.quantity) / total_retail
+                        else:
+                            item_retail_share = 0 # Fallback if items are free
+                    if bi.bundle_included:
+                        if total_retail > 0:
+                            item_retail_share = (bi.bundle_included.total_retail * bi.quantity) / total_retail
+                        else:
+                            item_retail_share = 0
                         
                     revenue = (cart_item.unit_price * cart_item.quantity) * item_retail_share
-                    cost = bi.item.wholesale_price * qty
+                    if bi.item:
+                        cost = bi.item.wholesale_price * cart_item.quantity
+                    if bi.bundle_included:
+                        cost = bi.bundle_included.total_wholesale * cart_item.quantity
                     
-                    StockManager.deduct_stock(
-                        item=bi.item,
-                        quantity=qty,
-                        reason=StockChangeReason.SALE,
-                        note=f"Sale #{sale.id} (Bundle)",
-                        revenue=revenue,
-                        cost=cost
-                    )
+                    StockManager.bundle_deduct_stock(bi, cost, revenue, qty, sale)
+
+    @staticmethod
+    def bundle_deduct_stock(bundle, cost, revenue, qty, sale):
+        if bundle.item:
+            StockManager.deduct_stock(
+                item=bundle.item,
+                quantity=qty,
+                reason=StockChangeReason.SALE,
+                note=f"Sale #{sale.id} (Bundle)",
+                revenue=revenue,
+                cost=cost
+            )
+            return
+        if bundle.bundle_included:
+            StockManager.bundle_deduct_stock(bundle, cost, revenue, qty, sale)
+            return
+
