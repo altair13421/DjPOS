@@ -2,8 +2,6 @@ from django.db import models
 from .choices import StockChangeReason
 
 # TODO:
-# - Add number_available property to bundle to count how many bundles can be bought
-# - this way it is easier in the select menu. It will give a basic stock.
 # - Suggestions Tab will give Suggestions on how many are low stocked. 
 #   Like chicken or Cheese is low stocked, please buy some more.
 
@@ -66,6 +64,9 @@ class Item(models.Model):
             self.is_active = False
         super().save(*args, **kwargs)
 
+    @property
+    def is_available(self) -> bool:
+        return self.quantity >= 0
 
     @classmethod
     def counter(cls) -> int:
@@ -83,6 +84,30 @@ class Bundle(models.Model):
     active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    @property
+    def is_available(self):
+        bundle_items = BundleItem.objects.filter(bundle=self).select_related("item", "bundle_included")
+        bundle_available = True
+        for bi in bundle_items:
+            if bi.item and bi.item.is_available:
+                item_available = bi.item.quantity >= bi.quantity
+            if bi.bundle_included:
+                bundle_available = bundle_available and bi.bundle_included.is_available
+        return item_available and bundle_available
+
+    @property
+    def how_many_available(self):
+        bundle_items = BundleItem.objects.filter(bundle=self).select_related("item", "bundle_included")
+        possible_counts = []
+        for bi in bundle_items:
+            if bi.item and bi.item.is_available:
+                items_available = bi.item.quantity // bi.quantity # Integer Division
+                possible_counts.append(items_available)
+            if bi.bundle_included:
+                bundle_available = bi.bundle_included.how_many_available()
+                possible_counts.append(bundle_available // bi.quantity)
+        return min(possible_counts) if possible_counts else 0
 
     @property
     def total_wholesale(self):

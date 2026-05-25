@@ -208,7 +208,7 @@
                          <span class="badge bg-info">Bundle</span>
                          <span class="fw-bold text-primary">PKR ${Math.round(parseFloat(b.price || 0))}</span>
                     </div>
-                    <div class="small mt-1 text-muted">${canAdd ? 'In stock' : 'Insufficient component stock'}</div>
+                    <div class="small mt-1 text-muted">${canAdd ?  'In stock' : 'Insufficient component stock'}</div>
                 </div>
             </div>
         `;
@@ -218,7 +218,7 @@
     }
 
     function canAddBundle(bundleId, extraQty) {
-        const bundle = allBundles.find(b => b.id === bundleId);
+        /*const bundle = allBundles.find(b => b.id === bundleId);
         if (!bundle.items && !bundle.bundle_included) return false;
         const cartQty = cart.filter(c => c.type === 'bundle' && c.id === bundleId).reduce((s, c) => s + c.quantity, 0);
         const needQty = cartQty + extraQty;
@@ -229,7 +229,13 @@
             const available = product ? (parseFloat(product.quantity) || 0) : 0;
             if (available < need) return false;
         }
-        return true;
+        return true;*/
+      const bundle = allBundles.find(b => b.id === bundleId);
+      if (!bundle.is_available && bundle.available_count == 0) return false;
+      const cartQty = cart.filter(c => c.type === 'bundle' && c.id === bundleId).reduce((s, c) => s + c.quantity, 0);
+      const needQty = cartQty + extraQty;
+      if (bundle.available_count < needQty) return false;
+      return true;
     }
 
     function renderCart() {

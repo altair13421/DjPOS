@@ -36,23 +36,33 @@ class BundleSerializer(serializers.ModelSerializer):
     total_wholesale = serializers.SerializerMethodField()
     total_retail = serializers.SerializerMethodField()
 
-    def get_total_wholesale(self, obj):
-        return obj.total_wholesale
+    is_available = serializers.SerializerMethodField()
+    available_count = serializers.SerializerMethodField()
 
-    def get_total_retail(self, obj):
-        return obj.total_retail
     item_ids = serializers.ListField(
         child=serializers.DictField(),
         write_only=True,
         required=False
     )
 
+    def get_total_wholesale(self, obj):
+        return obj.total_wholesale
+
+    def get_total_retail(self, obj):
+        return obj.total_retail
+
+    def get_is_available(self, obj):
+        return obj.is_available
+
+    def get_available_count(self, obj):
+        return obj.how_many_available
+
     class Meta:
         model = Bundle
         fields = [
             'id', 'name', 'price', 'active', 'items',
             'total_wholesale', 'total_retail', 'item_ids',
-            'created_at', 'updated_at'
+            'created_at', 'updated_at', 'is_available', "available_count",
         ]
 
     def _item_ids_internal_value(self, item_ids):
