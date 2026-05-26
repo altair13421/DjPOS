@@ -1,5 +1,5 @@
 from django import forms
-from .models import Category, Item, Bundle
+from .models import Category, Item, Bundle, IngredientStock
 
 
 class CategoryForm(forms.ModelForm):
@@ -12,6 +12,14 @@ class CategoryForm(forms.ModelForm):
                 attrs={"class": "form-control", "rows": 3, "placeholder": "Optional description"}
             ),
         }
+
+class IngredientStockForm(forms.ModelForm):
+    class Meta:
+        model = IngredientStock
+        fields = [
+            "name", "quantity", 
+            "wholesale_price", "retail_price",
+        ]
 
 
 class ItemForm(forms.ModelForm):

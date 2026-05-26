@@ -5,6 +5,7 @@ class Category(models.Model):
     """Product category for inventory items."""
 
     name = models.CharField(max_length=255)
+    identifier = models.CharField(max_length=100, unique=True)
     description = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -16,13 +17,28 @@ class Category(models.Model):
     def __str__(self):
         return f"Category #{self.pk} - {self.name}"
 
+    def save(self, *args, **kwargs):
+        if self.identifier == "":
+            self.identifier = self.name.upper()[:4]
+        super().save(*args, **kwargs)
+
+class IngredientStock(models.Model):
+    """The Actual Ingredients go here, Hence The STOCK"""
+
+    name = models.CharField(max_length=255)
+    quantity = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    wholesale_price = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    retail_price = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
 
 class Item(models.Model):
     """Inventory item (product)."""
 
     name = models.CharField(max_length=255)
     sku = models.CharField(
-        max_length=100, unique=True, blank=True
+        max_length=100, unique=True
     )  # Stock Keeping Unit. A unique identifier for the item.
     category = models.ForeignKey(
         Category,
@@ -31,12 +47,26 @@ class Item(models.Model):
         blank=True,
         related_name="items",
     )
-    quantity = models.PositiveIntegerField(default=0)
     cost_price = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     retail_price = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     wholesale_price = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    ingredients = ManyToManyField(IngredientStock, through="ItemIngredients", related_name="ingredients")
+
+    @property
+    def total_wholesale(self):
+        return sum([ing.ingredient.wholesale_price for ing in self.itemingredients_set.select_related('ingredient').all()])
+
+    @classmethod
+    def count(cls):
+        return cls.objects.count()
+
+    def save(self, *args, **kwargs):
+        if self.sku == "":
+            self.sku = f"{self.category.identifier}-0{self.count()}"
+        super().save(*args, **kwargs)
 
     class Meta:
         ordering = ["-created_at"]
@@ -44,6 +74,13 @@ class Item(models.Model):
     def __str__(self):
         return f"Item #{self.pk} - {self.name}"
 
+class ItemIngredients(models.Model):
+    ingredient = models.ForeignKey(IngredientStock, on_delete=models.CASCADE)
+    item = models.ForeignKey(Item, on_delete=models.CASCADE)
+    quantity = models.DecimalField(default=1)
+
+    def __str__(self):
+        return f"{self.ingredient.name} x {self.quantity} in {self.item.name}"
 
 class Bundle(models.Model):
     """A bundle of items sold together."""
@@ -76,7 +113,7 @@ class BundleItem(models.Model):
     """Intermediate model for Bundle-Item relationship."""
     bundle = models.ForeignKey(Bundle, on_delete=models.CASCADE)
     item = models.ForeignKey(Item, on_delete=models.CASCADE)
-    quantity = models.PositiveIntegerField(default=1)
+    quantity = models.DecimalField(default=1)
 
     def __str__(self):
         return f"{self.quantity} x {self.item.name} in {self.bundle.name}"

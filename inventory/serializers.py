@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Category, Item, Bundle, BundleItem, StockLog
+from .models import Category, Item, Bundle, BundleItem, StockLog, IngredientStock, ItemIngredient
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -7,13 +7,33 @@ class CategorySerializer(serializers.ModelSerializer):
         model = Category
         fields = ['id', 'name', 'description', 'created_at', 'updated_at']
 
+class IngredientStockSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = IngredientStock
+        fields = [
+            "id", "name", "quantity",
+            "retail_price", "wholesale_price",
+            "created_at", "updated_at"
+        ]
+
+class ItemIngredientSerializer(serializers.ModelSerializer):
+    ingredient_name = serializers.ReadOnlyField(source="ingredient.name")
+    retail_price = serializers.DecimalField(source="ingredient.retail_price", read_only=True)
+    wholesale_price = serializers.DecimalField(source="ingredient.wholesale_price", read_only=True)
+
+    class Meta:
+        model = ItemIngredient
+        fields = ["id", "item", "ingredient", "ingredient_name", "quantity", "wholesale_price", "retail_price"]
 
 class ItemSerializer(serializers.ModelSerializer):
+    ingredients = ItemIngredientSerializer(source="itemingredient_set", many=True, read_only=True)
+
     class Meta:
         model = Item
         fields = [
             'id', 'name', 'sku', 'category', 'quantity',
             'retail_price', 'wholesale_price', 'created_at', 'updated_at',
+            "ingredients"
         ]
 
 

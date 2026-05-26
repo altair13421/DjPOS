@@ -17,9 +17,17 @@ from rest_framework import viewsets
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
-from .models import Category, Item, Bundle, BundleItem, StockLog
-from .serializers import CategorySerializer, ItemSerializer, BundleSerializer, StockLogSerializer
-from .forms import CategoryForm, ItemForm, BundleForm
+from .models import Category, Item, Bundle, BundleItem, StockLog, IngredientStock, ItemIngredient
+from .serializers import (
+    CategorySerializer,
+    ItemSerializer,
+    BundleSerializer,
+    StockLogSerializer,
+    IngredientStockSerializer,
+    ItemIngredientSerializer
+
+)
+from .forms import CategoryForm, ItemForm, BundleForm, IngredientStockForm
 from rest_framework.decorators import action
 from utils.stock_manager import StockManager
 from .choices import StockChangeReason
@@ -66,6 +74,39 @@ class CategoryUpdateView(SuccessMessageMixin, UpdateView):
         return context
 
 
+# ---- IngredientStock UI ----
+
+class StockListView(ListView):
+    model = IngredientStock
+    queryset = IngredientStock.objects.all()
+    context_object_name = "ingredients"
+    template_name = 'inventory/stock_list.html'
+
+class StockCreateView(SuccessMessageMixin, CreateView):
+    model = IngredientStock
+    form_class = IngredientStockForm
+    template_name = 'inventory/stock_form.html'
+    success_url = reverse_lazy("inventory:stock_list")
+    success_message = "Stock Created"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["is_edit"] = False
+        return context
+
+class StockUpdateView(SuccessMessageMixin, UpdateView):
+    model = IngredientStock
+    form_class = IngredientStockForm
+    template_name = 'inventory/stock_form.html'
+    success_url = reverse_lazy("inventory:stock_list")
+    success_message = "Stock Updated."
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["is_edit"] = True
+        return context
+
+
 # ——— Item UI (add category on same page) ———
 
 class ItemListView(ListView):
@@ -85,8 +126,31 @@ class ItemCreateView(SuccessMessageMixin, CreateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["is_edit"] = False
+        ingredients = IngredientStock.objects.all().order_by("name")
+        context["ingredients_json"] = json.dumps([
+            {"id": ing.id, "name": ing.name, "retail_price": str(ing.retail_price), "wholesale_price": str(ing.wholesale_price)}
+            for ing in ingredients
+        ])
         return context
 
+    def form_valid(self, form):
+        ingredients_json = self.request.POST.get("ingredients_json", "[]")
+        try:
+            ingredient_ids = json.loads(ingredients_json)
+        except (json.JSONDecodeError, TypeError):
+            ingredients_ids = []
+        with transaction.atomic():
+            item = form.save()
+            ItemIngredient.objects.filter(item=item).delete()
+            for entry in ingredient_ids:
+                if isinstance(entry, dict) and "ingredient_id" in entry:
+                    ItemIngredient.objects.create(
+                        item=item,
+                        ingredient_id=int(entry["ingredient_id"]),
+                        quantity=Decimal(entry.get("quantity", 1)),
+                    )
+
+        return super().form_valid(form)
 
 class ItemUpdateView(SuccessMessageMixin, UpdateView):
     model = Item
@@ -99,7 +163,37 @@ class ItemUpdateView(SuccessMessageMixin, UpdateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["is_edit"] = True
+        ingredients = IngredientStock.objects.all().order_by("name")
+        context["ingredients_json"] = json.dumps([
+            {"id": ing.id, "name": ing.name, "retail_price": str(ing.retail_price), "wholesale_price": str(ing.wholesale_price)}
+            for ing in ingredients
+        ])
+        item_ingredients = list(
+            self.objects.itemingredient_set.select_related("ingredient").values(
+                "ingredient_id", "quantity"
+            )
+        ) if self.object.pk else []
+        context["item_ingredients_json"] = json.dumps(item_ingredients)
         return context
+
+    def form_valid(self, form):
+        ingredients_json = self.request.POST.get("ingredients_json", "[]")
+        try:
+            ingredient_ids = json.loads(ingredients_json)
+        except (json.JSONDecodeError, TypeError):
+            ingredients_ids = []
+        with transaction.atomic():
+            item = form.save()
+            ItemIngredient.objects.filter(item=item).delete()
+            for entry in ingredient_ids:
+                if isinstance(entry, dict) and "ingredient_id" in entry:
+                    ItemIngredient.objects.create(
+                        item=item,
+                        ingredient_id=int(entry["ingredient_id"]),
+                        quantity=Decimal(entry.get("quantity", 1)),
+                    )
+
+        return super().form_valid(form)
 
 
 # ——— Bundle UI ———
