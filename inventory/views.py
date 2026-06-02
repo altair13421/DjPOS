@@ -79,7 +79,7 @@ class CategoryUpdateView(SuccessMessageMixin, UpdateView):
 class StockListView(ListView):
     model = IngredientStock
     queryset = IngredientStock.objects.all()
-    context_object_name = "ingredients"
+    context_object_name = "stock"
     template_name = 'inventory/stock_list.html'
 
 class StockCreateView(SuccessMessageMixin, CreateView):
@@ -93,6 +93,26 @@ class StockCreateView(SuccessMessageMixin, CreateView):
         context = super().get_context_data(**kwargs)
         context["is_edit"] = False
         return context
+
+    def form_valid(self, form):
+        stock = request.POST
+        is_item = stock.get('is_item', False)
+        ingredient = form.save()
+        if is_item:
+            item = Item.objects.create(
+                name=ingredient.name,
+                category=Category.objects.get_or_create(name="ItemFromStock"),
+                retail_price=ingredient.retail_price,
+                wholesale_price=ingredient.retail_price
+            )
+            ItemIngredient.objects.get_or_create(
+                item=item,
+                ingredient=ingredient,
+                quantity=stock.get("consumption")
+            )
+
+        return super().form_valid(form)
+
 
 class StockUpdateView(SuccessMessageMixin, UpdateView):
     model = IngredientStock
@@ -339,6 +359,20 @@ class InventoryStatsView(TemplateView):
 
 
 # ——— API (DRF) ———
+
+class IngredientStockViewSet(viewsets.ModelViewSet):
+    queryset = IngredientStock.objects.all()
+    serializer_class = IngredientStockSerializer
+
+    @action(detail=True, methods=['post'])
+    def restock(self, request, pk=None):
+        stock_item = self.get_object()
+        quantity = int(request.data.get('quantity', 0))
+        reason = request.data.get('reason', StockChangeReason.RESTOCK)
+        note = request.data.get('note', 'note')
+
+        StockManager.restock_item(item, quantity, reason, note)
+        return Response({'status': 'restocked', 'new_quantity': stock_item.quantity})
 
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()

@@ -1,11 +1,11 @@
 from django.db import transaction
-from inventory.models import StockLog
+from inventory.models import StockLog, IngredientStock
 from inventory.choices import StockChangeReason
 
 class StockManager:
     @staticmethod
     @transaction.atomic
-    def deduct_stock(item, quantity, reason=StockChangeReason.SALE, note="", revenue=0, cost=0):
+    def deduct_stock(item: IngredientStock, quantity, reason=StockChangeReason.SALE, note="", revenue=0, cost=0):
         """Deduct stock from an item."""
         if item.quantity < quantity:
             raise ValueError(f"Insufficient stock for {item.name}. Required: {quantity}, Available: {item.quantity}")
@@ -24,7 +24,7 @@ class StockManager:
 
     @staticmethod
     @transaction.atomic
-    def restock_item(item, quantity, reason=StockChangeReason.RESTOCK, note=""):
+    def restock_item(item: IngredientStock, quantity, reason=StockChangeReason.RESTOCK, note=""):
         """Add stock to an item."""
         item.quantity += quantity
         item.save()

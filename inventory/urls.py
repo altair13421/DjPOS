@@ -9,6 +9,11 @@ urlpatterns = [
     path("categories/", views.CategoryListView.as_view(), name="category_list"),
     path("categories/new/", views.CategoryCreateView.as_view(), name="category_create"),
     path("categories/<int:pk>/edit/", views.CategoryUpdateView.as_view(), name="category_edit"),
+    # ---- Stock
+    path('stock/', views.StockListView.as_view(), name='stock_list'),
+    path('stock/new/', views.StockCreateView.as_view(), name="stock_create"),
+    path('stock/<int:pk>/edit/', views.StockUpdateView.as_view(), name="stock_edit"),
+
     path("items/", views.ItemListView.as_view(), name="item_list"),
     path("items/new/", views.ItemCreateView.as_view(), name="item_create"),
     path("items/<int:pk>/edit/", views.ItemUpdateView.as_view(), name="item_edit"),

@@ -39,12 +39,11 @@ class ItemForm(forms.ModelForm):
 
     class Meta:
         model = Item
-        fields = ["name", "sku", "category", "quantity", "retail_price", "wholesale_price"]
+        fields = ["name", "sku", "category", "retail_price", "wholesale_price"]
         widgets = {
             "name": forms.TextInput(attrs={"class": "form-control", "placeholder": "Item name"}),
             "sku": forms.TextInput(attrs={"class": "form-control", "placeholder": "SKU (optional)"}),
             "category": forms.Select(attrs={"class": "form-select"}),
-            "quantity": forms.NumberInput(attrs={"class": "form-control", "min": 0}),
             "retail_price": forms.NumberInput(
                 attrs={"class": "form-control", "min": 0, "step": "1"}
             ),

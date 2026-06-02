@@ -18,8 +18,8 @@ class IngredientStockSerializer(serializers.ModelSerializer):
 
 class ItemIngredientSerializer(serializers.ModelSerializer):
     ingredient_name = serializers.ReadOnlyField(source="ingredient.name")
-    retail_price = serializers.DecimalField(source="ingredient.retail_price", read_only=True)
-    wholesale_price = serializers.DecimalField(source="ingredient.wholesale_price", read_only=True)
+    retail_price = serializers.DecimalField(source="ingredient.retail_price", read_only=True, max_digits=12, decimal_places=2)
+    wholesale_price = serializers.DecimalField(source="ingredient.wholesale_price", read_only=True, max_digits=12, decimal_places=2)
 
     class Meta:
         model = ItemIngredient
@@ -33,7 +33,7 @@ class ItemSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'name', 'sku', 'category', 'quantity',
             'retail_price', 'wholesale_price', 'created_at', 'updated_at',
-            "ingredients"
+            "ingredients", 'has_ingredients',
         ]
 
 

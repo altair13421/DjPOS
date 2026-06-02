@@ -53,11 +53,15 @@ class Item(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    ingredients = ManyToManyField(IngredientStock, through="ItemIngredients", related_name="ingredients")
+    ingredients = models.ManyToManyField(IngredientStock, through="ItemIngredient", related_name="ingredients")
 
     @property
     def total_wholesale(self):
         return sum([ing.ingredient.wholesale_price for ing in self.itemingredients_set.select_related('ingredient').all()])
+
+    @property
+    def has_ingredients(self):
+        return self.itemingredients_set.count() > 0
 
     @classmethod
     def count(cls):
@@ -74,10 +78,10 @@ class Item(models.Model):
     def __str__(self):
         return f"Item #{self.pk} - {self.name}"
 
-class ItemIngredients(models.Model):
+class ItemIngredient(models.Model):
     ingredient = models.ForeignKey(IngredientStock, on_delete=models.CASCADE)
     item = models.ForeignKey(Item, on_delete=models.CASCADE)
-    quantity = models.DecimalField(default=1)
+    quantity = models.DecimalField(default=1, max_digits=12, decimal_places=2)
 
     def __str__(self):
         return f"{self.ingredient.name} x {self.quantity} in {self.item.name}"
@@ -113,7 +117,7 @@ class BundleItem(models.Model):
     """Intermediate model for Bundle-Item relationship."""
     bundle = models.ForeignKey(Bundle, on_delete=models.CASCADE)
     item = models.ForeignKey(Item, on_delete=models.CASCADE)
-    quantity = models.DecimalField(default=1)
+    quantity = models.DecimalField(default=1, max_digits=12, decimal_places=2,)
 
     def __str__(self):
         return f"{self.quantity} x {self.item.name} in {self.bundle.name}"
@@ -121,7 +125,7 @@ class BundleItem(models.Model):
 
 class StockLog(models.Model):
     """Log of stock changes."""
-    item = models.ForeignKey(Item, on_delete=models.CASCADE, related_name='stock_logs')
+    item = models.ForeignKey(IngredientStock, on_delete=models.CASCADE, related_name='stock_logs')
     change_quantity = models.IntegerField()  # Positive for add, negative for remove
     reason = models.CharField(max_length=50, choices=StockChangeReason.choices)
     revenue = models.DecimalField(max_digits=12, decimal_places=2, default=0)
