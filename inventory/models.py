@@ -5,7 +5,7 @@ class Category(models.Model):
     """Product category for inventory items."""
 
     name = models.CharField(max_length=255)
-    identifier = models.CharField(max_length=100, unique=True)
+    identifier = models.CharField(max_length=100, unique=True, default="")
     description = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
