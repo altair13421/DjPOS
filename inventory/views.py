@@ -1,3 +1,4 @@
+from icecream import ic
 import json
 from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
@@ -91,17 +92,24 @@ class StockCreateView(SuccessMessageMixin, CreateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context["categories"] = Category.objects.all()
         context["is_edit"] = False
         return context
 
     def form_valid(self, form):
-        stock = request.POST
+        stock = self.request.POST
+        ic(stock)
+        return super().form_valid(form)
         is_item = stock.get('is_item', False)
         ingredient = form.save()
         if is_item:
+            new_category_name = stock.get("new_category_name","")
+            category_existing = int(stock.get("category", "0")) # is category id
+
+            if category
             item = Item.objects.create(
                 name=ingredient.name,
-                category=Category.objects.get_or_create(name="ItemFromStock"),
+                category=Category.objects.get_or_create(name=stock.get("category_name","ItemFromStock")),
                 retail_price=ingredient.retail_price,
                 wholesale_price=ingredient.retail_price
             )
@@ -331,7 +339,7 @@ class InventoryStatsView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         
-        items = list(Item.objects.annotate(
+        items = list(IngredientStock.objects.annotate(
             total_sold_raw=Coalesce(
                 Sum('stock_logs__change_quantity', filter=Q(stock_logs__reason=StockChangeReason.SALE)),
                 0
@@ -348,7 +356,7 @@ class InventoryStatsView(TemplateView):
                 Sum('stock_logs__cost', filter=Q(stock_logs__reason=StockChangeReason.SALE)),
                 Decimal('0.00')
             ) # We only consider the cost at the time of sale.
-        ).select_related('category').order_by('name'))
+        ).order_by('name'))
         
         for item in items:
             item.total_sold = -item.total_sold_raw if item.total_sold_raw else 0

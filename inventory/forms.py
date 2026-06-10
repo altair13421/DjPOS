@@ -20,6 +20,17 @@ class IngredientStockForm(forms.ModelForm):
             "name", "quantity", 
             "wholesale_price", "retail_price",
         ]
+        widgets = {
+            "name": forms.TextInput(attrs={"class": "form-control", "placeholder": "StockItem Name"}),
+            "quantity": forms.NumberInput(attrs={'class': 'form-control', "step": "0.01", "min": 0.00}),
+            "retail_price": forms.NumberInput(
+                attrs={"class": "form-control", "min": 0, "step": "1"}
+            ),
+            "wholesale_price": forms.NumberInput(
+                attrs={"class": "form-control", "min": 0, "step": "1"}
+            ),
+
+        }
 
 
 class ItemForm(forms.ModelForm):
