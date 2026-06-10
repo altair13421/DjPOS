@@ -47,9 +47,9 @@
           <div class="col-md-6">
             <label for="id_is_item">Is Item</label>
             <input type="checkbox" name="id_is_item">
-          </div id="item-form-generate">
-          <!-- ItemForm will Appear here. -->
-          <div>
+          </div>
+          <div id="item-form-generate">
+            <!-- ItemForm will Appear here. -->
           </div>
         </div>
         <div class="d-flex gap-2 mt-4">
@@ -64,11 +64,39 @@
 
 {% block extrajs %}
 
-const item_form = `
-<div>
+const itemForm = `
+<div class="col-md-6">
   <label class="form-label" for="id_quantity_consumed">Quantity Consumption</label>
   <input class="form-control" type="number" name="id_quantity_consumed" value="0.00" step="0.01">
 </div>
-`
+<div class="col-md-6">
+  <label class="form-label" for="id_sku">SKU (optional)</label>
+  <input class="form-control" type="text" name="id_sku" value="">
+</div>
+<div class="col-12">
+  <label for="id_category" class="form-label">Category (existing)</label>
+  <select name="id_category" class="form-control", id="id_category">
+    {% for category in categories %}
+      <option value="{{ category.id }}">{{ category.name }}</option>
+    {% empty %}
+      <option value="0">No category added</option>
+    {% endfor %}
+  </select>
+</div>
+  <div class="col-12">
+    <label for="id_new_category_name" class="form-label">{{ form.new_category_name.label }}</label>
+    <input type="text" name="id_new_category_name" value="">
+  <div class="form-text">Leave blank if you selected a category above. If you type a name here, a new category will be created and assigned to this item.</div>
+</div>
+`;
+
+const emptyForm = "";
+const itemCheckBox = document.querySelector(input[name='id_is_item']);
+const itemFormDiv = document.getElementById("item-form-generate");
+
+itemCheckBox.addEventListener('change', () => {
+  itemFormDiv.innerHTML = itemCheckBox.checked ? itemForm : emptyForm;
+});
+
 
 {% endblock %}
