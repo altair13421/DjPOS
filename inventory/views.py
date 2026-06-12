@@ -34,6 +34,12 @@ from utils.stock_manager import StockManager
 from .choices import StockChangeReason, StockAddedAs
 
 
+class DecimalEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, Decimal):
+            return float(o)   # or str(o) to preserve exact representation
+        return super().default(o)
+
 class IndexView(TemplateView):
     """Inventory app dashboard."""
     template_name = "inventory/index.html"
@@ -126,7 +132,7 @@ class StockCreateView(SuccessMessageMixin, CreateView):
                 itemIng = ItemIngredient.objects.get_or_create(
                     item=item,
                     ingredient=ingredient,
-                    quantity=stock.get("consumption")
+                    quantity=stock.get("quantity_consumed", 1)
                 )
 
         return super().form_valid(form)
@@ -169,6 +175,7 @@ class ItemCreateView(SuccessMessageMixin, CreateView):
             {"id": ing.id, "name": ing.name, "retail_price": str(ing.retail_price), "wholesale_price": str(ing.wholesale_price)}
             for ing in ingredients
         ])
+        context["items_json"] = '[]'
         return context
 
     def form_valid(self, form):
@@ -207,11 +214,11 @@ class ItemUpdateView(SuccessMessageMixin, UpdateView):
             for ing in ingredients
         ])
         item_ingredients = list(
-            self.objects.itemingredient_set.select_related("ingredient").values(
+            self.object.itemingredient_set.select_related("ingredient").values(
                 "ingredient_id", "quantity"
             )
         ) if self.object.pk else []
-        context["item_ingredients_json"] = json.dumps(item_ingredients)
+        context["items_json"] = json.dumps(item_ingredients, cls=DecimalEncoder)
         return context
 
     def form_valid(self, form):
