@@ -125,10 +125,13 @@ class StockCreateView(SuccessMessageMixin, CreateView):
                     category, exists_ = Category.objects.get_or_create(name="ItemFromStock")
                 item = Item.objects.create(
                     name=ingredient.name,
+                    sku=stock.get("sku", ""),
                     category=category,
                     retail_price=ingredient.retail_price,
                     wholesale_price=ingredient.wholesale_price
                 )
+                ingredient.item_id = item.id
+                ingredient.save()
                 itemIng = ItemIngredient.objects.get_or_create(
                     item=item,
                     ingredient=ingredient,
@@ -148,7 +151,44 @@ class StockUpdateView(SuccessMessageMixin, UpdateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["is_edit"] = True
+        context['ingredient'] = self.get_object()
+        if context['ingredient'].added_as == StockAddedAs.ITEM:
+            context['categories'] = Category.objects.all()
+            context['item'] = Item.objects.get(id=context['ingredient'].item_id)
+            item_ingredient = ItemIngredient.objects.filter(
+                item=context["item"],
+                ingredient=context["ingredient"],
+            ).first()
+            context["quantity_consumed"] = item_ingredient.quantity
         return context
+
+    def form_valid(self, form):
+        stock = self.request.POST
+        is_item = stock.get('is_item', "off")
+        with transaction.atomic():
+            ingredient = form.save()
+            if is_item == "on":
+                ingredient.added_as = StockAddedAs.ITEM
+                category_existing: int = int(stock.get("category", "0")) # is category id
+
+                category: Category | None = Category.objects.none
+                if category_existing != 0:
+                    category = Category.objects.get(id=category_existing)
+                
+                item = Item.objects.get(id=stock.get("item_id"))
+                item.wholesale_price = ingredient.wholesale_price
+                item.retail_price = ingredient.retail_price
+                item.sku = stock.get("sku", item.sku)
+                item.save()
+                itemIng, _ = ItemIngredient.objects.get_or_create(
+                    item=item,
+                    ingredient=ingredient,
+                )
+                itemIng.quantity=stock.get("quantity_consumed", 1)
+                itemIng.save()
+        return super().form_valid(form)
+
+
 
 
 # ——— Item UI (add category on same page) ———

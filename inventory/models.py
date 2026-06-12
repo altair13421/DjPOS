@@ -37,6 +37,10 @@ class IngredientStock(models.Model):
         choices=StockAddedAs.choices,
         default=StockAddedAs.STOCK,
     )
+    item_id = models.IntegerField(
+        default=0
+    )
+
 
 class Item(models.Model):
     """Inventory item (product)."""

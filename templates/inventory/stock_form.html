@@ -46,7 +46,7 @@
         <div class="row gap-2">
           <div class="col-md-6">
             <label for="is_item">Is Item</label>
-            <input type="checkbox" class="checkbox" name="is_item">
+            <input type="checkbox" class="checkbox" name="is_item" {% if ingredient.added_as == "ITEM" %} checked {% endif %}>
           </div>
           <div id="item-form-generate">
             <!-- ItemForm will Appear here. -->
@@ -67,25 +67,44 @@
 const itemForm = `
 <div class="col-md-6">
   <label class="form-label" for="quantity_consumed">Quantity Consumption</label>
-  <input class="form-control" type="number" name="quantity_consumed" id="id_quantity_consumed" value="0.00" step="0.01">
+  <input class="form-control" type="number" name="quantity_consumed" id="id_quantity_consumed" {% if ingredient.added_as == "ITEM" %}
+  value="{{ quantity_consumed }}"
+  {% else %}
+  value="0.00"
+  {% endif %} step="0.01">
 </div>
 <div class="col-md-6">
   <label class="form-label" for="sku">SKU (optional)</label>
-  <input class="form-control" type="text" name="sku" id="id_sku" value="">
+  <input class="form-control" type="text" name="sku" id="id_sku" {% if ingredient.added_as == "ITEM" %}
+  value="{{ item.sku }}"
+  {% else %}
+  value=""
+  {% endif %}>
 </div>
 <div class="col-12">
   <label for="category" class="form-label">Category (existing)</label>
   <select name="category" class="form-control" id="id_category">
     {% for category in categories %}
-      <option value="{{ category.id }}">{{ category.name }}</option>
+      <option value="{{ category.id }}" {% if ingredient.added_as == "ITEM" %}
+        {% if category.id == item.category.id %}
+          selected
+        {% endif %}
+      {% endif %} >{{ category.name }}</option>
     {% empty %}
       <option value="0">No category added</option>
     {% endfor %}
   </select>
 </div>
+
+{% if ingredient.added_as == "ITEM" %}
+  <input type="hidden" name="item_id" value="{{item.id}}">
+{% endif %}
+
 <div class="col-12">
   <label for="new_category_name" class="form-label">New Category</label>
-  <input type="text" name="new_category_name" id="new_category_name" class="form-control" value="">
+  <input type="text" name="new_category_name" id="new_category_name" class="form-control" value="" {% if ingredient.added_as == "ITEM" %}
+    disabled
+  {% endif %}  >
   <div class="form-text">Leave blank if you selected a category above. If you type a name here, a new category will be created and assigned to this item.</div>
 </div>
 `;
@@ -93,6 +112,10 @@ const itemForm = `
 const emptyForm = "";
 const itemCheckBox = document.querySelector("input[name='is_item']");
 const itemFormDiv = document.getElementById("item-form-generate");
+
+if (itemCheckBox.checked) {
+  itemFormDiv.innerHTML = itemForm;
+}
 
 itemCheckBox.addEventListener('change', () => {
   itemFormDiv.innerHTML = itemCheckBox.checked ? itemForm : emptyForm;
