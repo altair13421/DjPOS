@@ -81,7 +81,7 @@ class Item(models.Model):
 class ItemIngredient(models.Model):
     ingredient = models.ForeignKey(IngredientStock, on_delete=models.CASCADE)
     item = models.ForeignKey(Item, on_delete=models.CASCADE)
-    quantity = models.DecimalField(default=1, max_digits=12, decimal_places=2)
+    quantity = models.DecimalField(default=1, max_digits=12, decimal_places=2, null=True)
 
     def __str__(self):
         return f"{self.ingredient.name} x {self.quantity} in {self.item.name}"

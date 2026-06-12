@@ -98,26 +98,35 @@ class StockCreateView(SuccessMessageMixin, CreateView):
 
     def form_valid(self, form):
         stock = self.request.POST
-        ic(stock)
-        return super().form_valid(form)
-        is_item = stock.get('is_item', False)
-        ingredient = form.save()
-        if is_item:
-            new_category_name = stock.get("new_category_name","")
-            category_existing = int(stock.get("category", "0")) # is category id
+        is_item = stock.get('is_item', "off")
+        with transaction.atomic():
+            ingredient = form.save()
+            if is_item == "on":
+                new_category_name: str = stock.get("new_category_name", "")
+                category_existing: int = int(stock.get("category", "0")) # is category id
 
-            if category
-            item = Item.objects.create(
-                name=ingredient.name,
-                category=Category.objects.get_or_create(name=stock.get("category_name","ItemFromStock")),
-                retail_price=ingredient.retail_price,
-                wholesale_price=ingredient.retail_price
-            )
-            ItemIngredient.objects.get_or_create(
-                item=item,
-                ingredient=ingredient,
-                quantity=stock.get("consumption")
-            )
+                category: Category | None = Category.objects.none
+                if category_existing != 0 and new_category_name != "":
+                    ingredient.delete()
+                    return super().form_invalid(form)
+                if category_existing != 0:
+                    category = Category.objects.get(id=category_existing)
+                elif new_category_name != "":
+                    category, exists_ = Category.objects.get_or_create(name=new_category_name)
+                
+                if not category:
+                    category, exists_ = Category.objects.get_or_create(name="ItemFromStock")
+                item = Item.objects.create(
+                    name=ingredient.name,
+                    category=category,
+                    retail_price=ingredient.retail_price,
+                    wholesale_price=ingredient.wholesale_price
+                )
+                itemIng = ItemIngredient.objects.get_or_create(
+                    item=item,
+                    ingredient=ingredient,
+                    quantity=stock.get("consumption")
+                )
 
         return super().form_valid(form)
 

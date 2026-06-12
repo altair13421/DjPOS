@@ -45,8 +45,8 @@
         </div>
         <div class="row gap-2">
           <div class="col-md-6">
-            <label for="id_is_item">Is Item</label>
-            <input type="checkbox" class="checkbox" name="id_is_item">
+            <label for="is_item">Is Item</label>
+            <input type="checkbox" class="checkbox" name="is_item">
           </div>
           <div id="item-form-generate">
             <!-- ItemForm will Appear here. -->
@@ -85,13 +85,13 @@ const itemForm = `
 </div>
 <div class="col-12">
   <label for="new_category_name" class="form-label">New Category</label>
-  <input type="text" name="id_new_category_name" id="new_category_name" class="form-control" value="">
+  <input type="text" name="new_category_name" id="new_category_name" class="form-control" value="">
   <div class="form-text">Leave blank if you selected a category above. If you type a name here, a new category will be created and assigned to this item.</div>
 </div>
 `;
 
 const emptyForm = "";
-const itemCheckBox = document.querySelector("input[name='id_is_item']");
+const itemCheckBox = document.querySelector("input[name='is_item']");
 const itemFormDiv = document.getElementById("item-form-generate");
 
 itemCheckBox.addEventListener('change', () => {
