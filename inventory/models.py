@@ -1,5 +1,5 @@
 from django.db import models
-from .choices import StockChangeReason
+from .choices import StockChangeReason, StockAddedAs
 
 class Category(models.Model):
     """Product category for inventory items."""
@@ -31,7 +31,12 @@ class IngredientStock(models.Model):
     retail_price = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
+    added_as = models.CharField(
+        max_length=32,
+        null=True,
+        choices=StockAddedAs.choices,
+        default=StockAddedAs.STOCK,
+    )
 
 class Item(models.Model):
     """Inventory item (product)."""

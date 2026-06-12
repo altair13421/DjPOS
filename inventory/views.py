@@ -31,7 +31,7 @@ from .serializers import (
 from .forms import CategoryForm, ItemForm, BundleForm, IngredientStockForm
 from rest_framework.decorators import action
 from utils.stock_manager import StockManager
-from .choices import StockChangeReason
+from .choices import StockChangeReason, StockAddedAs
 
 
 class IndexView(TemplateView):
@@ -102,6 +102,7 @@ class StockCreateView(SuccessMessageMixin, CreateView):
         with transaction.atomic():
             ingredient = form.save()
             if is_item == "on":
+                ingredient.added_as = StockAddedAs.ITEM
                 new_category_name: str = stock.get("new_category_name", "")
                 category_existing: int = int(stock.get("category", "0")) # is category id
 

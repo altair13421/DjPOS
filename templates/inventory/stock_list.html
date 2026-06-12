@@ -19,6 +19,7 @@
             <th class="text-end">Qty</th>
             <th class="text-end">Retail price (PKR)</th>
             <th class="text-end">Wholesale price (PKR)</th>
+            <th class="text-end">Added As</th>
             <th class="text-end">Actions</th>
           </tr>
         </thead>
@@ -29,6 +30,7 @@
             <td class="text-end">{{ item.quantity }}</td>
             <td class="text-end">PKR {{ item.retail_price|floatformat:0 }}</td>
             <td class="text-end">PKR {{ item.wholesale_price|floatformat:0 }}</td>
+            <td class="text-end">{{ item.added_as }}</td>
             <td class="text-end">
               <button class="btn btn-sm btn-outline-success me-1"
                 onclick="openRestockModal('{{ item.pk }}', '{{ item.name|escapejs }}')">

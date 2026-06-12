@@ -6,3 +6,7 @@ class StockChangeReason(models.TextChoices):
     RESTOCK = "RESTOCK", _("Restock")
     WASTE = "WASTE", _("Waste")
     RETURN = "RETURN", _("Return")
+
+class StockAddedAs(models.TextChoices):
+    ITEM = "ITEM", _("Item")
+    STOCK = "STOCK", _("Stock")
