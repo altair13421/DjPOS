@@ -31,7 +31,7 @@ class ItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = Item
         fields = [
-            'id', 'name', 'sku', 'category', 'quantity',
+            'id', 'name', 'sku', 'category',
             'retail_price', 'wholesale_price', 'created_at', 'updated_at',
             "ingredients", 'has_ingredients',
         ]
