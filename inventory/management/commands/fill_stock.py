@@ -99,15 +99,15 @@ class Command(BaseCommand):
         # --- Direct-consumption items ---
         # These are items sold as single sealed/finished products (quantity consumed = 1).
         direct_items = [
-            {"name":"Sealed Softdrink 330ml", "sku":"BEV-SD-001", "category": categories["BEV"], "retail_price": Decimal("120.00"), "wholesale_price": Decimal("90.00")},
-            {"name":"Packaged Bread Loaf", "sku":"BAKE-PB-001", "category": categories["BAKE"], "retail_price": Decimal("150.00"), "wholesale_price": Decimal("110.00")},
+            {"name":"Sealed Softdrink 330ml", "sku":"BEV-SD-001", "category": categories["BEV"], "retail_price": Decimal("120.00"), "wholesale_price": Decimal("90.00"), "quantity": Decimal('20')},
+            {"name":"Packaged Bread Loaf", "sku":"BAKE-PB-001", "category": categories["BAKE"], "retail_price": Decimal("150.00"), "wholesale_price": Decimal("110.00"), "quantity":  Decimal("10")},
         ]
         for d in direct_items:
             # Ensure IngredientStock exists with same name/prices (acts as the consumed unit)
             ing_obj, ing_created = IngredientStock.objects.get_or_create(
                 name=d["name"],
                 defaults={
-                    "quantity": Decimal("0"),
+                    "quantity": d["quantity"],
                     "wholesale_price": d["wholesale_price"],
                     "retail_price": d["retail_price"],
                     "added_as": StockAddedAs.ITEM,

@@ -42,6 +42,11 @@ class IngredientStock(models.Model):
     )
 
 
+    @property
+    def check_availability(self):
+        return quantity > 0
+
+
 class Item(models.Model):
     """Inventory item (product)."""
 
@@ -66,11 +71,16 @@ class Item(models.Model):
 
     @property
     def total_wholesale(self):
-        return sum([ing.ingredient.wholesale_price for ing in self.itemingredients_set.select_related('ingredient').all()])
+        return sum([ing.ingredient.wholesale_price for ing in self.itemingredient_set.select_related('ingredient').all()])
 
     @property
-    def has_ingredients(self):
-        return self.itemingredients_set.count() > 0
+    def check_availability(self):
+        return self.availability_count > 0
+
+    @property
+    def availability_count(self):
+        availabilities = [ing.availability_count for ing in self.itemingredient_set.select_related("ingredient").all()]
+        return min(availabilities)
 
     @classmethod
     def count(cls):
@@ -95,6 +105,15 @@ class ItemIngredient(models.Model):
     def __str__(self):
         return f"{self.ingredient.name} x {self.quantity} in {self.item.name}"
 
+    @property
+    def check_availability(self):
+        return self.availability_count > 0
+
+    @property
+    def availability_count(self):
+        return self.ingredient.quantity // self.quantity
+
+
 class Bundle(models.Model):
     """A bundle of items sold together."""
     name = models.CharField(max_length=255)
@@ -118,6 +137,16 @@ class Bundle(models.Model):
             for bi in self.bundleitem_set.select_related('item').all()
         )
 
+    @property
+    def check_availability(self):
+        return self.availability_count > 0
+
+    @property
+    def availability_count(self):
+        return min([bi.availability_count for bi in self.bundleitem_set.select_related("item").all()])
+
+
+    # for item in Bundle.objects.all():print(item, item.check_availability, item.availability_count)
     def __str__(self):
         return f"Bundle: {self.name} (PKR {self.price})"
 
@@ -127,6 +156,14 @@ class BundleItem(models.Model):
     bundle = models.ForeignKey(Bundle, on_delete=models.CASCADE)
     item = models.ForeignKey(Item, on_delete=models.CASCADE)
     quantity = models.DecimalField(default=1, max_digits=12, decimal_places=2,)
+
+    @property
+    def check_availability(self):
+        return self.availability_count > 0
+
+    @property
+    def availability_count(self):
+        return self.item.availability_count // self.quantity
 
     def __str__(self):
         return f"{self.quantity} x {self.item.name} in {self.bundle.name}"
