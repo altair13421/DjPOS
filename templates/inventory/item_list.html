@@ -33,10 +33,6 @@
             <td class="text-end">PKR {{ item.retail_price|floatformat:0 }}</td>
             <td class="text-end">PKR {{ item.wholesale_price|floatformat:0 }}</td>
             <td class="text-end">
-              <button class="btn btn-sm btn-outline-success me-1"
-                onclick="openRestockModal('{{ item.pk }}', '{{ item.name|escapejs }}')">
-                Restock
-              </button>
               <a href="{% url 'inventory:item_edit' item.pk %}" class="btn btn-sm btn-outline-secondary">Edit</a>
             </td>
           </tr>

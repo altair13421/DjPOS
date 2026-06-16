@@ -13,7 +13,8 @@ class IngredientStockSerializer(serializers.ModelSerializer):
         fields = [
             "id", "name", "quantity",
             "retail_price", "wholesale_price",
-            "created_at", "updated_at"
+            "created_at", "updated_at",
+            "check_availability",
         ]
 
 class ItemIngredientSerializer(serializers.ModelSerializer):
@@ -23,7 +24,12 @@ class ItemIngredientSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ItemIngredient
-        fields = ["id", "item", "ingredient", "ingredient_name", "quantity", "wholesale_price", "retail_price"]
+        fields = [
+            "id", "item", "ingredient", 
+            "ingredient_name", "quantity",
+            "wholesale_price", "retail_price",
+            "check_availability", "availability_count",
+        ]
 
 class ItemSerializer(serializers.ModelSerializer):
     ingredients = ItemIngredientSerializer(source="itemingredient_set", many=True, read_only=True)
@@ -34,6 +40,7 @@ class ItemSerializer(serializers.ModelSerializer):
             'id', 'name', 'sku', 'category',
             'retail_price', 'wholesale_price', 'created_at', 'updated_at',
             "ingredients", 'has_ingredients',
+            "check_availability", "availability_count",
         ]
 
 
@@ -48,7 +55,7 @@ class BundleItemSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = BundleItem
-        fields = ['id', 'item', 'item_name', 'quantity', 'retail_price', 'wholesale_price']
+        fields = ['id', 'item', 'item_name', 'quantity', 'retail_price', 'wholesale_price', "check_availability", "availability_count",]
 
 
 class BundleSerializer(serializers.ModelSerializer):
@@ -72,7 +79,8 @@ class BundleSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'name', 'price', 'active', 'items',
             'total_wholesale', 'total_retail', 'item_ids',
-            'created_at', 'updated_at'
+            'created_at', 'updated_at',
+            "check_availability", "availability_count",
         ]
 
     def _item_ids_internal_value(self, item_ids):

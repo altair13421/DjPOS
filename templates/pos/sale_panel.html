@@ -36,9 +36,13 @@
         <!-- Customer Selection -->
         <div class="mb-3">
             <label class="form-label small text-muted">Customer</label>
-            <select id="customer-select" class="form-select form-select-sm">
-                <option value="">Walk-in Customer</option>
+            <select name="type_cus" id="customer-select" class="form-select form-select-sm">
+                <option value="WALK_IN">Walk-in Customer</option>
+                <option value="TAKEAWAY">Takeaway</option>
             </select>
+            <input type="text" name="name" value="" placeholder="Enter Name">
+            <input type="text" name="phone" value="" placeholder="Enter Phone">
+            <input type="text" name="address" value="" placeholder="Address">
         </div>
 
         <div id="cart-items" class="flex-grow-1 overflow-auto mb-3 border-top border-bottom bg-white p-2">
@@ -77,12 +81,12 @@
     let allBundles = []; // active bundles with .items[] { item, quantity, item_name, ... }
     let cart = []; // { type: 'item'|'bundle', id, name, price, quantity }
     let customers = [];
-
+    console.log(allProducts, allBundles);
     document.addEventListener("DOMContentLoaded", async () => {
         await Promise.all([loadProducts(), loadBundles(), loadCategories(), loadCustomers()]);
         renderGrid();
     });
-
+    console.log(allProducts, allBundles);
     // --- Data Loading ---
     async function loadProducts() {
         try {
@@ -222,7 +226,7 @@
         const needQty = cartQty + extraQty;
         for (const bi of bundle.items) {
             const itemId = bi.item;
-            const need = (bi.quantity || 1) * needQty;
+            const need = (bi.availability_count || 1) * needQty;
             const product = allProducts.find(p => p.id === itemId);
             const available = product ? (parseInt(product.quantity, 10) || 0) : 0;
             if (available < need) return false;
@@ -274,7 +278,7 @@
     window.addToCart = (id) => {
         const product = allProducts.find(p => p.id === id);
         if (!product) return;
-        const available = parseInt(product.quantity, 10) || 0;
+        const available = parseInt(product.availability_count, 10) || 0;
         if (available <= 0) {
             showToast('Out of stock', (product.name || 'Item') + ' has no stock.');
             return;

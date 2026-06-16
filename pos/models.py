@@ -1,5 +1,5 @@
 from django.db import models
-
+from .choices import CustomerType
 
 class Customer(models.Model):
     """Customer for POS sales."""
@@ -7,8 +7,10 @@ class Customer(models.Model):
     name = models.CharField(max_length=255)
     email = models.EmailField(blank=True)
     phone = models.CharField(max_length=50, blank=True)
+    address = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    type_cus = models.CharField(max_length=50, blank=True, default=CustomerType.WALK_IN)
 
     class Meta:
         """Meta class for the Customer model."""
@@ -18,7 +20,7 @@ class Customer(models.Model):
         ordering = ["name"]
 
     def __str__(self):
-        return f"Customer #{self.pk} - {self.name}"
+        return f"Customer #{self.pk} - {self.name} - {self.type_cus}"
 
 
 class CartItem(models.Model):

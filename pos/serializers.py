@@ -7,7 +7,7 @@ from inventory.models import Item, Bundle
 class CustomerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Customer
-        fields = ['id', 'name', 'email', 'phone', 'created_at', 'updated_at']
+        fields = ['id', 'name', 'email', 'phone', 'address', 'created_at', 'updated_at', 'type_cus']
 
 
 class CartItemReadSerializer(serializers.ModelSerializer):

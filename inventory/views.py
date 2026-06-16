@@ -448,17 +448,6 @@ class ItemViewSet(viewsets.ModelViewSet):
     queryset = Item.objects.select_related("category").all()
     serializer_class = ItemSerializer
 
-    @action(detail=True, methods=['post'])
-    def restock(self, request, pk=None):
-        item = self.get_object()
-        quantity = int(request.data.get('quantity', 0))
-        reason = request.data.get('reason', StockChangeReason.RESTOCK)
-        note = request.data.get('note', '')
-        
-        StockManager.restock_item(item, quantity, reason, note)
-        return Response({'status': 'restocked', 'new_quantity': item.quantity})
-
-
 class BundleViewSet(viewsets.ModelViewSet):
     queryset = Bundle.objects.prefetch_related("items").all().order_by("-created_at")
     serializer_class = BundleSerializer
