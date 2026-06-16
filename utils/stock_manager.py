@@ -41,28 +41,28 @@ class StockManager:
     def process_sale(sale):
         """Process stock deduction for a completed sale (items and bundles)."""
         cart_items = sale.sale_items.select_related('item', 'bundle').prefetch_related(
-            'bundle__bundleitem_set__item'
+            'bundle__bundleitem_set__item__ingredients'
         ).all()
         for cart_item in cart_items:
             if cart_item.item_id:
                 item = cart_item.item
-                cart_item.stock_before = item.quantity
+                cart_item.stock_before = item.availability_count
                 cart_item.save(update_fields=['stock_before'])
-                
+
                 # Standalone item: revenue is the unit_price of the cart line, cost is item's wholesale_price
                 revenue = cart_item.unit_price * cart_item.quantity
                 cost = item.wholesale_price * cart_item.quantity
-                
-                StockManager.deduct_stock(
-                    item=item,
-                    quantity=cart_item.quantity,
-                    reason=StockChangeReason.SALE,
-                    note=f"Sale #{sale.id}",
-                    revenue=revenue,
-                    cost=cost
-                )
+                for ingredient in item.ingredients.all():
+                    StockManager.deduct_stock(
+                        item=ingredient,
+                        quantity=cart_item.quantity,
+                        reason=StockChangeReason.SALE,
+                        note=f"Sale #{sale.id}",
+                        revenue=revenue,
+                        cost=cost
+                    )
                 item.refresh_from_db()
-                cart_item.stock_after = item.quantity
+                cart_item.stock_after = item.availability_count
                 cart_item.save(update_fields=['stock_after'])
             elif cart_item.bundle_id:
                 # Pro-rate the revenue for bundle items based on retail_price
@@ -79,12 +79,12 @@ class StockManager:
                         
                     revenue = (cart_item.unit_price * cart_item.quantity) * item_retail_share
                     cost = bi.item.wholesale_price * qty
-                    
-                    StockManager.deduct_stock(
-                        item=bi.item,
-                        quantity=qty,
-                        reason=StockChangeReason.SALE,
-                        note=f"Sale #{sale.id} (Bundle)",
-                        revenue=revenue,
-                        cost=cost
-                    )
+                    for ingredient in bi.item.ingredients.all():
+                        StockManager.deduct_stock(
+                            item=ingredient,
+                            quantity=qty,
+                            reason=StockChangeReason.SALE,
+                            note=f"Sale #{sale.id} (Bundle)",
+                            revenue=revenue,
+                            cost=cost
+                        )

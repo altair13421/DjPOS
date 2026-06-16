@@ -11,6 +11,7 @@ from utils.stock_manager import StockManager
 from .models import Customer, Sale
 from .serializers import CustomerSerializer, SaleSerializer
 
+from icecream import ic
 
 def index(request):
     """Basic POS app index view."""

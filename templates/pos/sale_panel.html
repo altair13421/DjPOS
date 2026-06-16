@@ -40,9 +40,10 @@
                 <option value="WALK_IN">Walk-in Customer</option>
                 <option value="TAKEAWAY">Takeaway</option>
             </select>
-            <input type="text" name="name" value="" placeholder="Enter Name">
-            <input type="text" name="phone" value="" placeholder="Enter Phone">
-            <input type="text" name="address" value="" placeholder="Address">
+            <input type="text" class="form-control" name="name" value="" placeholder="Enter Name" id="customer-name">
+            <input type="text" class="form-control" name="phone" value="" placeholder="Enter Phone" id="customer-phone">
+            <input type="text" class="form-control" name="address" value="" placeholder="Address" id="customer-address">
+            <input type="text" class="form-control" name="email" value="" placeholder="Email" id="customer-email">
         </div>
 
         <div id="cart-items" class="flex-grow-1 overflow-auto mb-3 border-top border-bottom bg-white p-2">
@@ -86,13 +87,13 @@
         await Promise.all([loadProducts(), loadBundles(), loadCategories(), loadCustomers()]);
         renderGrid();
     });
-    console.log(allProducts, allBundles);
     // --- Data Loading ---
     async function loadProducts() {
         try {
             const res = await fetch('/inventory/api/items/');
             const data = await res.json();
             allProducts = Array.isArray(data) ? data : (data.results || []);
+            console.log(allProducts);
         } catch (e) {
             console.error("Error loading products:", e);
             document.getElementById('product-grid').innerHTML = '<div class="text-danger p-3">Failed to load products.</div>';
@@ -105,6 +106,7 @@
             const data = await res.json();
             const list = Array.isArray(data) ? data : (data.results || []);
             allBundles = list.filter(b => b.active !== false);
+            console.log("bundles.", allBundles);
         } catch (e) {
             console.error("Error loading bundles:", e);
         }
@@ -115,6 +117,7 @@
             const res = await fetch('/inventory/api/categories/');
             const data = await res.json();
             const categories = Array.isArray(data) ? data : (data.results || []);
+            console.log("categories.", categories);
             const select = document.getElementById('category-filter');
             categories.forEach(c => {
                 const opt = document.createElement('option');
@@ -168,7 +171,7 @@
         products.forEach(p => {
             const col = document.createElement('div');
             col.className = 'col';
-            const inStock = parseInt(p.quantity, 10) || 0;
+            const inStock = parseInt(p.availability_count, 10) || 0;
             const outOfStock = inStock <= 0;
             const cardClass = outOfStock ? 'card h-100 shadow-sm product-card product-card--out' : 'card h-100 shadow-sm product-card';
             col.innerHTML = `
@@ -200,7 +203,7 @@
         bundles.forEach(b => {
             const col = document.createElement('div');
             col.className = 'col';
-            const canAdd = canAddBundle(b.id, 1);
+            const canAdd = b.check_availability;
             const cardClass = !canAdd ? 'card h-100 shadow-sm product-card product-card--out' : 'card h-100 shadow-sm product-card';
             col.innerHTML = `
             <div class="${cardClass}" data-bundle-id="${b.id}" data-type="bundle">
@@ -219,20 +222,6 @@
         });
     }
 
-    function canAddBundle(bundleId, extraQty) {
-        const bundle = allBundles.find(b => b.id === bundleId);
-        if (!bundle || !bundle.items || !bundle.items.length) return false;
-        const cartQty = cart.filter(c => c.type === 'bundle' && c.id === bundleId).reduce((s, c) => s + c.quantity, 0);
-        const needQty = cartQty + extraQty;
-        for (const bi of bundle.items) {
-            const itemId = bi.item;
-            const need = (bi.availability_count || 1) * needQty;
-            const product = allProducts.find(p => p.id === itemId);
-            const available = product ? (parseInt(product.quantity, 10) || 0) : 0;
-            if (available < need) return false;
-        }
-        return true;
-    }
 
     function renderCart() {
         const container = document.getElementById('cart-items');
@@ -305,13 +294,13 @@
     window.addBundleToCart = (bundleId) => {
         const bundle = allBundles.find(b => b.id === bundleId);
         if (!bundle) return;
-        if (!canAddBundle(bundleId, 1)) {
+        if (!bundle.availability_count > 0) {
             showToast('Insufficient stock', 'Not enough component stock for this bundle.');
             return;
         }
         const existing = cart.find(c => c.type === 'bundle' && c.id === bundleId);
         if (existing) {
-            if (!canAddBundle(bundleId, existing.quantity + 1 - existing.quantity)) {
+            if (!(existing.quantity <= bundle.availability_count - 1)) {
                 showToast('Insufficient stock', 'Cannot add more of this bundle.');
                 return;
             }
@@ -372,16 +361,22 @@
         btn.disabled = true;
         btn.innerText = 'Processing...';
 
-        const customerId = document.getElementById('customer-select').value;
+        const customerData = {
+          typeCus: document.getElementById('customer-select').value || "WALK_IN",
+          name: document.getElementById('customer-name').value || "WALK_IN",
+          address: document.getElementById('customer-address').value || "WALK_IN",
+          phone: document.getElementById('customer-phone').value || "WALK_IN",
+          email: document.getElementById('customer-email').value || '',
+        };
 
         const payload = {
-            customer: customerId || null,
+            customer: customerData,
             items: cart.map(i => {
                 if (i.type === 'bundle') return { bundle_id: i.id, quantity: i.quantity };
                 return { item_id: i.id, quantity: i.quantity };
             })
         };
-
+        console.log(payload);
         try {
             const res = await fetch('/pos/api/sales/', {
                 method: 'POST',
@@ -424,6 +419,7 @@
                 setTimeout(() => location.reload(), 1200);
             } else {
                 const err = await res.json();
+                console.log(err);
                 showToast('Error', 'Sale failed: ' + JSON.stringify(err));
             }
         } catch (e) {

@@ -39,7 +39,7 @@ class ItemSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'name', 'sku', 'category',
             'retail_price', 'wholesale_price', 'created_at', 'updated_at',
-            "ingredients", 'has_ingredients',
+            "ingredients",
             "check_availability", "availability_count",
         ]
 
