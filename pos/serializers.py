@@ -18,7 +18,7 @@ class CartItemReadSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CartItem
-        fields = ['id', 'item', 'bundle', 'quantity', 'unit_price', 'line_total']
+        fields = ['id', 'item', 'bundle', 'quantity', 'unit_price', 'line_total', 'notes']
 
     def get_line_total(self, obj):
         return obj.line_total
@@ -35,11 +35,12 @@ class CartItemReadSerializer(serializers.ModelSerializer):
 
 
 class SaleItemField(serializers.Field):
-    """Accepts { item_id, quantity } or { bundle_id, quantity }."""
+    """Accepts { item_id, quantity, note } or { bundle_id, quantity, note }."""
 
     def to_internal_value(self, data):
         item_id = data.get('item_id')
         bundle_id = data.get('bundle_id')
+        note = data.get('note', '')
         quantity = data.get('quantity')
         if quantity is None or (not isinstance(quantity, int) and not isinstance(quantity, str)):
             raise serializers.ValidationError("quantity is required and must be a number.")
@@ -55,14 +56,14 @@ class SaleItemField(serializers.Field):
                 item = Item.objects.get(pk=item_id)
             except Item.DoesNotExist:
                 raise serializers.ValidationError(f"Item {item_id} not found.")
-            return {'type': 'item', 'item': item, 'quantity': quantity}
+            return {'type': 'item', 'item': item, 'quantity': quantity, "note": note}
         try:
             bundle = Bundle.objects.get(pk=bundle_id)
         except Bundle.DoesNotExist:
             raise serializers.ValidationError(f"Bundle {bundle_id} not found.")
         if not bundle.active:
             raise serializers.ValidationError(f"Bundle {bundle_id} is not active.")
-        return {'type': 'bundle', 'bundle': bundle, 'quantity': quantity}
+        return {'type': 'bundle', 'bundle': bundle, 'quantity': quantity, "note": note}
 
 
 class SaleSerializer(serializers.ModelSerializer):
@@ -75,13 +76,12 @@ class SaleSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Sale
-        fields = ['id', 'customer', 'total', 'created_at', 'updated_at', 'items', 'sale_items']
+        fields = ['id', 'customer', 'total', 'created_at', 'updated_at', 'items', 'sale_items', 'notes']
         read_only_fields = ['total']
 
     def create(self, validated_data):
         items_data = validated_data.pop('items')
         customer_data = validated_data.pop('customer')
-        print(customer_data)
         customer, _ = Customer.objects.get_or_create(**customer_data)
         sale = Sale.objects.create(**validated_data)
         total = Decimal('0')
@@ -89,6 +89,7 @@ class SaleSerializer(serializers.ModelSerializer):
 
         for entry in items_data:
             quantity = entry['quantity']
+            note = entry['note']
             if entry['type'] == 'item':
                 item = entry['item']
                 unit_price = item.retail_price
@@ -98,6 +99,7 @@ class SaleSerializer(serializers.ModelSerializer):
                     bundle=None,
                     quantity=quantity,
                     unit_price=unit_price,
+                    notes=note,
                 )
             else:
                 bundle = entry['bundle']
@@ -108,6 +110,7 @@ class SaleSerializer(serializers.ModelSerializer):
                     bundle=bundle,
                     quantity=quantity,
                     unit_price=unit_price,
+                    notes=note,
                 )
             total += unit_price * quantity
 

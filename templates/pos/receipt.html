@@ -49,14 +49,36 @@
       <span class="name">{% if ci.bundle_id %}{{ ci.bundle.name }} (Bdl){% else %}{{ ci.item.name }}{% endif %} x{{ ci.quantity }}</span>
       <span class="amt">{{ currency }} {{ ci.line_total|floatformat:0 }}</span>
     </div>
-    {% endfor %}
+    {% if ci.bundle_id %}
+      {% for bundleitem in ci.bundle.bundleitem_set.all %}
+        <div class="line">
+        <div class="name"><small>{{ bundleitem.item.name }} x {{ bundleitem.quantity }}</small></div>
+        </div>
+      {% endfor %}
+    {% endif %}
+    {% if ci.notes %}
+      <div class="line">
+        <div class="name"><b>Notes: {{ ci.notes }}</b></div>
+      </div>
+    {% endif %}
     <div class="divider"></div>
+
+    {% endfor %}
+    {% if sale.notes %}
+      <div class="line">
+        <div class="name"><b>Notes: {{ sale.notes }}</b></div>
+      </div>
+    {% endif %}
+    <div class="divider"></div>
+
     <div class="line total">
       <span>TOTAL</span>
       <span>{{ currency }} {{ sale.total|floatformat:0 }}</span>
     </div>
     <div class="divider"></div>
     <div class="footer">Thank you</div>
+    <div class="footer">Copyright (c) 2026 Faez Akhtar. All Rights Reserved.</div>
+    <div class="footer">+92-321-7480678.</div>
   </div>
   <p class="no-print center" style="margin-top: 12px; font-size: 10px;">
     <button type="button" onclick="window.print();">Print</button>

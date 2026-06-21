@@ -55,6 +55,9 @@
                 <span>Total:</span>
                 <span id="cart-total">PKR 0</span>
             </div>
+            <div class="d-flex justify-content-between">
+              <input class="form-control" placeholder="Notes" type="text" name="note" value="" id="cart_note">
+            </div>
             <button id="checkout-btn" class="btn btn-success w-100 btn-lg mt-3" disabled>
                 Checkout
             </button>
@@ -245,6 +248,7 @@
             <div>
                 <div class="fw-bold">${(entry.name || '').replace(/</g, '&lt;')}${label ? ' <span class="badge bg-info">' + label + '</span>' : ''}</div>
                 <div class="small text-muted">PKR ${Math.round(parseFloat(entry.price))} x ${entry.quantity}</div>
+                <input class="form-control cart_item_notes" placeholder="Note" type="text" name="note" id="${entry.id}_note">
             </div>
             <div class="text-end">
                 <div class="fw-bold">PKR ${Math.round(lineTotal)}</div>
@@ -326,7 +330,7 @@
         }
         if (entry.type === 'item') {
             const product = allProducts.find(p => p.id === entry.id);
-            const available = product ? (parseInt(product.quantity, 10) || 0) : 0;
+            const available = product ? (parseInt(product.availability_count, 10) || 0) : 0;
             if (newQty > available) {
                 showToast('Max stock', 'Cannot add more than ' + available + ' (in stock).');
                 return;
@@ -371,9 +375,10 @@
 
         const payload = {
             customer: customerData,
+            notes: document.getElementById('cart_note').value || "",
             items: cart.map(i => {
-                if (i.type === 'bundle') return { bundle_id: i.id, quantity: i.quantity };
-                return { item_id: i.id, quantity: i.quantity };
+              if (i.type === 'bundle') return { bundle_id: i.id, quantity: i.quantity, note: document.getElementById(`${i.id}_note`).value };
+                return { item_id: i.id, quantity: i.quantity, note: document.getElementById(`${i.id}_note`).value };
             })
         };
         console.log(payload);

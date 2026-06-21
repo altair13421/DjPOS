@@ -52,6 +52,8 @@ class CartItem(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    notes = models.TextField(blank=True)
+
     class Meta:
         """Meta class for the CartItem model."""
 
@@ -86,6 +88,8 @@ class Sale(models.Model):
     change = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    notes = models.TextField(blank=True)
 
     @property
     def total_price(self):

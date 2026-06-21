@@ -5,6 +5,31 @@
 So This is For what have I done Already. Since I am writing this Very late in the Game.
 I would Simply just Fast type What has Already been done and how do I, or You Do it.
 
+## 2026-06-22:
+
+### Models And Serializers:
+
+- Made a notes thing for individual and overall cart.
+- Made Changes to custom made serializer field to accept notes as per items.
+
+### Sale Panel:
+
+- Made sure to add input for Notes on sale panel for both individual items, and overall sale.
+- Made Sure serializer works without too much hassle
+
+### Stock Manager:
+
+- fixed an Issue where There subtracted 200 or more items, availability count is now correct, and subtract correctly.
+- fixed it for bundle items as well.
+
+### Receipt:
+
+- Added Bundle Items as Small Text, and their quantities.
+- Added individual as well as overall Notes for the Sale.
+- Added a Copyright tag for my name. (feels Weird, might delete later).
+
+
+
 ## Before 2026-06-18:
 
 ### Inventory System:

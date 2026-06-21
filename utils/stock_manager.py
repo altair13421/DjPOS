@@ -9,7 +9,7 @@ class StockManager:
         """Deduct stock from an item."""
         if item.quantity < quantity:
             raise ValueError(f"Insufficient stock for {item.name}. Required: {quantity}, Available: {item.quantity}")
-        
+
         item.quantity -= quantity
         item.save()
         
@@ -52,10 +52,10 @@ class StockManager:
                 # Standalone item: revenue is the unit_price of the cart line, cost is item's wholesale_price
                 revenue = cart_item.unit_price * cart_item.quantity
                 cost = item.wholesale_price * cart_item.quantity
-                for ingredient in item.ingredients.all():
+                for ingredient in item.itemingredient_set.all():
                     StockManager.deduct_stock(
-                        item=ingredient,
-                        quantity=cart_item.quantity,
+                        item=ingredient.ingredient,
+                        quantity=cart_item.quantity*ingredient.quantity,
                         reason=StockChangeReason.SALE,
                         note=f"Sale #{sale.id}",
                         revenue=revenue,
@@ -79,10 +79,10 @@ class StockManager:
                         
                     revenue = (cart_item.unit_price * cart_item.quantity) * item_retail_share
                     cost = bi.item.wholesale_price * qty
-                    for ingredient in bi.item.ingredients.all():
+                    for ingredient in bi.item.itemingredient_set.all():
                         StockManager.deduct_stock(
-                            item=ingredient,
-                            quantity=qty,
+                            item=ingredient.ingredient,
+                            quantity=qty*ingredient.quantity,
                             reason=StockChangeReason.SALE,
                             note=f"Sale #{sale.id} (Bundle)",
                             revenue=revenue,
