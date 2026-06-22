@@ -50,7 +50,7 @@ What I need is a Sample Tax Report Document. Then I can
 
 - Need settings model to work with printing and other work....
 
-### Notes (Simplest at this point)
+### Notes (Simplest at this point) <done>
 
 - Add An individual Note for the cartItems,
 for example, a Pink Dress is Being bought, in size L, and All the prices are the same,
