@@ -21,6 +21,10 @@ I would Simply just Fast type What has Already been done and how do I, or You Do
 - Made Custom date inputs for date filtering.
 - made sure range doesn't mess up when you are using dates.
 
+### users App:
+
+- Initiated the Users App with default model.
+
 
 ------------------------------
 
