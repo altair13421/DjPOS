@@ -11,6 +11,22 @@
   {% for key, label in range_labels.items %}
     <a href="?range={{ key }}" class="btn btn-sm {% if range_param == key %}btn-primary{% else %}btn-outline-secondary{% endif %} me-1">{{ label }}</a>
   {% endfor %}
+    <form action="" method="get">
+      <div class="row g-3">
+        <div class="col-md-3">
+          <label class="form-label">Date from and to</label>
+        </div>
+        <div class="col-md-3">
+          <input type="date" name="date_from" value='{{date_from}}' class="form-control">
+        </div>
+        <div class="col-md-3">
+          <input type="date" name="date_to" value='{{date_to}}' class="form-control">
+        </div>
+        <div class="col-md-3">
+          <input type="submit" name="submit" value="submit">
+        </div>
+      </div>
+    </form>
 </div>
 
 <div class="card">

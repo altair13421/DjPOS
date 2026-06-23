@@ -41,8 +41,12 @@
     <div class="center" style="font-size: 10px;">{{ sale.created_at|date:"M d, Y g:i A" }}</div>
     <div class="divider"></div>
     {% if sale.customer %}
-    <div class="line"><span>Customer:</span><span>{{ sale.customer.name }}</span></div>
-    <div class="divider"></div>
+      <div class="line"><span>Customer:</span><span>{{ sale.customer.name }}</span></div>
+      {% if sale.customer.type_cus == "TAKEAWAY" %}
+      <div class="line"><span>Phone Number:</span><span>{{ sale.customer.phone }}</span></div>
+      <div class="line"><span>Address:</span><span>{{ sale.customer.address }}</span></div>
+      {% endif %}
+      <div class="divider"></div>
     {% endif %}
     {% for ci in sale.sale_items.all %}
     <div class="line">

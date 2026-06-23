@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.shortcuts import render, get_object_or_404
 from django.utils import timezone
-from datetime import timedelta
+from datetime import timedelta, datetime
 from rest_framework import viewsets, status
 from rest_framework.decorators import api_view, action
 from rest_framework.response import Response
@@ -28,14 +28,23 @@ def sale_panel(request):
 def sale_history(request):
     """Sale history with date range filter: 1d, 7d, 30d, all."""
     now = timezone.now()
-    range_param = request.GET.get('range', '7d')
+    range_param = request.GET.get('range', "7d")
     range_labels = {'1d': '1 day', '7d': '7 days', '30d': '1 month', 'all': 'All time'}
 
+    date_to = request.GET.get('date_to', "")
+    date_from = request.GET.get('date_from', "")
     qs = Sale.objects.select_related('customer').prefetch_related(
         'sale_items__item', 'sale_items__bundle'
     ).order_by('-created_at')
 
-    if range_param == '1d':
+    if date_to != "" or date_from != "":
+        if date_to == "":
+            date_to = now.date() + timedelta(days=1)
+        elif date_from == "":
+            date_from = timezone.datetime.fromisoformat(date_to).date() - timedelta(days=7)
+        qs = qs.filter(created_at__range=[date_from, date_to])
+        range_param = ""
+    elif range_param == '1d':
         start = now - timedelta(days=1)
         qs = qs.filter(created_at__gte=start)
     elif range_param == '7d':
@@ -50,6 +59,8 @@ def sale_history(request):
     return render(request, 'pos/sale_history.html', {
         'sales': sales,
         'range_param': range_param,
+        'date_from': date_from,
+        'date_to': date_to,
         'range_labels': range_labels,
         'use_web_print': getattr(settings, 'USE_WEB_PRINT', True),
     })

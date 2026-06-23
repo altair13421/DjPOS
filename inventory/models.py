@@ -181,3 +181,4 @@ class StockLog(models.Model):
 
     def __str__(self):
         return f"{self.item.name}: {self.change_quantity} ({self.get_reason_display()})"
+

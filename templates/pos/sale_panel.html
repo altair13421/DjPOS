@@ -132,6 +132,7 @@
     }
 
     async function loadCustomers() {
+        /*
         try {
             const res = await fetch('/pos/api/customers/');
             const data = await res.json();
@@ -144,6 +145,7 @@
                 select.appendChild(opt);
             });
         } catch (e) { console.error("Error loading customers", e); }
+        */
     }
 
     // --- Rendering ---
@@ -366,13 +368,12 @@
         btn.innerText = 'Processing...';
 
         const customerData = {
-          typeCus: document.getElementById('customer-select').value || "WALK_IN",
+          type_cus: document.getElementById('customer-select').value || "WALK_IN",
           name: document.getElementById('customer-name').value || "WALK_IN",
           address: document.getElementById('customer-address').value || "WALK_IN",
           phone: document.getElementById('customer-phone').value || "WALK_IN",
           email: document.getElementById('customer-email').value || '',
         };
-
         const payload = {
             customer: customerData,
             notes: document.getElementById('cart_note').value || "",
@@ -381,7 +382,6 @@
                 return { item_id: i.id, quantity: i.quantity, note: document.getElementById(`${i.id}_note`).value };
             })
         };
-        console.log(payload);
         try {
             const res = await fetch('/pos/api/sales/', {
                 method: 'POST',

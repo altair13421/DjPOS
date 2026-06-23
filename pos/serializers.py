@@ -2,7 +2,7 @@ from decimal import Decimal
 from rest_framework import serializers
 from .models import Customer, Sale, CartItem
 from inventory.models import Item, Bundle
-
+from icecream import ic
 
 class CustomerSerializer(serializers.ModelSerializer):
     class Meta:
@@ -82,7 +82,9 @@ class SaleSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         items_data = validated_data.pop('items')
         customer_data = validated_data.pop('customer')
-        customer, _ = Customer.objects.get_or_create(**customer_data)
+        customer, _ = Customer.objects.get_or_create(
+            **customer_data
+        )
         sale = Sale.objects.create(**validated_data)
         total = Decimal('0')
         sale.customer = customer

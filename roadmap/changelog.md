@@ -5,6 +5,25 @@
 So This is For what have I done Already. Since I am writing this Very late in the Game.
 I would Simply just Fast type What has Already been done and how do I, or You Do it.
 
+## 2026-06-24:
+
+### Receipt:
+
+- Made sure to add Customer Address and Phone Number if It's a Takeaway order.
+
+### Sale Panel:
+
+- Made sure Sale panel does give you type of customer.
+- removed loading of customers for better usage.
+
+### Sale History:
+
+- Made Custom date inputs for date filtering.
+- made sure range doesn't mess up when you are using dates.
+
+
+------------------------------
+
 ## 2026-06-22:
 
 ### Models And Serializers:
@@ -28,7 +47,7 @@ I would Simply just Fast type What has Already been done and how do I, or You Do
 - Added individual as well as overall Notes for the Sale.
 - Added a Copyright tag for my name. (feels Weird, might delete later).
 
-
+------------
 
 ## Before 2026-06-18:
 

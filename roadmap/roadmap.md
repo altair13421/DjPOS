@@ -4,7 +4,7 @@ Roadmap for future updates. Plans To do what.
 
 ## - update After 18-06-2026
 
-### Users:
+### Users: <in-progress>
 
 Complete User Module Which Includes:
 
@@ -41,7 +41,7 @@ What I need is a Sample Tax Report Document. Then I can
 - Make Account for all the Taxes Per year, per day, per month
 - Reports, AGAIN
 
-### Reports And Filters
+### Reports And Filters <to-do-quicker>
 
 - Reports, Quick Reports including 1d, 7d, 14d, 30d and Manual Reports With Date input
 - Filters Including User filters and other basic filters
@@ -49,14 +49,6 @@ What I need is a Sample Tax Report Document. Then I can
 ### Settings Model:
 
 - Need settings model to work with printing and other work....
-
-### Notes (Simplest at this point) <done>
-
-- Add An individual Note for the cartItems,
-for example, a Pink Dress is Being bought, in size L, and All the prices are the same,
-so, note would be `Pink (L)`
-
-- Add an Overall Note for sale
 
 Copyright (c) 2026 Faez Akhtar. All Rights Reserved.
 
