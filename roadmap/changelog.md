@@ -5,6 +5,21 @@
 So This is For what have I done Already. Since I am writing this Very late in the Game.
 I would Simply just Fast type What has Already been done and how do I, or You Do it.
 
+
+## 2026-06-25:
+
+### Analytics:
+
+- stats, and Analytics work on the new model trio thinger.
+- numbers are adding up. Including bundles. They breakdown (`not a jojo's reference`) into items and then the quantities are added.
+- Made Sure InventoryStatView thing was Also Updated in this Scenario.
+
+### Restock:
+
+- Apparently Restock wasn't working, that was fixed by adding a Route to the InventoryViewSet.
+- Added it's url in the ApiRootView of drf.
+
+
 ## 2026-06-24:
 
 ### Receipt:

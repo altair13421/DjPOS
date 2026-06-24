@@ -4,7 +4,9 @@ from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
 from django.db import transaction
 from django.urls import reverse_lazy
-from django.db.models import Sum, Q
+from django.db.models import (
+    Sum, F, Q, Value, DecimalField, ExpressionWrapper, OuterRef, Subquery
+)
 from decimal import Decimal
 from django.db.models.functions import Coalesce
 from django.views.generic import (
@@ -388,7 +390,7 @@ class BundleDeleteView(DeleteView):
             )
             return redirect("inventory:bundle_list")
 
-
+'''
 class InventoryStatsView(TemplateView):
     """Overall inventory stats view."""
     template_name = "inventory/stats.html"
@@ -421,6 +423,204 @@ class InventoryStatsView(TemplateView):
 
         context['items'] = items
         return context
+'''
+
+class InventoryStatsView(TemplateView):
+    template_name = "inventory/stats.html"
+
+    def get_context_data(self, **kwargs):
+        from pos.models import CartItem
+
+        context = super().get_context_data(**kwargs)
+
+        # -------------------------
+        # 1) Sold quantity per Item
+        # -------------------------
+        direct_qty_sub = (
+            CartItem.objects.filter(item=OuterRef("pk"), bundle__isnull=True)
+            .values("item")
+            .annotate(qty=Coalesce(Sum("quantity"), Value(0)))
+            .values("qty")[:1]
+        )
+
+        # bundle-expanded qty: sum(bundleitem.quantity * cart_item.quantity)
+        bundle_qty_sub = (
+            CartItem.objects.filter(bundle__isnull=False)
+            .filter(bundle__bundleitem__item=OuterRef("pk"))
+            .values("bundle__bundleitem__item")
+            .annotate(
+                qty=Coalesce(
+                    Sum(F("bundle__bundleitem__quantity") * F("quantity")),
+                    Value(0),
+                )
+            )
+            .values("qty")[:1]
+        )
+
+        total_qty = Coalesce(Subquery(direct_qty_sub, output_field=DecimalField()), Value(0)) + \
+                     Coalesce(Subquery(bundle_qty_sub, output_field=DecimalField()), Value(0))
+
+        # --------------------------------
+        # 2) Cost per Item (expanded similarly)
+        # --------------------------------
+        direct_cost_sub = (
+            CartItem.objects.filter(item=OuterRef("pk"), bundle__isnull=True)
+            .values("item")
+            .annotate(
+                cost=Coalesce(
+                    Sum(F("item__wholesale_price") * F("quantity")),
+                    Value(0),
+                )
+            )
+            .values("cost")[:1]
+        )
+
+        bundle_cost_sub = (
+            CartItem.objects.filter(bundle__isnull=False)
+            .filter(bundle__bundleitem__item=OuterRef("pk"))
+            .values("bundle__bundleitem__item")
+            .annotate(
+                cost=Coalesce(
+                    Sum(
+                        F("bundle__bundleitem__quantity")
+                        * F("bundle__bundleitem__item__wholesale_price")
+                        * F("quantity")
+                    ),
+                    Value(0),
+                )
+            )
+            .values("cost")[:1]
+        )
+
+        total_cost = Coalesce(Subquery(direct_cost_sub, output_field=DecimalField()), Value(0)) + \
+                      Coalesce(Subquery(bundle_cost_sub, output_field=DecimalField()), Value(0))
+
+        # ---------------------------------------------------
+        # 3) Revenue per Item
+        #   - direct: unit_price * quantity
+        #   - bundle: allocate cart_item.unit_price across underlying items
+        #            by wholesale_value share within the bundle line
+        # ---------------------------------------------------
+        direct_rev_sub = (
+            CartItem.objects.filter(item=OuterRef("pk"), bundle__isnull=True)
+            .values("item")
+            .annotate(
+                rev=Coalesce(
+                    Sum(F("unit_price") * F("quantity")),
+                    Value(0),
+                )
+            )
+            .values("rev")[:1]
+        )
+
+        # For bundle allocation, we need:
+        # underlying_wholesale_value_for_this_item_on_this_cartline
+        # -----------------------------------------------------------
+        # numerator: (bundleitem.quantity * item.wholesale_price) * cart_item.quantity
+        #
+        # denominator: total wholesale value of the whole bundle line:
+        #   sum_over_bundleitems( bundleitem.quantity * item.wholesale_price ) * cart_item.quantity
+        #
+        # cart_item.quantity cancels out, so allocation fraction is independent of cart_item.quantity,
+        # but we still compute per underlying item for each cart line.
+        bundle_rev_sub = (
+            CartItem.objects.filter(bundle__isnull=False)
+            .filter(bundle__bundleitem__item=OuterRef("pk"))
+            .values("bundle__bundleitem__item")
+            .annotate(
+                # numerator
+                numer=Coalesce(
+                    Sum(
+                        (F("bundle__bundleitem__quantity") * F("bundle__bundleitem__item__wholesale_price"))
+                    ),
+                    Value(0),
+                ),
+                # denominator (sum of wholesale values for the whole bundle)
+                denom=Coalesce(
+                    Sum(
+                        F("bundle__bundleitem__quantity")
+                        * F("bundle__bundleitem__item__wholesale_price")
+                    ),
+                    Value(0),
+                ),
+            )
+            # The above doesn't isolate denom correctly per cart line; we need a different approach.
+            # Simpler/accurate allocation requires per cart line aggregation.
+        )
+
+        # Because Django ORM subquery allocation across "each cart line" is messy without extra models,
+        # here’s the reliable approach:
+        # - compute direct item revenue directly
+        # - compute bundle revenue revenue_allocation in Python with prefetch.
+        # We’ll do that below using one query to fetch relevant cart lines.
+
+        qs = Item.objects.order_by("name").values("id", "name", "wholesale_price")
+        items = {row["id"]: {"id": row["id"], "name": row["name"]} for row in qs}
+
+        # Seed qty & cost via DB expressions
+        seeded = (
+            Item.objects.annotate(
+                total_sold_qty=total_qty,
+                total_cost=total_cost,
+            )
+            .values("id", "total_sold_qty", "total_cost", "name")
+            .order_by("name")
+        )
+
+        items_list = []
+        for r in seeded:
+            item_id = r["id"]
+            items[item_id]["total_sold_qty"] = r["total_sold_qty"] or 0
+            items[item_id]["total_cost"] = r["total_cost"] or 0
+
+        # Bundle revenue allocation in Python (exact per cart line)
+        bundle_lines = (
+            CartItem.objects.filter(bundle__isnull=False)
+            .select_related("bundle")
+            .prefetch_related("bundle__bundleitem")
+        )
+
+        # Direct revenue in Python too (since we already have cost/qty)
+        direct_lines = (
+            CartItem.objects.filter(bundle__isnull=True, item__isnull=False)
+            .select_related("item")
+        )
+
+        for ci in direct_lines:
+            item_id = ci.item_id
+            items[item_id]["total_revenue"] = items[item_id].get("total_revenue", 0) + (ci.unit_price * ci.quantity)
+
+        for ci in bundle_lines:
+            # total wholesale value of the bundle contents for THIS cart line
+            bundle_wholesale_total = sum(
+                (bi.quantity * bi.item.wholesale_price)
+                for bi in ci.bundle.bundleitem_set.all()
+            ) or 0
+
+            # cart row revenue is the bundle deal price times the cart line quantity
+            bundle_revenue = ci.unit_price * ci.quantity
+
+            for bi in ci.bundle.bundleitem_set.all():
+                underlying = bi.item
+                item_id = underlying.id
+
+                if bundle_wholesale_total:
+                    share = (bi.quantity * underlying.wholesale_price) / bundle_wholesale_total
+                else:
+                    share = 0
+
+                items[item_id]["total_revenue"] = items[item_id].get("total_revenue", 0) + (bundle_revenue * share)
+
+        # Finalize profit
+        for it in items.values():
+            total_revenue = it.get("total_revenue", 0) or 0
+            total_cost = it.get("total_cost", 0) or 0
+            it["profit"] = total_revenue - total_cost
+            items_list.append(it)
+
+        context["items"] = sorted(items_list, key=lambda x: x["name"])
+        ic(context['items'])
+        return context
 
 
 # ——— API (DRF) ———
@@ -436,7 +636,7 @@ class IngredientStockViewSet(viewsets.ModelViewSet):
         reason = request.data.get('reason', StockChangeReason.RESTOCK)
         note = request.data.get('note', 'note')
 
-        StockManager.restock_item(item, quantity, reason, note)
+        StockManager.restock_item(stock_item, quantity, reason, note)
         return Response({'status': 'restocked', 'new_quantity': stock_item.quantity})
 
 class CategoryViewSet(viewsets.ModelViewSet):
@@ -469,4 +669,5 @@ class ApiRootView(APIView):
             "items": request.build_absolute_uri("items/"),
             "bundles": request.build_absolute_uri("bundles/"),
             "stock_logs": request.build_absolute_uri("stock_logs/"),
+            "ingredients": request.build_absolute_uri("inventory/"),
         })

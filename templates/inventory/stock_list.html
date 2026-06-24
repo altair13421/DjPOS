@@ -122,7 +122,7 @@
     }
 
     try {
-      const res = await fetch(`/inventory/api/stock/${id}/restock/`, {
+      const res = await fetch(`/inventory/api/inventory/${id}/restock/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

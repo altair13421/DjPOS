@@ -4,6 +4,7 @@ from . import views
 
 router = DefaultRouter()
 router.register('categories', views.CategoryViewSet, basename='category')
+router.register('inventory', views.IngredientStockViewSet, basename="inventory")
 router.register('items', views.ItemViewSet, basename='item')
 router.register('bundles', views.BundleViewSet, basename='bundle')
 router.register('stock_logs', views.StockLogViewSet, basename='stock_log')

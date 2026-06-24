@@ -41,10 +41,9 @@ class IngredientStock(models.Model):
         default=0
     )
 
-
     @property
     def check_availability(self):
-        return quantity > 0
+        return self.quantity > 0
 
 
 class Item(models.Model):
@@ -71,7 +70,7 @@ class Item(models.Model):
 
     @property
     def total_wholesale(self):
-        return sum([ing.ingredient.wholesale_price for ing in self.itemingredient_set.select_related('ingredient').all()])
+        return sum([ing.ingredient.wholesale_price*ing.quantity for ing in self.itemingredient_set.select_related('ingredient').all()])
 
     @property
     def check_availability(self):
@@ -89,6 +88,8 @@ class Item(models.Model):
     def save(self, *args, **kwargs):
         if self.sku == "":
             self.sku = f"{self.category.identifier}-0{self.count()}"
+        if self.wholesale_price != Decimal(0):
+            self.wholesale_price = self.total_wholesale
         super().save(*args, **kwargs)
 
     class Meta:
