@@ -46,6 +46,8 @@ What I need is a Sample Tax Report Document. Then I can
 - Reports, Quick Reports including 1d, 7d, 14d, 30d and Manual Reports With Date input
 - Filters Including User filters and other basic filters
 
+- Exporting these reports in a Document Format.
+
 ### Settings Model:
 
 - Need settings model to work with printing and other work....

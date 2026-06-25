@@ -5,7 +5,16 @@
 So This is For what have I done Already. Since I am writing this Very late in the Game.
 I would Simply just Fast type What has Already been done and how do I, or You Do it.
 
+## 2026-06-26:
 
+### Users App:
+
+- Initialized Settings Model. (So That I can Make Changes to it now, So I don't need to remigrate again, for now).
+- Reminded myself on where to find default django models and how to use them.
+- Added App in main settings.
+- Initialized Base Management Command to Create a Default User, and Work on Groups and Permissions.
+
+---------------------------
 ## 2026-06-25:
 
 ### Analytics:
@@ -19,7 +28,7 @@ I would Simply just Fast type What has Already been done and how do I, or You Do
 - Apparently Restock wasn't working, that was fixed by adding a Route to the InventoryViewSet.
 - Added it's url in the ApiRootView of drf.
 
-
+-----------------------------
 ## 2026-06-24:
 
 ### Receipt:
