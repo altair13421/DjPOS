@@ -179,6 +179,7 @@ class StockLog(models.Model):
     cost = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     note = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    sale = models.ForeignKey("pos.Sale", on_delete=models.CASCADE, related_name="stock_logs", null=True, blank=True)
 
     def __str__(self):
         return f"{self.item.name}: {self.change_quantity} ({self.get_reason_display()})"

@@ -1,25 +1,34 @@
 from django.db import transaction
 from inventory.models import StockLog, IngredientStock
 from inventory.choices import StockChangeReason
-
+from pos.models import Sale
 class StockManager:
     @staticmethod
     @transaction.atomic
-    def deduct_stock(item: IngredientStock, quantity, reason=StockChangeReason.SALE, note="", revenue=0, cost=0):
+    def deduct_stock(
+        item: IngredientStock,
+        quantity,
+        reason=StockChangeReason.SALE,
+        note="",
+        revenue=0,
+        cost=0,
+        sale: Sale=None,
+    ):
         """Deduct stock from an item."""
         if item.quantity < quantity:
             raise ValueError(f"Insufficient stock for {item.name}. Required: {quantity}, Available: {item.quantity}")
 
         item.quantity -= quantity
         item.save()
-        
+
         StockLog.objects.create(
             item=item,
             change_quantity=-quantity,
             reason=reason,
             revenue=revenue,
             cost=cost,
-            note=note
+            note=note,
+            sale=sale,
         )
 
     @staticmethod
@@ -57,9 +66,10 @@ class StockManager:
                         item=ingredient.ingredient,
                         quantity=cart_item.quantity*ingredient.quantity,
                         reason=StockChangeReason.SALE,
-                        note=f"Sale #{sale.id}",
+                        note=f"Sale #{sale.id} | StockBefore: {ingredient.ingredient.quantity}| StockAfter: {ingredient.ingredient.quantity - cart_item.quantity*ingredient.quantity}",
                         revenue=revenue,
-                        cost=cost
+                        cost=cost,
+                        sale=sale,
                     )
                 item.refresh_from_db()
                 cart_item.stock_after = item.availability_count
@@ -86,5 +96,6 @@ class StockManager:
                             reason=StockChangeReason.SALE,
                             note=f"Sale #{sale.id} (Bundle)",
                             revenue=revenue,
-                            cost=cost
+                            cost=cost,
+                            sale=sale
                         )

@@ -5,6 +5,19 @@
 So This is For what have I done Already. Since I am writing this Very late in the Game.
 I would Simply just Fast type What has Already been done and how do I, or You Do it.
 
+## 2026-06-27:
+
+### Inventory:
+
+- Added Sale as a Foreign key reference in StockLog, To keep an Eye out on sales Directly. Filter will work later.
+- Added Sale to be added when StockLog is being created in utils/stock_manager.py
+- Made a UI change on availability count.
+
+### Users App:
+
+- Migrated it. Might change it later. Mostly Good, With choices given and models.
+
+
 ## 2026-06-26:
 
 ### Users App:

@@ -10,3 +10,4 @@ class StockChangeReason(models.TextChoices):
 class StockAddedAs(models.TextChoices):
     ITEM = "ITEM", _("Item")
     STOCK = "STOCK", _("Stock")
+
