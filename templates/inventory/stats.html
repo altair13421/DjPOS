@@ -16,8 +16,7 @@
             <th>Item Name</th>
             <th>Category</th>
             <th>Total Sold</th>
-            <th>Total Restocked</th>
-            <th>Current Quantity</th>
+            <th>Cost</th>
             <th>CashFlow</th>
             <th>Profit</th>
           </tr>
@@ -27,9 +26,8 @@
           <tr>
             <td><strong>{{ item.name }}</strong></td>
             <td>{{ item.category.name|default:"Uncategorized" }}</td>
-            <td>{{ item.total_sold }}</td>
-            <td>{{ item.total_restocked }}</td>
-            <td>{{ item.quantity }}</td>
+            <td>{{ item.total_sold_qty }}</td>
+            <td class="text-danger">{{ item.total_cost|floatformat:2 }}</td>
             <td class="text-success">PKR {{ item.total_revenue|floatformat:2 }}</td>
             <td class="{% if item.profit >= 0 %}text-success{% else %}text-danger{% endif %}">
               PKR {{ item.profit|floatformat:2 }}

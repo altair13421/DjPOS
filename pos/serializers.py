@@ -38,6 +38,7 @@ class SaleItemField(serializers.Field):
     """Accepts { item_id, quantity, note } or { bundle_id, quantity, note }."""
 
     def to_internal_value(self, data):
+        organization = self.context['request'].organization
         item_id = data.get('item_id')
         bundle_id = data.get('bundle_id')
         note = data.get('note', '')
@@ -53,12 +54,12 @@ class SaleItemField(serializers.Field):
             raise serializers.ValidationError("Provide item_id or bundle_id.")
         if item_id is not None:
             try:
-                item = Item.objects.get(pk=item_id)
+                item = Item.objects.get(pk=item_id, organization=organization)
             except Item.DoesNotExist:
                 raise serializers.ValidationError(f"Item {item_id} not found.")
             return {'type': 'item', 'item': item, 'quantity': quantity, "note": note}
         try:
-            bundle = Bundle.objects.get(pk=bundle_id)
+            bundle = Bundle.objects.get(pk=bundle_id, organization=organization)
         except Bundle.DoesNotExist:
             raise serializers.ValidationError(f"Bundle {bundle_id} not found.")
         if not bundle.active:
@@ -82,10 +83,18 @@ class SaleSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         items_data = validated_data.pop('items')
         customer_data = validated_data.pop('customer')
+        organization = validated_data.pop('organization')
+        created_by = validated_data.pop('created_by', None)
         customer, _ = Customer.objects.get_or_create(
-            **customer_data
+            organization=organization,
+            name=customer_data.get('name', ''),
+            defaults=customer_data,
         )
-        sale = Sale.objects.create(**validated_data)
+        sale = Sale.objects.create(
+            organization=organization,
+            created_by=created_by,
+            **validated_data,
+        )
         total = Decimal('0')
         sale.customer = customer
 

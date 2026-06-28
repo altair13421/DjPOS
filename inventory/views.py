@@ -1,8 +1,11 @@
 from icecream import ic
 import json
 from django.contrib import messages
+from users.api_mixins import OrganizationViewSetMixin
+from users.mixins import OrgLoginRequiredMixin, OrganizationScopedMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.db import transaction
+from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.db.models import (
     Sum, F, Q, Value, DecimalField, ExpressionWrapper, OuterRef, Subquery
@@ -42,21 +45,21 @@ class DecimalEncoder(json.JSONEncoder):
             return float(o)   # or str(o) to preserve exact representation
         return super().default(o)
 
-class IndexView(TemplateView):
+class IndexView(OrgLoginRequiredMixin, TemplateView):
     """Inventory app dashboard."""
     template_name = "inventory/index.html"
 
 
 # ——— Category UI ———
 
-class CategoryListView(ListView):
+class CategoryListView(OrgLoginRequiredMixin, OrganizationScopedMixin, ListView):
     model = Category
     queryset = Category.objects.all().order_by("name")
     context_object_name = "categories"
     template_name = "inventory/category_list.html"
 
 
-class CategoryCreateView(SuccessMessageMixin, CreateView):
+class CategoryCreateView(OrgLoginRequiredMixin, OrganizationScopedMixin, SuccessMessageMixin, CreateView):
     model = Category
     form_class = CategoryForm
     template_name = "inventory/category_form.html"
@@ -69,7 +72,7 @@ class CategoryCreateView(SuccessMessageMixin, CreateView):
         return context
 
 
-class CategoryUpdateView(SuccessMessageMixin, UpdateView):
+class CategoryUpdateView(OrgLoginRequiredMixin, OrganizationScopedMixin, SuccessMessageMixin, UpdateView):
     model = Category
     form_class = CategoryForm
     context_object_name = "category"
@@ -85,13 +88,13 @@ class CategoryUpdateView(SuccessMessageMixin, UpdateView):
 
 # ---- IngredientStock UI ----
 
-class StockListView(ListView):
+class StockListView(OrgLoginRequiredMixin, OrganizationScopedMixin, ListView):
     model = IngredientStock
     queryset = IngredientStock.objects.all()
     context_object_name = "stock"
     template_name = 'inventory/stock_list.html'
 
-class StockCreateView(SuccessMessageMixin, CreateView):
+class StockCreateView(OrgLoginRequiredMixin, OrganizationScopedMixin, SuccessMessageMixin, CreateView):
     model = IngredientStock
     form_class = IngredientStockForm
     template_name = 'inventory/stock_form.html'
@@ -100,50 +103,59 @@ class StockCreateView(SuccessMessageMixin, CreateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["categories"] = Category.objects.all()
+        context["categories"] = Category.objects.filter(organization=self.request.organization)
         context["is_edit"] = False
         return context
 
     def form_valid(self, form):
         stock = self.request.POST
         is_item = stock.get('is_item', "off")
+        org = self.request.organization
         with transaction.atomic():
-            ingredient = form.save()
+            ingredient = form.save(commit=False)
+            ingredient.organization = org
+            ingredient.save()
             if is_item == "on":
                 ingredient.added_as = StockAddedAs.ITEM
                 new_category_name: str = stock.get("new_category_name", "")
-                category_existing: int = int(stock.get("category", "0")) # is category id
+                category_existing: int = int(stock.get("category", "0"))
 
-                category: Category | None = Category.objects.none
+                category: Category | None = None
                 if category_existing != 0 and new_category_name != "":
                     ingredient.delete()
                     return super().form_invalid(form)
                 if category_existing != 0:
-                    category = Category.objects.get(id=category_existing)
+                    category = Category.objects.get(id=category_existing, organization=org)
                 elif new_category_name != "":
-                    category, exists_ = Category.objects.get_or_create(name=new_category_name)
-                
+                    category, _ = Category.objects.get_or_create(
+                        name=new_category_name, organization=org
+                    )
+
                 if not category:
-                    category, exists_ = Category.objects.get_or_create(name="ItemFromStock")
+                    category, _ = Category.objects.get_or_create(
+                        name="ItemFromStock", organization=org
+                    )
                 item = Item.objects.create(
                     name=ingredient.name,
                     sku=stock.get("sku", ""),
                     category=category,
+                    organization=org,
                     retail_price=ingredient.retail_price,
-                    wholesale_price=ingredient.wholesale_price
+                    wholesale_price=ingredient.wholesale_price,
                 )
                 ingredient.item_id = item.id
                 ingredient.save()
-                itemIng = ItemIngredient.objects.get_or_create(
+                ItemIngredient.objects.get_or_create(
                     item=item,
                     ingredient=ingredient,
-                    quantity=stock.get("quantity_consumed", 1)
+                    defaults={"quantity": stock.get("quantity_consumed", 1)},
                 )
 
-        return super().form_valid(form)
+        messages.success(self.request, self.success_message)
+        return redirect(self.success_url)
 
 
-class StockUpdateView(SuccessMessageMixin, UpdateView):
+class StockUpdateView(OrgLoginRequiredMixin, OrganizationScopedMixin, SuccessMessageMixin, UpdateView):
     model = IngredientStock
     form_class = IngredientStockForm
     template_name = 'inventory/stock_form.html'
@@ -155,8 +167,10 @@ class StockUpdateView(SuccessMessageMixin, UpdateView):
         context["is_edit"] = True
         context['ingredient'] = self.get_object()
         if context['ingredient'].added_as == StockAddedAs.ITEM:
-            context['categories'] = Category.objects.all()
-            context['item'] = Item.objects.get(id=context['ingredient'].item_id)
+            context['categories'] = Category.objects.filter(organization=self.request.organization)
+            context['item'] = Item.objects.get(
+                id=context['ingredient'].item_id, organization=self.request.organization
+            )
             item_ingredient = ItemIngredient.objects.filter(
                 item=context["item"],
                 ingredient=context["ingredient"],
@@ -195,14 +209,14 @@ class StockUpdateView(SuccessMessageMixin, UpdateView):
 
 # ——— Item UI (add category on same page) ———
 
-class ItemListView(ListView):
+class ItemListView(OrgLoginRequiredMixin, OrganizationScopedMixin, ListView):
     model = Item
     queryset = Item.objects.select_related("category").all().order_by("-created_at")
     context_object_name = "items"
     template_name = "inventory/item_list.html"
 
 
-class ItemCreateView(SuccessMessageMixin, CreateView):
+class ItemCreateView(OrgLoginRequiredMixin, OrganizationScopedMixin, SuccessMessageMixin, CreateView):
     model = Item
     form_class = ItemForm
     template_name = "inventory/item_form.html"
@@ -212,7 +226,9 @@ class ItemCreateView(SuccessMessageMixin, CreateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["is_edit"] = False
-        ingredients = IngredientStock.objects.all().order_by("name")
+        ingredients = IngredientStock.objects.filter(
+            organization=self.request.organization
+        ).order_by("name")
         context["ingredients_json"] = json.dumps([
             {"id": ing.id, "name": ing.name, "retail_price": str(ing.retail_price), "wholesale_price": str(ing.wholesale_price)}
             for ing in ingredients
@@ -239,7 +255,7 @@ class ItemCreateView(SuccessMessageMixin, CreateView):
 
         return super().form_valid(form)
 
-class ItemUpdateView(SuccessMessageMixin, UpdateView):
+class ItemUpdateView(OrgLoginRequiredMixin, OrganizationScopedMixin, SuccessMessageMixin, UpdateView):
     model = Item
     form_class = ItemForm
     context_object_name = "item"
@@ -250,7 +266,9 @@ class ItemUpdateView(SuccessMessageMixin, UpdateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["is_edit"] = True
-        ingredients = IngredientStock.objects.all().order_by("name")
+        ingredients = IngredientStock.objects.filter(
+            organization=self.request.organization
+        ).order_by("name")
         context["ingredients_json"] = json.dumps([
             {"id": ing.id, "name": ing.name, "retail_price": str(ing.retail_price), "wholesale_price": str(ing.wholesale_price)}
             for ing in ingredients
@@ -285,14 +303,14 @@ class ItemUpdateView(SuccessMessageMixin, UpdateView):
 
 # ——— Bundle UI ———
 
-class BundleListView(ListView):
+class BundleListView(OrgLoginRequiredMixin, OrganizationScopedMixin, ListView):
     model = Bundle
     queryset = Bundle.objects.prefetch_related("bundleitem_set").order_by("-created_at")
     context_object_name = "bundles"
     template_name = "inventory/bundle_list.html"
 
 
-class BundleCreateView(SuccessMessageMixin, CreateView):
+class BundleCreateView(OrgLoginRequiredMixin, OrganizationScopedMixin, SuccessMessageMixin, CreateView):
     model = Bundle
     form_class = BundleForm
     template_name = "inventory/bundle_form.html"
@@ -302,7 +320,7 @@ class BundleCreateView(SuccessMessageMixin, CreateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["is_edit"] = False
-        items = Item.objects.all().order_by("name")
+        items = Item.objects.filter(organization=self.request.organization).order_by("name")
         context["items_json"] = json.dumps([
             {"id": i.id, "name": i.name, "retail_price": str(i.retail_price), "wholesale_price": str(i.wholesale_price)}
             for i in items
@@ -329,7 +347,7 @@ class BundleCreateView(SuccessMessageMixin, CreateView):
         return super().form_valid(form)
 
 
-class BundleUpdateView(SuccessMessageMixin, UpdateView):
+class BundleUpdateView(OrgLoginRequiredMixin, OrganizationScopedMixin, SuccessMessageMixin, UpdateView):
     model = Bundle
     form_class = BundleForm
     context_object_name = "bundle"
@@ -340,7 +358,7 @@ class BundleUpdateView(SuccessMessageMixin, UpdateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["is_edit"] = True
-        items = Item.objects.all().order_by("name")
+        items = Item.objects.filter(organization=self.request.organization).order_by("name")
         context["items_json"] = json.dumps([
             {"id": i.id, "name": i.name, "retail_price": str(i.retail_price), "wholesale_price": str(i.wholesale_price)}
             for i in items
@@ -372,7 +390,7 @@ class BundleUpdateView(SuccessMessageMixin, UpdateView):
         return super().form_valid(form)
 
 
-class BundleDeleteView(DeleteView):
+class BundleDeleteView(OrgLoginRequiredMixin, OrganizationScopedMixin, DeleteView):
     model = Bundle
     context_object_name = "bundle"
     template_name = "inventory/bundle_confirm_delete.html"
@@ -425,58 +443,61 @@ class InventoryStatsView(TemplateView):
         return context
 '''
 
-class InventoryStatsView(TemplateView):
+class InventoryStatsView(OrgLoginRequiredMixin, TemplateView):
     template_name = "inventory/stats.html"
 
     def get_context_data(self, **kwargs):
         from pos.models import CartItem
 
         context = super().get_context_data(**kwargs)
+        org = self.request.organization
+        item_qs = Item.objects.filter(organization=org)
+        cart_base = CartItem.objects.filter(sale__organization=org)
 
         # -------------------------
         # 1) Sold quantity per Item
         # -------------------------
         direct_qty_sub = (
-            CartItem.objects.filter(item=OuterRef("pk"), bundle__isnull=True)
+            cart_base.filter(item=OuterRef("pk"), bundle__isnull=True)
             .values("item")
-            .annotate(qty=Coalesce(Sum("quantity"), Value(0)))
+            .annotate(qty=Coalesce(Sum("quantity", output_field=DecimalField()), Value(0, output_field=DecimalField())))
             .values("qty")[:1]
         )
 
         # bundle-expanded qty: sum(bundleitem.quantity * cart_item.quantity)
         bundle_qty_sub = (
-            CartItem.objects.filter(bundle__isnull=False)
+            cart_base.filter(bundle__isnull=False)
             .filter(bundle__bundleitem__item=OuterRef("pk"))
             .values("bundle__bundleitem__item")
             .annotate(
                 qty=Coalesce(
-                    Sum(F("bundle__bundleitem__quantity") * F("quantity")),
-                    Value(0),
+                    Sum(F("bundle__bundleitem__quantity") * F("quantity"), output_field=DecimalField()),
+                    Value(0, output_field=DecimalField()),
                 )
             )
             .values("qty")[:1]
         )
 
-        total_qty = Coalesce(Subquery(direct_qty_sub, output_field=DecimalField()), Value(0)) + \
-                     Coalesce(Subquery(bundle_qty_sub, output_field=DecimalField()), Value(0))
+        total_qty = Coalesce(Subquery(direct_qty_sub, output_field=DecimalField()), Value(0, output_field=DecimalField())) + \
+                 Coalesce(Subquery(bundle_qty_sub, output_field=DecimalField()), Value(0, output_field=DecimalField()))
 
         # --------------------------------
         # 2) Cost per Item (expanded similarly)
         # --------------------------------
         direct_cost_sub = (
-            CartItem.objects.filter(item=OuterRef("pk"), bundle__isnull=True)
+            cart_base.filter(item=OuterRef("pk"), bundle__isnull=True)
             .values("item")
             .annotate(
                 cost=Coalesce(
-                    Sum(F("item__wholesale_price") * F("quantity")),
-                    Value(0),
+                    Sum(F("item__wholesale_price") * F("quantity"), output_field=DecimalField()),
+                    Value(0, output_field=DecimalField()),
                 )
             )
             .values("cost")[:1]
         )
 
         bundle_cost_sub = (
-            CartItem.objects.filter(bundle__isnull=False)
+            cart_base.filter(bundle__isnull=False)
             .filter(bundle__bundleitem__item=OuterRef("pk"))
             .values("bundle__bundleitem__item")
             .annotate(
@@ -484,16 +505,17 @@ class InventoryStatsView(TemplateView):
                     Sum(
                         F("bundle__bundleitem__quantity")
                         * F("bundle__bundleitem__item__wholesale_price")
-                        * F("quantity")
+                        * F("quantity"),
+                        output_field=DecimalField()
                     ),
-                    Value(0),
+                    Value(0, output_field=DecimalField()),
                 )
             )
             .values("cost")[:1]
         )
 
-        total_cost = Coalesce(Subquery(direct_cost_sub, output_field=DecimalField()), Value(0)) + \
-                      Coalesce(Subquery(bundle_cost_sub, output_field=DecimalField()), Value(0))
+        total_cost = Coalesce(Subquery(direct_cost_sub, output_field=DecimalField()), Value(0, output_field=DecimalField())) + \
+                  Coalesce(Subquery(bundle_cost_sub, output_field=DecimalField()), Value(0, output_field=DecimalField()))
 
         # ---------------------------------------------------
         # 3) Revenue per Item
@@ -502,7 +524,7 @@ class InventoryStatsView(TemplateView):
         #            by wholesale_value share within the bundle line
         # ---------------------------------------------------
         direct_rev_sub = (
-            CartItem.objects.filter(item=OuterRef("pk"), bundle__isnull=True)
+            cart_base.filter(item=OuterRef("pk"), bundle__isnull=True)
             .values("item")
             .annotate(
                 rev=Coalesce(
@@ -524,7 +546,7 @@ class InventoryStatsView(TemplateView):
         # cart_item.quantity cancels out, so allocation fraction is independent of cart_item.quantity,
         # but we still compute per underlying item for each cart line.
         bundle_rev_sub = (
-            CartItem.objects.filter(bundle__isnull=False)
+            cart_base.filter(bundle__isnull=False)
             .filter(bundle__bundleitem__item=OuterRef("pk"))
             .values("bundle__bundleitem__item")
             .annotate(
@@ -554,12 +576,12 @@ class InventoryStatsView(TemplateView):
         # - compute bundle revenue revenue_allocation in Python with prefetch.
         # We’ll do that below using one query to fetch relevant cart lines.
 
-        qs = Item.objects.order_by("name").values("id", "name", "wholesale_price")
+        qs = item_qs.order_by("name").values("id", "name", "wholesale_price")
         items = {row["id"]: {"id": row["id"], "name": row["name"]} for row in qs}
 
         # Seed qty & cost via DB expressions
         seeded = (
-            Item.objects.annotate(
+            item_qs.annotate(
                 total_sold_qty=total_qty,
                 total_cost=total_cost,
             )
@@ -574,17 +596,11 @@ class InventoryStatsView(TemplateView):
             items[item_id]["total_cost"] = r["total_cost"] or 0
 
         # Bundle revenue allocation in Python (exact per cart line)
-        bundle_lines = (
-            CartItem.objects.filter(bundle__isnull=False)
-            .select_related("bundle")
-            .prefetch_related("bundle__bundleitem")
+        bundle_lines = cart_base.filter(bundle__isnull=False).select_related("bundle").prefetch_related(
+            "bundle__bundleitem_set"
         )
 
-        # Direct revenue in Python too (since we already have cost/qty)
-        direct_lines = (
-            CartItem.objects.filter(bundle__isnull=True, item__isnull=False)
-            .select_related("item")
-        )
+        direct_lines = cart_base.filter(bundle__isnull=True, item__isnull=False).select_related("item")
 
         for ci in direct_lines:
             item_id = ci.item_id
@@ -625,7 +641,7 @@ class InventoryStatsView(TemplateView):
 
 # ——— API (DRF) ———
 
-class IngredientStockViewSet(viewsets.ModelViewSet):
+class IngredientStockViewSet(OrganizationViewSetMixin, viewsets.ModelViewSet):
     queryset = IngredientStock.objects.all()
     serializer_class = IngredientStockSerializer
 
@@ -636,24 +652,26 @@ class IngredientStockViewSet(viewsets.ModelViewSet):
         reason = request.data.get('reason', StockChangeReason.RESTOCK)
         note = request.data.get('note', 'note')
 
-        StockManager.restock_item(stock_item, quantity, reason, note)
+        StockManager.restock_item(
+            stock_item, quantity, reason, note, performed_by=request.user
+        )
         return Response({'status': 'restocked', 'new_quantity': stock_item.quantity})
 
-class CategoryViewSet(viewsets.ModelViewSet):
+class CategoryViewSet(OrganizationViewSetMixin, viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
 
 
-class ItemViewSet(viewsets.ModelViewSet):
+class ItemViewSet(OrganizationViewSetMixin, viewsets.ModelViewSet):
     queryset = Item.objects.select_related("category").all()
     serializer_class = ItemSerializer
 
-class BundleViewSet(viewsets.ModelViewSet):
+class BundleViewSet(OrganizationViewSetMixin, viewsets.ModelViewSet):
     queryset = Bundle.objects.prefetch_related("items").all().order_by("-created_at")
     serializer_class = BundleSerializer
 
 
-class StockLogViewSet(viewsets.ReadOnlyModelViewSet):
+class StockLogViewSet(OrganizationViewSetMixin, viewsets.ReadOnlyModelViewSet):
     """
     Read-only viewset for stock logs.
     """
@@ -664,6 +682,8 @@ class StockLogViewSet(viewsets.ReadOnlyModelViewSet):
 
 class ApiRootView(APIView):
     def get(self, request):
+        if not getattr(request, "organization", None):
+            return Response({"detail": "Organization required."}, status=403)
         return Response({
             "categories": request.build_absolute_uri("categories/"),
             "items": request.build_absolute_uri("items/"),

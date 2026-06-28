@@ -1,9 +1,16 @@
+from django.conf import settings
 from django.db import models
 from .choices import CustomerType
+
 
 class Customer(models.Model):
     """Customer for POS sales."""
 
+    organization = models.ForeignKey(
+        "users.Organization",
+        on_delete=models.CASCADE,
+        related_name="customers",
+    )
     name = models.CharField(max_length=255)
     email = models.EmailField(blank=True)
     phone = models.CharField(max_length=50, blank=True)
@@ -74,6 +81,18 @@ class CartItem(models.Model):
 class Sale(models.Model):
     """A sale transaction."""
 
+    organization = models.ForeignKey(
+        "users.Organization",
+        on_delete=models.CASCADE,
+        related_name="sales",
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="sales",
+    )
     customer = models.ForeignKey(
         Customer,
         on_delete=models.SET_NULL,

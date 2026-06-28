@@ -1,23 +1,18 @@
 import pytest
 from rest_framework import status
-from rest_framework.test import APIClient
 from inventory.models import Category, Item, Bundle, BundleItem
 
 @pytest.fixture
-def api_client():
-    return APIClient()
+def category(organization):
+    return Category.objects.create(name="Test Category", organization=organization)
 
 @pytest.fixture
-def category():
-    return Category.objects.create(name="Test Category")
-
-@pytest.fixture
-def item(category):
+def item(category, organization):
     return Item.objects.create(
         name="Test Item",
         category=category,
         sku="TEST-001",
-        quantity=10,
+        organization=organization,
         cost_price=5.00,
         retail_price=10.00
     )

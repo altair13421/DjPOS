@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, get_object_or_404
 from django.utils import timezone
 from datetime import timedelta, datetime
@@ -6,6 +7,8 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import api_view, action
 from rest_framework.response import Response
 
+from users.api_mixins import OrganizationViewSetMixin
+from users.decorators import org_required
 from utils.stock_manager import StockManager
 
 from .models import Customer, Sale
@@ -13,11 +16,21 @@ from .serializers import CustomerSerializer, SaleSerializer
 
 from icecream import ic
 
+
+def _org_sales(request):
+    org = request.organization
+    return Sale.objects.filter(organization=org).select_related("customer").prefetch_related(
+        "sale_items__item", "sale_items__bundle"
+    )
+
+
+@org_required
 def index(request):
     """Basic POS app index view."""
     return render(request, 'pos/index.html', {})
 
 
+@org_required
 def sale_panel(request):
     """POS sale_panel view."""
     return render(request, 'pos/sale_panel.html', {
@@ -25,6 +38,7 @@ def sale_panel(request):
     })
 
 
+@org_required
 def sale_history(request):
     """Sale history with date range filter: 1d, 7d, 30d, all."""
     now = timezone.now()
@@ -33,9 +47,7 @@ def sale_history(request):
 
     date_to = request.GET.get('date_to', "")
     date_from = request.GET.get('date_from', "")
-    qs = Sale.objects.select_related('customer').prefetch_related(
-        'sale_items__item', 'sale_items__bundle'
-    ).order_by('-created_at')
+    qs = _org_sales(request).order_by('-created_at')
 
     if date_to != "" or date_from != "":
         if date_to == "":
@@ -66,12 +78,11 @@ def sale_history(request):
     })
 
 
+@org_required
 def receipt(request, sale_id):
     """Thermal-styled receipt view for web print (opens in new window)."""
     sale = get_object_or_404(
-        Sale.objects.select_related('customer').prefetch_related(
-            'sale_items__item', 'sale_items__bundle'
-        ),
+        _org_sales(request),
         pk=sale_id,
     )
     return render(request, 'pos/receipt.html', {
@@ -81,20 +92,23 @@ def receipt(request, sale_id):
     })
 
 
-class CustomerViewSet(viewsets.ModelViewSet):
+class CustomerViewSet(OrganizationViewSetMixin, viewsets.ModelViewSet):
     queryset = Customer.objects.all()
     serializer_class = CustomerSerializer
 
 
-class SaleViewSet(viewsets.ModelViewSet):
+class SaleViewSet(OrganizationViewSetMixin, viewsets.ModelViewSet):
     queryset = Sale.objects.select_related('customer').prefetch_related(
         'sale_items__item', 'sale_items__bundle'
     ).all()
     serializer_class = SaleSerializer
 
     def perform_create(self, serializer):
-        sale = serializer.save()
-        StockManager.process_sale(sale)
+        sale = serializer.save(
+            organization=self.request.organization,
+            created_by=self.request.user,
+        )
+        StockManager.process_sale(sale, performed_by=self.request.user)
 
     @action(detail=True, methods=["post"], url_path="print_receipt")
     def print_receipt(self, request, pk=None):
@@ -132,6 +146,8 @@ class SaleViewSet(viewsets.ModelViewSet):
 @api_view(['GET'])
 def api_root(request):
     """API root for pos app."""
+    if not getattr(request, 'organization', None):
+        return Response({'detail': 'Organization required.'}, status=status.HTTP_403_FORBIDDEN)
     return Response({
         'customers': request.build_absolute_uri('customers/'),
         'sales': request.build_absolute_uri('sales/'),

@@ -1,11 +1,19 @@
+from django.conf import settings
 from django.db import models
+from decimal import Decimal
 from .choices import StockChangeReason, StockAddedAs
+
 
 class Category(models.Model):
     """Product category for inventory items."""
 
+    organization = models.ForeignKey(
+        "users.Organization",
+        on_delete=models.CASCADE,
+        related_name="categories",
+    )
     name = models.CharField(max_length=255)
-    identifier = models.CharField(max_length=100, unique=True, default="")
+    identifier = models.CharField(max_length=100, default="")
     description = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -13,6 +21,12 @@ class Category(models.Model):
     class Meta:
         ordering = ["-created_at"]
         verbose_name_plural = "categories"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["organization", "identifier"],
+                name="unique_category_identifier_per_org",
+            )
+        ]
 
     def __str__(self):
         return f"Category #{self.pk} - {self.name}"
@@ -25,6 +39,11 @@ class Category(models.Model):
 class IngredientStock(models.Model):
     """The Actual Ingredients go here, Hence The STOCK"""
 
+    organization = models.ForeignKey(
+        "users.Organization",
+        on_delete=models.CASCADE,
+        related_name="ingredient_stock",
+    )
     name = models.CharField(max_length=255)
     quantity = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     wholesale_price = models.DecimalField(max_digits=12, decimal_places=2, default=0)
@@ -49,10 +68,15 @@ class IngredientStock(models.Model):
 class Item(models.Model):
     """Inventory item (product)."""
 
+    organization = models.ForeignKey(
+        "users.Organization",
+        on_delete=models.CASCADE,
+        related_name="items",
+    )
     name = models.CharField(max_length=255)
     sku = models.CharField(
-        max_length=100, unique=True
-    )  # Stock Keeping Unit. A unique identifier for the item.
+        max_length=100,
+    )  # Stock Keeping Unit. Unique per organization.
     category = models.ForeignKey(
         Category,
         on_delete=models.SET_NULL,
@@ -94,6 +118,12 @@ class Item(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["organization", "sku"],
+                name="unique_item_sku_per_org",
+            )
+        ]
 
     def __str__(self):
         return f"Item #{self.pk} - {self.name}"
@@ -117,6 +147,12 @@ class ItemIngredient(models.Model):
 
 class Bundle(models.Model):
     """A bundle of items sold together."""
+
+    organization = models.ForeignKey(
+        "users.Organization",
+        on_delete=models.CASCADE,
+        related_name="bundles",
+    )
     name = models.CharField(max_length=255)
     items = models.ManyToManyField(Item, through='BundleItem', related_name='bundles')
     price = models.DecimalField(max_digits=12, decimal_places=2)  # The deal price
@@ -172,6 +208,19 @@ class BundleItem(models.Model):
 
 class StockLog(models.Model):
     """Log of stock changes."""
+
+    organization = models.ForeignKey(
+        "users.Organization",
+        on_delete=models.CASCADE,
+        related_name="stock_logs",
+    )
+    performed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="stock_logs",
+    )
     item = models.ForeignKey(IngredientStock, on_delete=models.CASCADE, related_name='stock_logs')
     change_quantity = models.IntegerField()  # Positive for add, negative for remove
     reason = models.CharField(max_length=50, choices=StockChangeReason.choices)

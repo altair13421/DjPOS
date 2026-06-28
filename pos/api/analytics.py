@@ -55,6 +55,12 @@ def _expanded_qty_rev_cost_for_sales(sales_qs):
 
 
 class AnalyticsViewSet(viewsets.ViewSet):
+    def _org_sales(self, request):
+        org = getattr(request, "organization", None)
+        if org is None:
+            return Sale.objects.none()
+        return Sale.objects.filter(organization=org)
+
     @action(detail=False, methods=["get"])
     def profit(self, request):
         now = timezone.now()
@@ -62,7 +68,8 @@ class AnalyticsViewSet(viewsets.ViewSet):
         tomorrow_start = today_start + timedelta(days=1)
 
         sales = (
-            Sale.objects.filter(created_at__gte=today_start, created_at__lt=tomorrow_start)
+            self._org_sales(request)
+            .filter(created_at__gte=today_start, created_at__lt=tomorrow_start)
             .prefetch_related(
                 "sale_items__item",
                 "sale_items__bundle__bundleitem_set__item",
@@ -95,21 +102,23 @@ class AnalyticsViewSet(viewsets.ViewSet):
             "items": items_breakdown,
         })
 
-    def _last_7d_sales(self):
+    def _last_7d_sales(self, request):
         end_date = timezone.now()
         start_date = end_date - timedelta(days=7)
-        return Sale.objects.filter(created_at__range=[start_date, end_date]).prefetch_related(
+        return self._org_sales(request).filter(created_at__range=[start_date, end_date]).prefetch_related(
             "sale_items__item",
             "sale_items__bundle__bundleitem_set__item",
         )
 
     @action(detail=False, methods=["get"])
     def items_sold_7d(self, request):
-        sales = self._last_7d_sales()
+        sales = self._last_7d_sales(request)
         qty_by_item_id, _, _ = _expanded_qty_rev_cost_for_sales(sales)
 
         item_ids = list(qty_by_item_id.keys())
-        names = dict(Item.objects.filter(id__in=item_ids).values_list("id", "name"))
+        names = dict(
+            Item.objects.filter(id__in=item_ids, organization=request.organization).values_list("id", "name")
+        )
 
         result = [
             {"item_name": names.get(iid, str(iid)), "total_sold": qty}
@@ -120,11 +129,13 @@ class AnalyticsViewSet(viewsets.ViewSet):
 
     @action(detail=False, methods=["get"])
     def top_items(self, request):
-        sales = self._last_7d_sales()
+        sales = self._last_7d_sales(request)
         qty_by_item_id, _, _ = _expanded_qty_rev_cost_for_sales(sales)
 
         item_ids = list(qty_by_item_id.keys())
-        names = dict(Item.objects.filter(id__in=item_ids).values_list("id", "name"))
+        names = dict(
+            Item.objects.filter(id__in=item_ids, organization=request.organization).values_list("id", "name")
+        )
 
         result = [
             {"item_name": names.get(iid, str(iid)), "total_sold": qty}

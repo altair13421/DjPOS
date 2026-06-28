@@ -1,28 +1,22 @@
 import pytest
 from decimal import Decimal
 from rest_framework import status
-from rest_framework.test import APIClient
 
 from inventory.models import Item, Bundle, BundleItem
 from pos.models import Sale, CartItem, Customer
 
 
 @pytest.fixture
-def api_client():
-    return APIClient()
+def customer(organization):
+    return Customer.objects.create(name="Test Customer", organization=organization)
 
 
 @pytest.fixture
-def customer():
-    return Customer.objects.create(name="Test Customer")
-
-
-@pytest.fixture
-def item():
+def item(organization):
     return Item.objects.create(
         name="Test Item",
         sku="TI",
-        quantity=100,
+        organization=organization,
         retail_price=Decimal("10"),
         wholesale_price=Decimal("6"),
     )
@@ -34,11 +28,16 @@ def bundle(item):
     other = Item.objects.create(
         name="Other Item",
         sku="OI",
-        quantity=100,
+        organization=item.organization,
         retail_price=Decimal("5"),
         wholesale_price=Decimal("3"),
     )
-    b = Bundle.objects.create(name="Test Bundle", price=Decimal("12"), active=True)
+    b = Bundle.objects.create(
+        name="Test Bundle",
+        price=Decimal("12"),
+        active=True,
+        organization=item.organization,
+    )
     BundleItem.objects.create(bundle=b, item=item, quantity=1)
     BundleItem.objects.create(bundle=b, item=other, quantity=1)
     return b

@@ -1,6 +1,12 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+class OrganizationRole(models.TextChoices):
+    OWNER = "owner", _("Owner")
+    MANAGER = "manager", _("Manager")
+    CASHIER = "cashier", _("Cashier")
+
+
 class UserLogReasons(models.TextChoices):
     SIGNIN = "SIGNIN", _("Signin") # Can be The Same as Check in
     SIGNOUT = "SIGNOUT", _("Signout") # Can be the Same as Check Out

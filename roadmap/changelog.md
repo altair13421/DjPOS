@@ -5,6 +5,19 @@
 So This is For what have I done Already. Since I am writing this Very late in the Game.
 I would Simply just Fast type What has Already been done and how do I, or You Do it.
 
+## 2026-06-28:
+
+- Users app migration and permissions improvements
+- Locked the App Behind Logins and Organizational Structure.
+- need to sign up an Organization to use the App.
+- All the Users are now Being Tracked.
+- Userlog is tracking what user logged in, and When.
+- Inventory stock and sale tracking updates
+- POS analytics and serializer adjustments
+- UI/template updates for inventory and base layouts
+- Support utilities and config updates
+
+
 ## 2026-06-27:
 
 ### Inventory:
