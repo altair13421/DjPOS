@@ -1,10 +1,12 @@
-from django.contrib.auth.models import Group, Permission
+from django.contrib.auth.models import Group, Permission, User
 from django.contrib.contenttypes.models import ContentType
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
 from inventory.models import Category, Item, StockLog
 from pos.models import Customer, Sale
+from users.models import Organization, OrganizationMembership
+from users.choices import OrganizationRole
 
 
 class Command(BaseCommand):
@@ -32,4 +34,42 @@ class Command(BaseCommand):
         cashier.permissions.set(cashier_perms)
         manager.permissions.set(manager_perms)
 
-        self.stdout.write(self.style.SUCCESS("Created groups: cashier, manager"))
+        # Create a Basic default Organization
+        # And a User that is a an Admin there. and give him organization ownership.
+
+        organization, _ = Organization.objects.get_or_create(name="Default Test", is_active=False)
+        users = [{
+            "first_name": "Test",
+            "last_name": "Owner",
+            "username": "testowner",
+            "password": "ownerpassword",
+            "email": "test@owner.com",
+            "role": OrganizationRole.OWNER,
+        },{
+            "first_name": "Test",
+            "last_name": "Manager",
+            "username": "testmanager",
+            "password": "managerpassword",
+            "email": "test@manager.com",
+            "role": OrganizationRole.MANAGER,
+        }, {
+            "first_name": "Test",
+            "last_name": "Cashier",
+            "username": "testcashier",
+            "password": "cashierpassword",
+            "email": "test@cashier.com",
+            "role": OrganizationRole.CASHIER,
+        }]
+        for user in users:
+            role = user.pop("role")
+            user_ = User.objects.create_user(
+                **user
+            )
+            org_mem, _ = OrganizationMembership.objects.get_or_create(
+                user = user_,
+                organization=organization,
+                defaults={"role":role, "is_default": True}
+            )
+
+        self.stdout.write(self.style.SUCCESS(f"Created groups: cashier, manager, and Users: {users}"))
+

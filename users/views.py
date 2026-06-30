@@ -23,6 +23,8 @@ class UserLoginView(LoginView):
         org = get_default_organization(self.request.user)
         if org:
             set_session_organization(self.request, org)
+        if self.request.user.is_superuser:
+            return redirect("/admin/")
         UserLog.objects.create(
             user=self.request.user,
             reason=UserLogReasons.SIGNIN,
@@ -53,7 +55,7 @@ class UserCreateView(LoginRequiredMixin, UserPassesTestMixin, SuccessMessageMixi
         return self.request.user.is_staff
 
     def handle_no_permission(self):
-        messages.error(self.request, "Only staff can create users.")
+        messages.error(self.request, "Only Staff/Owner can create users.")
         return super().handle_no_permission()
 
     def form_valid(self, form):

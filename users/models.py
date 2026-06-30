@@ -7,11 +7,17 @@ from .choices import StoreCategoryChoices, UserLogReasons, OrganizationRole
 class Organization(models.Model):
     name = models.CharField(max_length=127)
     slug = models.SlugField(unique=True)
-    is_active = models.BooleanField(default=True)
+    is_active = models.BooleanField(default=False)
+    # Plan to be included.
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ["name"]
+
+    def save(self, *args, **kwargs):
+        if self.slug == "":
+            self.slug = self.name.lower().replace(" ", "-")
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.name
