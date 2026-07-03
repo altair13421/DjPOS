@@ -2,6 +2,19 @@
 
 Roadmap for future updates. Plans To do what.
 
+## - 2026-07-03:
+
+TODO:
+- make Settings page for organization only accessible by admin.
+- Make profile edit page. Can only change password.
+- Password reset page. (Admins can Reset passwords of young'uns)
+
+- Make Homepage of this regarding with features and stuff.
+- Make an organization sign up page.
+- Make Plans. Pricing can be decided, and Changed upon use.
+- Domain................ Hmmmm
+----------------------------
+
 ## - update After 18-06-2026
 
 ### Users: <in-progress almost done>
