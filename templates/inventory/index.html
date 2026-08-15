@@ -3,7 +3,94 @@
 
 {% block content %}
   <div class="page-header d-flex flex-wrap align-items-center justify-content-between gap-2">
-    <h1 class="h2 mb-0">Dashboard</h1>
+    <div>
+      <h1 class="h2 mb-0">Dashboard</h1>
+      {% if CURRENT_ORGANIZATION %}
+      <p class="text-muted mb-0">{{ CURRENT_ORGANIZATION.name }}</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-4 col-lg">
+      <div class="card h-100 text-center">
+        <div class="card-body">
+          <div class="text-muted small">Items</div>
+          <div class="h3 mb-0">{{ total_items }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg">
+      <div class="card h-100 text-center">
+        <div class="card-body">
+          <div class="text-muted small">Out of stock</div>
+          <div class="h3 mb-0 text-danger">{{ out_of_stock_count }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg">
+      <div class="card h-100 text-center">
+        <div class="card-body">
+          <div class="text-muted small">Low stock</div>
+          <div class="h3 mb-0 text-warning">{{ low_stock_count }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg">
+      <div class="card h-100 text-center">
+        <div class="card-body">
+          <div class="text-muted small">Sales today</div>
+          <div class="h3 mb-0">{{ today_sales_count }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg">
+      <div class="card h-100 text-center">
+        <div class="card-body">
+          <div class="text-muted small">Revenue today</div>
+          <div class="h3 mb-0 text-success">PKR {{ today_revenue|floatformat:0 }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <strong>Low stock reminders</strong>
+      <a href="{% url 'inventory:item_list' %}" class="btn btn-sm btn-outline-primary">Manage items</a>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Item</th>
+              <th>Category</th>
+              <th>In stock</th>
+              <th>Reorder at</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in low_stock_items %}
+            <tr>
+              <td><strong>{{ item.name }}</strong></td>
+              <td>{{ item.category.name|default:"Uncategorized" }}</td>
+              <td class="{% if item.quantity == 0 %}text-danger{% else %}text-warning{% endif %}">{{ item.quantity }}</td>
+              <td>{{ item.reorder_level }}</td>
+              <td class="text-end">
+                <a href="{% url 'inventory:item_edit' item.pk %}" class="btn btn-sm btn-outline-secondary">Edit</a>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="5" class="text-center text-muted py-4">No low-stock items. Set a reorder level on items to get reminders.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 
   <div class="row g-4">
@@ -46,6 +133,7 @@
         </div>
       </div>
     </div>
+    {% if SHOW_API_UI %}
     <div class="col-md-6 col-lg-4">
       <div class="card h-100">
         <div class="card-body">
@@ -55,5 +143,6 @@
         </div>
       </div>
     </div>
+    {% endif %}
   </div>
 {% endblock %}

@@ -25,11 +25,15 @@
     }
 
     .app-navbar .navbar-brand,
-    .app-navbar .nav-link {
+    .app-navbar .nav-link,
+    .app-navbar .btn-link.nav-link {
       color: var(--inventory-sidebar-text) !important;
+      text-decoration: none;
+      padding: 0.5rem 1rem;
     }
 
-    .app-navbar .nav-link:hover {
+    .app-navbar .nav-link:hover,
+    .app-navbar .btn-link.nav-link:hover {
       color: #fff !important;
     }
 
@@ -67,30 +71,31 @@
 <body>
   <nav class="navbar navbar-expand-lg navbar-dark app-navbar">
     <div class="container">
-      <a class="navbar-brand" href="/">DJPOS</a>
+      <a class="navbar-brand" href="/">DJPOS{% if CURRENT_ORGANIZATION %} · {{ CURRENT_ORGANIZATION.name }}{% endif %}</a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
         aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
       </button>
       <div class="collapse navbar-collapse" id="navbarNav">
+        {% if user.is_authenticated %}
         <ul class="navbar-nav me-auto">
           <li class="nav-item">
-            <a class="nav-link {% if 'pos' in request.resolver_match.app_name and request.resolver_match.url_name == 'index' %}active{% endif %}"
+            <a class="nav-link {% if request.resolver_match and 'pos' in request.resolver_match.app_name and request.resolver_match.url_name == 'index' %}active{% endif %}"
               href="{% url 'pos:index' %}">POS</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link {% if 'pos' in request.resolver_match.app_name and request.resolver_match.url_name == 'sale_panel' %}active{% endif %}"
+            <a class="nav-link {% if request.resolver_match and 'pos' in request.resolver_match.app_name and request.resolver_match.url_name == 'sale_panel' %}active{% endif %}"
               href="{% url 'pos:sale_panel' %}">Sale Panel</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link {% if 'pos' in request.resolver_match.app_name and request.resolver_match.url_name == 'sale_history' %}active{% endif %}"
+            <a class="nav-link {% if request.resolver_match and 'pos' in request.resolver_match.app_name and request.resolver_match.url_name == 'sale_history' %}active{% endif %}"
               href="{% url 'pos:sale_history' %}">Sale History</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link {% if 'inventory' in request.resolver_match.app_name and request.resolver_match.url_name == 'index' %}active{% endif %}"
+            <a class="nav-link {% if request.resolver_match and 'inventory' in request.resolver_match.app_name and request.resolver_match.url_name == 'index' %}active{% endif %}"
               href="{% url 'inventory:index' %}">Inventory</a>
           </li>
-          {% if 'inventory' in request.resolver_match.app_name %}
+          {% if request.resolver_match and 'inventory' in request.resolver_match.app_name %}
           <li class="nav-item">
             <a class="nav-link {% if 'category' in request.resolver_match.url_name %}active{% endif %}"
               href="{% url 'inventory:category_list' %}">Categories</a>
@@ -110,10 +115,31 @@
           {% endif %}
         </ul>
         <ul class="navbar-nav">
+          {% if SHOW_API_UI %}
           <li class="nav-item">
             <a class="nav-link" href="{% url 'inventory:api_root' %}">API</a>
           </li>
+          {% endif %}
+          <li class="nav-item">
+            <span class="nav-link disabled">{{ user.username }}</span>
+          </li>
+          <li class="nav-item">
+            <form method="post" action="{% url 'organizations:logout' %}" class="d-inline">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-link nav-link">Log out</button>
+            </form>
+          </li>
         </ul>
+        {% else %}
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'organizations:login' %}">Log in</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'organizations:signup' %}">Sign up</a>
+          </li>
+        </ul>
+        {% endif %}
       </div>
     </div>
   </nav>
@@ -136,7 +162,7 @@
 
   <footer class="py-3 mt-auto">
     <div class="container text-muted small">
-      DJPOS Inventory — Categories &amp; Items
+      DJPOS — Point of Sale &amp; Inventory
     </div>
   </footer>
 

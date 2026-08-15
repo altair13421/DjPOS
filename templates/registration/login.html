@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Log in{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-5 col-lg-4">
+    <div class="card shadow-sm">
+      <div class="card-body p-4">
+        <h1 class="h3 mb-3">Log in</h1>
+        <form method="post" novalidate>
+          {% csrf_token %}
+          {% if form.non_field_errors %}
+          <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+          {% endif %}
+          <div class="mb-3">
+            <label class="form-label" for="id_username">Username</label>
+            <input type="text" name="username" autofocus class="form-control" required id="id_username"
+              value="{{ form.username.value|default:'' }}">
+            {% if form.username.errors %}
+            <div class="text-danger small">{{ form.username.errors|striptags }}</div>
+            {% endif %}
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="id_password">Password</label>
+            <div class="input-group">
+              <input type="password" name="password" class="form-control" required id="id_password"
+                autocomplete="current-password">
+              <button type="button"
+                class="btn btn-outline-secondary password-toggle"
+                data-target="id_password"
+                aria-label="Show password"
+                aria-pressed="false">
+                Show
+              </button>
+            </div>
+            {% if form.password.errors %}
+            <div class="text-danger small">{{ form.password.errors|striptags }}</div>
+            {% endif %}
+          </div>
+          <button type="submit" class="btn btn-primary w-100">Log in</button>
+        </form>
+        <p class="mt-3 mb-0 small text-muted">
+          New store?
+          <a href="{% url 'organizations:signup' %}">Create an organization</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.querySelectorAll(".password-toggle").forEach((button) => {
+    button.addEventListener("click", () => {
+      const input = document.getElementById(button.dataset.target);
+      if (!input) return;
+      const showing = input.type === "text";
+      input.type = showing ? "password" : "text";
+      button.textContent = showing ? "Show" : "Hide";
+      button.setAttribute("aria-pressed", showing ? "false" : "true");
+      button.setAttribute("aria-label", showing ? "Show password" : "Hide password");
+    });
+  });
+</script>
+{% endblock %}

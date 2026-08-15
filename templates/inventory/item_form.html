@@ -46,11 +46,19 @@
           </div>
           {% endif %}
           <div class="col-md-6">
-            <label for="id_quantity" class="form-label">Quantity (metric Unit)</label>
+            <label for="id_quantity" class="form-label">Quantity</label>
             {{ form.quantity }}
             {% if form.quantity.errors %}
               <div class="invalid-feedback d-block">{{ form.quantity.errors.0 }}</div>
             {% endif %}
+          </div>
+          <div class="col-md-6">
+            <label for="id_reorder_level" class="form-label">Reorder level</label>
+            {{ form.reorder_level }}
+            {% if form.reorder_level.errors %}
+              <div class="invalid-feedback d-block">{{ form.reorder_level.errors.0 }}</div>
+            {% endif %}
+            <div class="form-text">Alert when stock is at or below this amount.</div>
           </div>
           <div class="col-md-6">
             <label for="id_retail_price" class="form-label">Retail price</label>

@@ -1,25 +1,23 @@
 #!/bin/bash
-# setup.sh - Linux/Mac setup script for DJPOS
+# setup.sh - Linux/Mac setup script for DJPOS (uv)
 
-echo "Setting up DJPOS..."
+set -euo pipefail
 
-# Create virtual environment if it doesn't exist
-if [ ! -d ".venv" ]; then
-    echo "Creating virtual environment..."
-    python3 -m venv .venv
+echo "Setting up DJPOS with uv..."
+
+if ! command -v uv >/dev/null 2>&1; then
+    echo "Error: uv is not installed."
+    echo "Install it from https://docs.astral.sh/uv/getting-started/installation/"
+    exit 1
 fi
 
-# Activate virtual environment
-source .venv/bin/activate
+echo "Syncing dependencies from pyproject.toml / uv.lock..."
+uv sync
 
-# Install dependencies
-echo "Installing dependencies..."
-pip install -r requirements.txt
-
-# Run migrations
 echo "Running migrations..."
-python manage.py migrate
+uv run python manage.py migrate
 
 echo "Setup complete! To start the server, run:"
-echo "source .venv/bin/activate"
-echo "python manage.py runserver"
+echo "  ./run.sh"
+echo "or:"
+echo "  uv run python manage.py runserver 0.0.0.0:8002"

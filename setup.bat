@@ -1,21 +1,21 @@
 @echo off
-echo Setting up DJPOS...
+echo Setting up DJPOS with uv...
 
-IF NOT EXIST ".venv" (
-    echo Creating virtual environment...
-    python -m venv .venv
+where uv >nul 2>&1
+IF ERRORLEVEL 1 (
+    echo Error: uv is not installed.
+    echo Install it from https://docs.astral.sh/uv/getting-started/installation/
+    pause
+    exit /b 1
 )
 
-echo Activating virtual environment...
-call .venv\Scripts\activate.bat
-
-echo Installing dependencies...
-pip install -r requirements.txt
+echo Syncing dependencies from pyproject.toml / uv.lock...
+uv sync
 
 echo Running migrations...
-python manage.py migrate
+uv run python manage.py migrate
 
 echo Setup complete! To start the server, run:
-echo .venv\Scripts\activate
-echo python manage.py runserver
+echo setup.bat then run.bat, or:
+echo uv run python manage.py runserver 0.0.0.0:8002
 pause

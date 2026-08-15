@@ -32,12 +32,25 @@ class ItemForm(forms.ModelForm):
 
     class Meta:
         model = Item
-        fields = ["name", "sku", "category", "quantity", "retail_price", "wholesale_price", "is_ingredient", "is_active"]
+        fields = [
+            "name",
+            "sku",
+            "category",
+            "quantity",
+            "reorder_level",
+            "retail_price",
+            "wholesale_price",
+            "is_ingredient",
+            "is_active",
+        ]
         widgets = {
             "name": forms.TextInput(attrs={"class": "form-control", "placeholder": "Item name"}),
             "sku": forms.TextInput(attrs={"class": "form-control", "placeholder": "SKU (optional)"}),
             "category": forms.Select(attrs={"class": "form-select"}),
-            "quantity": forms.NumberInput(attrs={"class": "form-control", "min": 0}),
+            "quantity": forms.NumberInput(attrs={"class": "form-control", "min": 0, "step": 1}),
+            "reorder_level": forms.NumberInput(
+                attrs={"class": "form-control", "min": 0, "step": 1}
+            ),
             "retail_price": forms.NumberInput(
                 attrs={"class": "form-control", "min": 0, "step": "1"}
             ),
@@ -46,11 +59,15 @@ class ItemForm(forms.ModelForm):
             ),
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, organization=None, **kwargs):
+        self.organization = organization
         super().__init__(*args, **kwargs)
         self.fields["category"].required = False
         self.fields["category"].empty_label = "— No category —"
-        self.fields["category"].queryset = Category.objects.all().order_by("name")
+        category_qs = Category.objects.all().order_by("name")
+        if organization is not None:
+            category_qs = category_qs.filter(organization=organization)
+        self.fields["category"].queryset = category_qs
 
     def clean(self):
         data = super().clean()
@@ -65,9 +82,12 @@ class ItemForm(forms.ModelForm):
 
     def save(self, commit=True):
         instance = super().save(commit=False)
+        if self.organization is not None and not instance.organization_id:
+            instance.organization = self.organization
         new_name = (self.cleaned_data.get("new_category_name") or "").strip()
         if new_name:
             category, _ = Category.objects.get_or_create(
+                organization=instance.organization,
                 name=new_name,
                 defaults={"description": ""},
             )

@@ -1,48 +1,85 @@
 from rest_framework import serializers
-from .models import Category, Item, Bundle, BundleItem, StockLog
+
+from organizations.utils import get_user_organization
+
+from .models import Bundle, BundleItem, Category, Item, StockLog
 
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
-        fields = ['id', 'name', 'description', 'created_at', 'updated_at']
+        fields = ["id", "name", "description", "created_at", "updated_at"]
+        read_only_fields = ["created_at", "updated_at"]
 
 
 class ItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = Item
         fields = [
-            'id', 'name', 'sku', 'category', 'quantity',
-            'retail_price', 'wholesale_price', 'created_at', 'updated_at',
+            "id",
+            "name",
+            "sku",
+            "category",
+            "quantity",
+            "reorder_level",
+            "retail_price",
+            "wholesale_price",
+            "created_at",
+            "updated_at",
         ]
+        read_only_fields = ["created_at", "updated_at"]
+
+    def validate_category(self, category):
+        if category is None:
+            return category
+        organization = self.context.get("organization")
+        request = self.context.get("request")
+        if organization is None and request is not None:
+            organization = get_user_organization(request.user)
+        if organization is not None and category.organization_id != organization.id:
+            raise serializers.ValidationError(
+                "Category not found in your organization."
+            )
+        return category
+
+    def validate_quantity(self, value):
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            raise serializers.ValidationError("Quantity must be a whole number.")
 
 
 class BundleItemSerializer(serializers.ModelSerializer):
-    item_name = serializers.ReadOnlyField(source='item.name')
+    item_name = serializers.ReadOnlyField(source="item.name")
     retail_price = serializers.DecimalField(
-        source='item.retail_price', max_digits=12, decimal_places=2, read_only=True
+        source="item.retail_price", max_digits=12, decimal_places=2, read_only=True
     )
     wholesale_price = serializers.DecimalField(
-        source='item.wholesale_price', max_digits=12, decimal_places=2, read_only=True
+        source="item.wholesale_price", max_digits=12, decimal_places=2, read_only=True
     )
 
     class Meta:
         model = BundleItem
-        fields = ['id', 'item', 'item_name', 'quantity', 'retail_price', 'wholesale_price']
+        fields = [
+            "id",
+            "item",
+            "item_name",
+            "quantity",
+            "retail_price",
+            "wholesale_price",
+        ]
 
 
 class BundleSerializer(serializers.ModelSerializer):
-    items = BundleItemSerializer(source='bundleitem_set', many=True, read_only=True)
+    items = BundleItemSerializer(source="bundleitem_set", many=True, read_only=True)
     total_wholesale = serializers.SerializerMethodField()
     total_retail = serializers.SerializerMethodField()
-
     is_available = serializers.SerializerMethodField()
     available_count = serializers.SerializerMethodField()
-
     item_ids = serializers.ListField(
         child=serializers.DictField(),
         write_only=True,
-        required=False
+        required=False,
     )
 
     def get_total_wholesale(self, obj):
@@ -55,58 +92,103 @@ class BundleSerializer(serializers.ModelSerializer):
         return obj.is_available
 
     def get_available_count(self, obj):
-        return obj.how_many_available
+        return int(obj.how_many_available)
 
     class Meta:
         model = Bundle
         fields = [
-            'id', 'name', 'price', 'active', 'items',
-            'total_wholesale', 'total_retail', 'item_ids',
-            'created_at', 'updated_at', 'is_available', "available_count",
+            "id",
+            "name",
+            "price",
+            "active",
+            "items",
+            "total_wholesale",
+            "total_retail",
+            "item_ids",
+            "created_at",
+            "updated_at",
+            "is_available",
+            "available_count",
         ]
+        read_only_fields = ["created_at", "updated_at"]
+
+    def _organization(self):
+        organization = self.context.get("organization")
+        request = self.context.get("request")
+        if organization is None and request is not None:
+            organization = get_user_organization(request.user)
+        return organization
 
     def _item_ids_internal_value(self, item_ids):
+        organization = self._organization()
         out = []
         for d in item_ids or []:
-            item_id = d.get('item_id')
-            quantity = d.get('quantity', 1)
+            item_id = d.get("item_id")
+            quantity = d.get("quantity", 1)
             if item_id is None:
                 continue
-            out.append({'item_id': int(item_id), 'quantity': int(quantity)})
+            try:
+                quantity = int(quantity)
+            except (TypeError, ValueError):
+                raise serializers.ValidationError(
+                    {"item_ids": "quantity must be an integer."}
+                )
+            if quantity < 1:
+                raise serializers.ValidationError(
+                    {"item_ids": "quantity must be at least 1."}
+                )
+            qs = Item.objects.all()
+            if organization is not None:
+                qs = qs.filter(organization=organization)
+            if not qs.filter(pk=int(item_id)).exists():
+                raise serializers.ValidationError(
+                    {"item_ids": f"Item {item_id} not found in your organization."}
+                )
+            out.append({"item_id": int(item_id), "quantity": quantity})
         return out
 
     def create(self, validated_data):
-        item_ids = self._item_ids_internal_value(validated_data.pop('item_ids', []))
-        bundle = Bundle.objects.create(**validated_data)
+        item_ids = self._item_ids_internal_value(validated_data.pop("item_ids", []))
+        organization = validated_data.pop("organization", None) or self._organization()
+        bundle = Bundle.objects.create(organization=organization, **validated_data)
         for item_data in item_ids:
             BundleItem.objects.create(
                 bundle=bundle,
-                item_id=item_data['item_id'],
-                quantity=item_data['quantity']
+                item_id=item_data["item_id"],
+                quantity=item_data["quantity"],
             )
         return bundle
 
     def update(self, instance, validated_data):
-        item_ids = validated_data.pop('item_ids', None)
-        instance.name = validated_data.get('name', instance.name)
-        instance.price = validated_data.get('price', instance.price)
-        instance.active = validated_data.get('active', instance.active)
+        item_ids = validated_data.pop("item_ids", None)
+        instance.name = validated_data.get("name", instance.name)
+        instance.price = validated_data.get("price", instance.price)
+        instance.active = validated_data.get("active", instance.active)
         instance.save()
         if item_ids is not None:
             instance.bundleitem_set.all().delete()
             for item_data in self._item_ids_internal_value(item_ids):
                 BundleItem.objects.create(
                     bundle=instance,
-                    item_id=item_data['item_id'],
-                    quantity=item_data['quantity']
+                    item_id=item_data["item_id"],
+                    quantity=item_data["quantity"],
                 )
         return instance
 
 
 class StockLogSerializer(serializers.ModelSerializer):
-    item_name = serializers.ReadOnlyField(source='item.name')
-    reason_display = serializers.CharField(source='get_reason_display', read_only=True)
+    item_name = serializers.ReadOnlyField(source="item.name")
+    reason_display = serializers.CharField(source="get_reason_display", read_only=True)
 
     class Meta:
         model = StockLog
-        fields = ['id', 'item', 'item_name', 'change_quantity', 'reason', 'reason_display', 'note', 'created_at']
+        fields = [
+            "id",
+            "item",
+            "item_name",
+            "change_quantity",
+            "reason",
+            "reason_display",
+            "note",
+            "created_at",
+        ]

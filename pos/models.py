@@ -4,6 +4,11 @@ from django.db import models
 class Customer(models.Model):
     """Customer for POS sales."""
 
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.CASCADE,
+        related_name="customers",
+    )
     name = models.CharField(max_length=255)
     email = models.EmailField(blank=True)
     phone = models.CharField(max_length=50, blank=True)
@@ -11,8 +16,6 @@ class Customer(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        """Meta class for the Customer model."""
-
         verbose_name = "Customer"
         verbose_name_plural = "Customers"
         ordering = ["name"]
@@ -39,9 +42,7 @@ class CartItem(models.Model):
         related_name="cart_items",
     )
     quantity = models.PositiveIntegerField(default=0)
-    unit_price = models.DecimalField(
-        max_digits=12, decimal_places=2, default=0
-    )  # Price at time of sale (item or bundle)
+    unit_price = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     sale = models.ForeignKey(
         "Sale", on_delete=models.CASCADE, related_name="sale_items"
     )
@@ -51,8 +52,6 @@ class CartItem(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        """Meta class for the CartItem model."""
-
         verbose_name = "Cart Item"
         verbose_name_plural = "Cart Items"
         ordering = ["-created_at"]
@@ -70,6 +69,11 @@ class CartItem(models.Model):
 class Sale(models.Model):
     """A sale transaction."""
 
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.CASCADE,
+        related_name="sales",
+    )
     customer = models.ForeignKey(
         Customer,
         on_delete=models.SET_NULL,
@@ -90,8 +94,6 @@ class Sale(models.Model):
         return self.total - self.discount - self.tax
 
     class Meta:
-        """Meta class for the Sale model."""
-
         verbose_name = "Sale"
         verbose_name_plural = "Sales"
         ordering = ["-created_at"]

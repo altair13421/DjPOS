@@ -1,25 +1,27 @@
-# DJPOS - Django app (Debian-based)
+# DJPOS - Django app (Debian-based, uv)
 FROM debian:bookworm-slim
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    PIP_NO_CACHE_DIR=1
+    UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy \
+    PATH="/app/.venv/bin:$PATH"
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3 \
-    python3-pip \
-    python3-venv \
-    libpq-dev \
-    gcc \
+    ca-certificates \
+    curl \
+    libpq5 \
     && rm -rf /var/lib/apt/lists/*
+
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 WORKDIR /app
 
-COPY requirements.txt .
-RUN pip3 install --break-system-packages -r requirements.txt
+COPY pyproject.toml uv.lock .python-version ./
+RUN uv sync --frozen --no-dev
 
 COPY . .
 
 EXPOSE 8000
 
-CMD ["python3", "manage.py", "runserver", "0.0.0.0:8000"]
+CMD ["uv", "run", "python", "manage.py", "runserver", "0.0.0.0:8000"]

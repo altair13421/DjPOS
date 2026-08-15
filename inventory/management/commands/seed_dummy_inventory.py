@@ -1,26 +1,45 @@
-from decimal import Decimal
+from math import ceil
 
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 
-from inventory.models import Bundle, BundleItem, Item, Category
+from inventory.models import Bundle, BundleItem, Category, Item
+from organizations.models import Organization
 
 
 class Command(BaseCommand):
     help = (
         "Create dummy inventory items (ingredient/non-ingredient, active/inactive) "
-        "and sample bundles that pair well with ingredients."
+        "and sample bundles for an organization."
     )
 
-    def handle(self, *args, **options):
-        items_by_sku = self._seed_items()
-        self._seed_bundles(items_by_sku)
-        self.stdout.write(self.style.SUCCESS("Dummy inventory seed completed."))
+    def add_arguments(self, parser):
+        parser.add_argument(
+            "--organization",
+            default="default-organization",
+            help="Organization slug to seed (default: default-organization)",
+        )
 
-    def _seed_items(self):
-        category = Category.objects.create(
-            name="DummyObjects",
+    def handle(self, *args, **options):
+        slug = options["organization"]
+        try:
+            organization = Organization.objects.get(slug=slug)
+        except Organization.DoesNotExist as exc:
+            raise CommandError(f"Organization with slug '{slug}' not found.") from exc
+
+        items_by_sku = self._seed_items(organization)
+        self._seed_bundles(organization, items_by_sku)
+        self.stdout.write(
+            self.style.SUCCESS(f"Dummy inventory seed completed for {organization.name}.")
+        )
+
+    def _seed_items(self, organization):
+        category, _ = Category.objects.get_or_create(
+            organization=organization,
             identifier="DUM",
-            description="Dummy Objects auto added"
+            defaults={
+                "name": "DummyObjects",
+                "description": "Dummy Objects auto added",
+            },
         )
 
         item_specs = [
@@ -29,70 +48,77 @@ class Command(BaseCommand):
                 "name": "Tomato",
                 "is_ingredient": True,
                 "is_active": True,
-                "quantity": Decimal("50"),
-                "cost_price": Decimal("40"),
-                "retail_price": Decimal("80"),
-                "wholesale_price": Decimal("70"),
+                "quantity": 50,
+                "reorder_level": 10,
+                "cost_price": 40,
+                "retail_price": 80,
+                "wholesale_price": 70,
             },
             {
                 "sku": "DUM-ING-ACT-003",
                 "name": "Chicken",
                 "is_ingredient": True,
                 "is_active": True,
-                "quantity": Decimal("20"),
-                "cost_price": Decimal("560"),
-                "retail_price": Decimal("560"),
-                "wholesale_price": Decimal("500"),
+                "quantity": 20,
+                "reorder_level": 5,
+                "cost_price": 560,
+                "retail_price": 560,
+                "wholesale_price": 500,
             },
             {
                 "sku": "DUM-ING-ACT-002",
                 "name": "Cheddar Cheese",
                 "is_ingredient": True,
                 "is_active": True,
-                "quantity": Decimal("30"),
-                "cost_price": Decimal("120"),
-                "retail_price": Decimal("200"),
-                "wholesale_price": Decimal("180"),
+                "quantity": 30,
+                "reorder_level": 8,
+                "cost_price": 120,
+                "retail_price": 200,
+                "wholesale_price": 180,
             },
             {
                 "sku": "DUM-ING-INACT-001",
                 "name": "Basil Leaves",
                 "is_ingredient": True,
                 "is_active": False,
-                "quantity": Decimal("0"),
-                "cost_price": Decimal("25"),
-                "retail_price": Decimal("50"),
-                "wholesale_price": Decimal("40"),
+                "quantity": 0,
+                "reorder_level": 5,
+                "cost_price": 25,
+                "retail_price": 50,
+                "wholesale_price": 40,
             },
             {
                 "sku": "DUM-PRD-ACT-001",
                 "name": "Margherita Pizza",
                 "is_ingredient": False,
                 "is_active": True,
-                "quantity": Decimal("12"),
-                "cost_price": Decimal("350"),
-                "retail_price": Decimal("650"),
-                "wholesale_price": Decimal("600"),
+                "quantity": 12,
+                "reorder_level": 3,
+                "cost_price": 350,
+                "retail_price": 650,
+                "wholesale_price": 600,
             },
             {
                 "sku": "DUM-PRD-INACT-001",
                 "name": "Chocolate Cake Slice",
                 "is_ingredient": False,
                 "is_active": False,
-                "quantity": Decimal("0"),
-                "cost_price": Decimal("90"),
-                "retail_price": Decimal("180"),
-                "wholesale_price": Decimal("150"),
+                "quantity": 0,
+                "reorder_level": 2,
+                "cost_price": 90,
+                "retail_price": 180,
+                "wholesale_price": 150,
             },
             {
                 "sku": "DUM-PRD-ACT-002",
                 "name": "Garlic Bread",
                 "is_ingredient": False,
                 "is_active": True,
-                "quantity": Decimal("20"),
-                "cost_price": Decimal("70"),
-                "retail_price": Decimal("130"),
-                "wholesale_price": Decimal("110"),
+                "quantity": 20,
+                "reorder_level": 5,
+                "cost_price": 70,
+                "retail_price": 130,
+                "wholesale_price": 110,
             },
         ]
 
@@ -100,55 +126,62 @@ class Command(BaseCommand):
         for spec in item_specs:
             sku = spec["sku"]
             defaults = {k: v for k, v in spec.items() if k != "sku"}
-            item, created = Item.objects.update_or_create(sku=sku, defaults=defaults)
+            defaults["organization"] = organization
+            defaults["category"] = category
+            item, created = Item.objects.update_or_create(
+                organization=organization,
+                sku=sku,
+                defaults=defaults,
+            )
             action = "Created" if created else "Updated"
             self.stdout.write(f"{action} item: {item.name} [{sku}]")
             items_by_sku[sku] = item
 
         return items_by_sku
 
-    def _seed_bundles(self, items_by_sku):
+    def _seed_bundles(self, organization, items_by_sku):
         bundle_specs = [
             {
                 "name": "Fresh Pizza Prep Pack",
-                "price": Decimal("420"),
+                "price": 420,
                 "active": True,
                 "components": [
-                    ("DUM-ING-ACT-001", Decimal("3")),
-                    ("DUM-ING-ACT-002", Decimal("2")),
+                    ("DUM-ING-ACT-001", 3),
+                    ("DUM-ING-ACT-002", 2),
                 ],
             },
             {
                 "name": "Chicken Zinger Burger",
-                "price": Decimal("420"),
+                "price": 420,
                 "active": True,
                 "components": [
-                    ("DUM-ING-ACT-003", Decimal("0.3")),
-                    ("DUM-ING-ACT-002", Decimal("1")),
-                ]
+                    ("DUM-ING-ACT-003", 1),  # was 0.3; whole items only
+                    ("DUM-ING-ACT-002", 1),
+                ],
             },
             {
                 "name": "Italian Herb Combo",
-                "price": Decimal("180"),
+                "price": 180,
                 "active": False,
                 "components": [
-                    ("DUM-ING-ACT-001", Decimal("1")),
-                    ("DUM-ING-INACT-001", Decimal("2")),
+                    ("DUM-ING-ACT-001", 1),
+                    ("DUM-ING-INACT-001", 2),
                 ],
             },
             {
                 "name": "Cheesy Starter Mix",
-                "price": Decimal("320"),
+                "price": 320,
                 "active": True,
                 "components": [
-                    ("DUM-ING-ACT-002", Decimal("1.5")),
-                    ("DUM-ING-ACT-001", Decimal("2")),
+                    ("DUM-ING-ACT-002", 2),  # was 1.5; ceiling to whole items
+                    ("DUM-ING-ACT-001", 2),
                 ],
             },
         ]
 
         for spec in bundle_specs:
             bundle, created = Bundle.objects.get_or_create(
+                organization=organization,
                 name=spec["name"],
                 defaults={"price": spec["price"], "active": spec["active"]},
             )
@@ -167,7 +200,11 @@ class Command(BaseCommand):
                         )
                     )
                     continue
-                BundleItem.objects.create(bundle=bundle, item=item, quantity=quantity)
+                BundleItem.objects.create(
+                    bundle=bundle,
+                    item=item,
+                    quantity=int(ceil(quantity)),
+                )
 
             action = "Created" if created else "Updated"
             self.stdout.write(f"{action} bundle: {bundle.name}")

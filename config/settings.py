@@ -26,6 +26,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    "organizations",
     "pos",
     "inventory",
 ]
@@ -53,6 +54,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "config.context_processors.app_settings",
             ],
         },
     },
@@ -95,9 +97,23 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+LOGIN_URL = "organizations:login"
+LOGIN_REDIRECT_URL = "pos:index"
+LOGOUT_REDIRECT_URL = "organizations:login"
+
+# When False, hide developer-facing API links/cards. Endpoints stay available for the UI.
+SHOW_API_UI = os.environ.get("SHOW_API_UI", "false").lower() in ("true", "1", "yes")
+
 REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 20,
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.SessionAuthentication",
+        "rest_framework.authentication.BasicAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
+    ],
 }
 
 # Currency for all amounts in the application

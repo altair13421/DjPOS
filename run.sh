@@ -1,19 +1,20 @@
 #!/bin/bash
-# run.sh - Linux/Mac running script for DJPOS
+# run.sh - Linux/Mac running script for DJPOS (uv)
+
+set -euo pipefail
 
 echo "Starting DJPOS Server..."
 
-# Check if virtual environment exists
-if [ ! -d ".venv" ]; then
-    echo "Error: Virtual environment '.venv' not found."
-    echo "Please run ./setup.sh first to install dependencies."
+if ! command -v uv >/dev/null 2>&1; then
+    echo "Error: uv is not installed."
+    echo "Install it from https://docs.astral.sh/uv/getting-started/installation/"
     exit 1
 fi
 
-# Activate virtual environment
-echo "Activating virtual environment..."
-source .venv/bin/activate
+if [ ! -d ".venv" ]; then
+    echo "Virtual environment '.venv' not found. Running uv sync..."
+    uv sync
+fi
 
-# Start the server
 echo "Starting Django server on http://127.0.0.1:8002/ ..."
-python manage.py runserver 0.0.0.0:8002
+uv run python manage.py runserver 0.0.0.0:8002

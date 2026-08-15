@@ -7,7 +7,9 @@
     <div class="col-12 d-flex justify-content-between align-items-center">
         <h1 class="h2">POS Dashboard</h1>
         <div class="btn-group">
+            {% if SHOW_API_UI %}
             <a href="{% url 'pos:api_root' %}" class="btn btn-outline-secondary">API Root</a>
+            {% endif %}
             <a href="{% url 'pos:sale_panel' %}" class="btn btn-primary">SALE PANEL</a>
             <a href="{% url 'inventory:item_list' %}" class="btn btn-outline-secondary">Manage Inventory</a>
         </div>
@@ -101,7 +103,11 @@
                     options: {
                         indexAxis: 'y',
                         scales: {
-                            x: { beginAtZero: true, title: { display: true, text: 'Quantity sold' } },
+                            x: {
+                                beginAtZero: true,
+                                ticks: { stepSize: 1, precision: 0 },
+                                title: { display: true, text: 'Quantity sold' }
+                            },
                             y: { title: { display: true, text: 'Item' } }
                         },
                         plugins: { legend: { display: false } }
