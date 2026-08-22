@@ -6,13 +6,19 @@ from django.contrib.auth.views import LoginView, LogoutView
 from django.contrib.messages.views import SuccessMessageMixin
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
-from django.views.generic import CreateView, ListView
+from django.views.generic import CreateView, DetailView, ListView
 
 from .choices import OrganizationRole, UserLogReasons
 from .forms import UserCreateForm
 from .models import Organization, OrganizationMembership, UserLog
-from .organization_utils import get_default_organization, set_session_organization
-from .mixins import OrgLoginRequiredMixin, OrgLoginAndRoleRequiredMixin
+from .organization_utils import (
+    get_default_organization,
+    set_session_organization,
+    get_user_role_in_organization,
+    get_roles_with_lower_priority,
+)
+from .mixins import OrgLoginAndRoleRequiredMixin
+
 
 class UserLoginView(LoginView):
     template_name = "users/login.html"
@@ -25,9 +31,13 @@ class UserLoginView(LoginView):
             set_session_organization(self.request, org)
         if self.request.user.is_superuser:
             return redirect("/admin/")
+
         UserLog.objects.create(
             user=self.request.user,
             reason=UserLogReasons.SIGNIN,
+            user_role=(
+                get_user_role_in_organization(self.request.user, org) if org else None
+            ),
             organization=org,
         )
         return response
@@ -40,19 +50,27 @@ class UserLogoutView(LogoutView):
                 user=request.user,
                 reason=UserLogReasons.SIGNOUT,
                 organization=getattr(request, "organization", None),
+                user_role=(
+                    get_user_role_in_organization(
+                        request.user, getattr(request, "organization", None)
+                    )
+                    if getattr(request, "organization", None)
+                    else None
+                ),
             )
         return super().dispatch(request, *args, **kwargs)
 
 
-class UserCreateView(LoginRequiredMixin, UserPassesTestMixin, SuccessMessageMixin, CreateView):
+class UserCreateView(
+    OrgLoginAndRoleRequiredMixin, SuccessMessageMixin, CreateView
+):
     model = User
     form_class = UserCreateForm
     template_name = "users/user_form.html"
     success_url = reverse_lazy("users:create")
     success_message = "User created."
 
-    def test_func(self):
-        return self.request.user.is_staff
+    required_roles = [OrganizationRole.OWNER, OrganizationRole.MANAGER]
 
     def handle_no_permission(self):
         messages.error(self.request, "Only Staff/Owner can create users.")
@@ -74,6 +92,9 @@ class UserCreateView(LoginRequiredMixin, UserPassesTestMixin, SuccessMessageMixi
             user=self.request.user,
             reason=UserLogReasons.CREATE,
             organization=org,
+            user_role=(
+                get_user_role_in_organization(self.request.user, org) if org else None
+            ),
             notes=f"Created user {self.object.username}",
         )
         return response
@@ -107,7 +128,7 @@ def switch_organization(request, slug):
     return redirect(request.META.get("HTTP_REFERER", reverse("pos:index")))
 
 
-class UserLogListView(LoginRequiredMixin, OrgLoginAndRoleRequiredMixin, ListView):
+class UserLogListView(OrgLoginAndRoleRequiredMixin, ListView):
     model = UserLog
     template_name = "users/userlog_list.html"
     context_object_name = "userlogs"
@@ -117,5 +138,26 @@ class UserLogListView(LoginRequiredMixin, OrgLoginAndRoleRequiredMixin, ListView
 
     def get_queryset(self):
         org = getattr(self.request, "organization", None)
-        queryset = UserLog.objects.filter(organization=org).order_by("-created_at")
+        queryset = UserLog.objects.filter(
+            organization=org,
+            user_role=get_roles_with_lower_priority(
+                get_user_role_in_organization(self.request.user, org)
+            ),
+        ).order_by("-created_at")
+        return queryset
+
+
+class UserLogDetailView( OrgLoginAndRoleRequiredMixin, DetailView):
+    model = UserLog
+    template_name = "users/userlog_detail.html"
+    context_object_name = "userlog"
+
+    required_roles = [OrganizationRole.OWNER, OrganizationRole.MANAGER]
+
+    def get_queryset(self):
+        org = getattr(self.request, "organization", None)
+        userlog_id = self.kwargs.get("pk")
+        queryset = UserLog.objects.filter(organization=org, id=userlog_id).order_by(
+            "-created_at"
+        )
         return queryset

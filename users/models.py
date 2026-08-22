@@ -72,7 +72,10 @@ class UserLog(models.Model):
         on_delete=models.CASCADE,
         related_name="user_logs",
         null=True,
-        blank=True
+        blank=True,
+    )
+    user_role = models.CharField(
+        max_length=31, choices=OrganizationRole.choices, null=True, blank=True
     )
     notes = models.TextField(blank=True)
     details = models.JSONField(blank=True, default=dict)

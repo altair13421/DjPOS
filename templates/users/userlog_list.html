@@ -1,6 +1,59 @@
 {% extends "base.html" %}
-{% block title %}Create user{% endblock %}
+{% block title %}User Logs{% endblock %}
 
 {% block content %}
+<h2>User Logs</h2>
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Created At</th>
+                        <th>Reason</th>
+                        <th>User</th>
+                        <th>User Role</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for userlog in userlogs %}
+                    <tr>
+                        <td>{{ userlog.created_at }}</td>
+                        <td>{{ userlog.reason }}</td>
+                        <td>{{ userlog.user }}</td>
+                        <td>{{ userlog.user_role }}</td>
+                        <td>
+                            <a href="{% url 'userlog_detail' userlog.pk %}" class="btn btn-sm btn-outline-primary">View</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4">No user logs available.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% if is_paginated %}
+<div class="pagination">
+    <span class="step-links">
+        {% if page_obj.has_previous %}
+        <a href="?page=1">&laquo; first</a>
+        <a href="?page={{ page_obj.previous_page_number }}">previous</a>
+        {% endif %}
 
+        <span class="current">
+            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
+        </span>
+
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}">next</a>
+        <a href="?page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
+        {% endif %}
+    </span>
+</div>
+{% endif %}
 {% endblock %}
