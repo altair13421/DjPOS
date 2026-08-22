@@ -6,13 +6,13 @@ from django.contrib.auth.views import LoginView, LogoutView
 from django.contrib.messages.views import SuccessMessageMixin
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
-from django.views.generic import CreateView
+from django.views.generic import CreateView, ListView
 
 from .choices import OrganizationRole, UserLogReasons
 from .forms import UserCreateForm
 from .models import Organization, OrganizationMembership, UserLog
 from .organization_utils import get_default_organization, set_session_organization
-
+from .mixins import OrgLoginRequiredMixin, OrgLoginAndRoleRequiredMixin
 
 class UserLoginView(LoginView):
     template_name = "users/login.html"
@@ -105,3 +105,17 @@ def switch_organization(request, slug):
     set_session_organization(request, org)
     messages.success(request, f"Switched to {org.name}.")
     return redirect(request.META.get("HTTP_REFERER", reverse("pos:index")))
+
+
+class UserLogListView(LoginRequiredMixin, OrgLoginAndRoleRequiredMixin, ListView):
+    model = UserLog
+    template_name = "users/userlog_list.html"
+    context_object_name = "userlogs"
+    paginate_by = 20
+
+    required_roles = [OrganizationRole.OWNER, OrganizationRole.MANAGER]
+
+    def get_queryset(self):
+        org = getattr(self.request, "organization", None)
+        queryset = UserLog.objects.filter(organization=org).order_by("-created_at")
+        return queryset

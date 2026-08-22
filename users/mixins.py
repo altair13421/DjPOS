@@ -35,3 +35,21 @@ class OrganizationScopedMixin:
 
 class OrgLoginRequiredMixin(LoginRequiredMixin, OrganizationRequiredMixin):
     pass
+
+class OrgLoginAndRoleRequiredMixin(OrgLoginRequiredMixin):
+    required_roles = []
+
+    def dispatch(self, request, *args, **kwargs):
+        if not self.has_required_role():
+            return redirect(reverse("users:select_organization"))
+        return super().dispatch(request, *args, **kwargs)
+
+    def has_required_role(self):
+        user = self.request.user
+        org = getattr(self.request, "organization", None)
+        if not org:
+            return False
+        membership = user.memberships.filter(organization=org).first()
+        if not membership:
+            return False
+        return membership.role in self.required_roles
