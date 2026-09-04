@@ -140,7 +140,7 @@
           {% if user.is_staff %}
           <li class="nav-item">
             <a class="nav-link {% if 'users' in request.resolver_match.app_name and request.resolver_match.url_name == 'create' %}active{% endif %}"
-              href="{% url 'users:create' %}">Create user</a>
+              href="{% url 'users:user_create' %}">Create user</a>
           </li>
           {% endif %}
           <li class="nav-item">

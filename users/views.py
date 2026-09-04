@@ -57,13 +57,12 @@ class UserLogoutView(LogoutView):
                     if getattr(request, "organization", None)
                     else None
                 ),
+                notes="User logged out.",
             )
         return super().dispatch(request, *args, **kwargs)
 
 
-class UserCreateView(
-    OrgLoginAndRoleRequiredMixin, SuccessMessageMixin, CreateView
-):
+class UserCreateView(OrgLoginAndRoleRequiredMixin, SuccessMessageMixin, CreateView):
     model = User
     form_class = UserCreateForm
     template_name = "users/user_form.html"
@@ -147,7 +146,7 @@ class UserLogListView(OrgLoginAndRoleRequiredMixin, ListView):
         return queryset
 
 
-class UserLogDetailView( OrgLoginAndRoleRequiredMixin, DetailView):
+class UserLogDetailView(OrgLoginAndRoleRequiredMixin, DetailView):
     model = UserLog
     template_name = "users/userlog_detail.html"
     context_object_name = "userlog"
@@ -161,3 +160,41 @@ class UserLogDetailView( OrgLoginAndRoleRequiredMixin, DetailView):
             "-created_at"
         )
         return queryset
+
+
+# Need to Create Organization, and a User with Owner Role, and then Create a Membership for that User in that Organization. Then the User can create other Users in that Organization.
+class OrganizationBlankCreateView: ...
+
+class OrganizationCreateView(OrgLoginAndRoleRequiredMixin, SuccessMessageMixin, CreateView):
+    model = Organization
+    fields = ["name", "category"]
+    template_name = "users/organization_form.html"
+    success_url = reverse_lazy("users:select_organization")
+    success_message = "Organization created."
+
+    required_roles = [OrganizationRole.OWNER]
+
+    def handle_no_permission(self):
+        messages.error(self.request, "Only Staff/Owner can create organizations.")
+        return super().handle_no_permission()
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        org = self.object
+        OrganizationMembership.objects.get_or_create(
+            user=self.request.user,
+            organization=org,
+            defaults={
+                "role": OrganizationRole.OWNER,
+                "is_default": True,
+            },
+        )
+        set_session_organization(self.request, org)
+        UserLog.objects.create(
+            user=self.request.user,
+            reason=UserLogReasons.CREATE,
+            organization=org,
+            user_role=OrganizationRole.OWNER,
+            notes=f"Created organization {org.name}",
+        )
+        return response
