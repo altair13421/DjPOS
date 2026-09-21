@@ -6,7 +6,7 @@ from django.contrib.auth.views import LoginView, LogoutView
 from django.contrib.messages.views import SuccessMessageMixin
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
-from django.views.generic import CreateView, DetailView, ListView
+from django.views.generic import CreateView, DetailView, ListView, View
 
 from .choices import OrganizationRole, UserLogReasons
 from .forms import UserCreateForm
@@ -162,10 +162,9 @@ class UserLogDetailView(OrgLoginAndRoleRequiredMixin, DetailView):
         return queryset
 
 
-# Need to Create Organization, and a User with Owner Role, and then Create a Membership for that User in that Organization. Then the User can create other Users in that Organization.
-class OrganizationBlankCreateView: ...
-
-class OrganizationCreateView(OrgLoginAndRoleRequiredMixin, SuccessMessageMixin, CreateView):
+class OrganizationCreateView(
+    OrgLoginAndRoleRequiredMixin, SuccessMessageMixin, CreateView
+):
     model = Organization
     fields = ["name", "category"]
     template_name = "users/organization_form.html"
@@ -198,3 +197,39 @@ class OrganizationCreateView(OrgLoginAndRoleRequiredMixin, SuccessMessageMixin, 
             notes=f"Created organization {org.name}",
         )
         return response
+
+
+########################
+# Business Views. these include the Actual Signing up #
+# The Creation of Organizations #
+# The Creation of the First User/owner, and making a business #
+########################
+
+
+##### HOME Page Without signup and stuff. 
+# This is the first page that a user sees when they go to the site. It will 
+# have a button to create an organization, and then a button to create a 
+# user for that organization. Once the user is created, they can then create 
+# other users for that organization. The first user created will be the owner of 
+# the organization, and will have the ability to create other users with different 
+# roles. The owner can also delete users, and change their roles. 
+# The owner can also delete the organization, which 
+# will delete all users associated with that organization.
+
+class HomeView(View):
+    def get(self, request, *args, **kwargs):
+        if Organization.objects.exists():
+            return redirect("users:select_organization")
+        
+
+
+
+# Need to Create Organization, and a User with Owner Role, and then Create a 
+# Membership for that User in that Organization. 
+# Then the User can create other Users in that Organization.
+class OrganizationBlankCreateView:
+    def get(self, request, *args, **kwargs):
+        if Organization.objects.exists():
+            messages.error(request, "Organization already exists.")
+            return redirect("users:select_organization")
+        return redirect("users:organization_create")

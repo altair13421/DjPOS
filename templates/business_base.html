@@ -1,0 +1,176 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Inventory{% endblock %} | DJPOS</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  {% block extra_css %}{% endblock %}
+</head>
+
+
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark app-navbar">
+    <div class="container">
+      <a class="navbar-brand" href="/">DJPOS</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+        aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav me-auto">
+          <li class="nav-item">
+            <a class="nav-link {% if 'pos' in request.resolver_match.app_name and request.resolver_match.url_name == 'index' %}active{% endif %}"
+              href="{% url 'pos:index' %}">POS</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {% if 'pos' in request.resolver_match.app_name and request.resolver_match.url_name == 'sale_panel' %}active{% endif %}"
+              href="{% url 'pos:sale_panel' %}">Sale Panel</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {% if 'pos' in request.resolver_match.app_name and request.resolver_match.url_name == 'sale_history' %}active{% endif %}"
+              href="{% url 'pos:sale_history' %}">Sale History</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {% if 'inventory' in request.resolver_match.app_name and request.resolver_match.url_name == 'index' %}active{% endif %}"
+              href="{% url 'inventory:index' %}">Inventory</a>
+          </li>
+          {% if 'inventory' in request.resolver_match.app_name %}
+          <li class="nav-item">
+            <a class="nav-link {% if 'category' in request.resolver_match.url_name %}active{% endif %}"
+              href="{% url 'inventory:category_list' %}">Categories</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {% if 'stock' in request.resolver_match.url_name %}active{% endif %}"
+              href="{% url 'inventory:stock_list' %}">Stock</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {% if 'item' in request.resolver_match.url_name %}active{% endif %}"
+              href="{% url 'inventory:item_list' %}">Items</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {% if 'stats' in request.resolver_match.url_name %}active{% endif %}"
+              href="{% url 'inventory:stats' %}">Stats</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {% if 'bundle' in request.resolver_match.url_name %}active{% endif %}"
+              href="{% url 'inventory:bundle_list' %}">Bundles</a>
+          </li>
+          {% endif %}
+        </ul>
+        <ul class="navbar-nav">
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'inventory:api_root' %}">API</a>
+          </li>
+          {% if user.is_authenticated %}
+          {% if user_organizations|length > 1 %}
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              {{ current_organization.name|default:"Organization" }}
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end">
+              {% for org in user_organizations %}
+              <li>
+                <a class="dropdown-item{% if current_organization.id == org.id %} active{% endif %}"
+                  href="{% url 'users:switch_organization' org.slug %}">{{ org.name }}</a>
+              </li>
+              {% endfor %}
+            </ul>
+          </li>
+          {% elif current_organization %}
+          <li class="nav-item">
+            <span class="nav-link text-muted">{{ current_organization.name }}</span>
+          </li>
+          {% endif %}
+          {% if user.is_staff %}
+          <li class="nav-item">
+            <a class="nav-link {% if 'users' in request.resolver_match.app_name and request.resolver_match.url_name == 'create' %}active{% endif %}"
+              href="{% url 'users:user_create' %}">Create user</a>
+          </li>
+          {% endif %}
+          <li class="nav-item">
+            <span class="nav-link">{{ user.username }}</span>
+          </li>
+          <li class="nav-item">
+            <a id="logout-link" class="nav-link" href="{% url 'users:logout' %}">Sign out</a>
+          </li>
+          {% else %}
+          <li class="nav-item">
+            <a class="nav-link {% if 'users' in request.resolver_match.app_name and request.resolver_match.url_name == 'login' %}active{% endif %}"
+              href="{% url 'users:login' %}">Sign in</a>
+          </li>
+          {% endif %}
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <main class="py-4">
+    <div class="container">
+      {% if messages %}
+      {% for message in messages %}
+      <div
+        class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show"
+        role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+      {% endfor %}
+      {% endif %}
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+
+  <footer class="py-3 mt-auto">
+    <div class="container text-muted small">
+      DJPOS Inventory — Categories &amp; Items
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    (function () {
+      function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+          const cookies = document.cookie.split(';');
+          for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+              cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+              break;
+            }
+          }
+        }
+        return cookieValue;
+      }
+
+      const logoutLink = document.getElementById('logout-link');
+      if (logoutLink) {
+        logoutLink.addEventListener('click', function (e) {
+          e.preventDefault();
+          const url = this.getAttribute('href');
+          fetch(url, {
+            method: 'POST',
+            headers: {
+              'X-CSRFToken': getCookie('csrftoken'),
+              'Accept': 'text/html, */*'
+            },
+            credentials: 'same-origin'
+          })
+            .then(() => {
+              window.location.href = "{% url 'users:login' %}";
+            })
+            .catch(() => {
+              window.location.href = "{% url 'users:login' %}";
+            });
+        });
+      }
+    })();
+  </script>
+  {% block extra_js %}{% endblock %}
+</body>
+
+</html>
