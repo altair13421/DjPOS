@@ -1,6 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
-
+import uuid
 from .choices import StoreCategoryChoices, UserLogReasons, OrganizationRole
 
 
@@ -62,6 +62,8 @@ class Settings(models.Model):
 
 
 class UserLog(models.Model):
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    device_id = models.CharField(max_length=64, default="")
     reason = models.CharField(
         max_length=127, default=UserLogReasons.SIGNIN, choices=UserLogReasons.choices
     )

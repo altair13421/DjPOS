@@ -1,11 +1,12 @@
 from django.conf import settings
 from django.db import models
 from .choices import CustomerType
-
+import secrets, uuid
 
 class Customer(models.Model):
     """Customer for POS sales."""
 
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     organization = models.ForeignKey(
         "users.Organization",
         on_delete=models.CASCADE,
@@ -33,6 +34,7 @@ class Customer(models.Model):
 class CartItem(models.Model):
     """An item or bundle in a cart. Exactly one of item or bundle must be set."""
 
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     item = models.ForeignKey(
         "inventory.Item",
         on_delete=models.CASCADE,
@@ -81,6 +83,8 @@ class CartItem(models.Model):
 class Sale(models.Model):
     """A sale transaction."""
 
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    device_id = models.CharField(max_length=64, default="")
     organization = models.ForeignKey(
         "users.Organization",
         on_delete=models.CASCADE,

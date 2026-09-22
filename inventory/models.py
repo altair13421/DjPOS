@@ -2,11 +2,12 @@ from django.conf import settings
 from django.db import models
 from decimal import Decimal
 from .choices import StockChangeReason, StockAddedAs
-
+import secrets, uuid
 
 class Category(models.Model):
     """Product category for inventory items."""
 
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     organization = models.ForeignKey(
         "users.Organization",
         on_delete=models.CASCADE,
@@ -39,6 +40,7 @@ class Category(models.Model):
 class IngredientStock(models.Model):
     """The Actual Ingredients go here, Hence The STOCK"""
 
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     organization = models.ForeignKey(
         "users.Organization",
         on_delete=models.CASCADE,
@@ -68,6 +70,7 @@ class IngredientStock(models.Model):
 class Item(models.Model):
     """Inventory item (product)."""
 
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     organization = models.ForeignKey(
         "users.Organization",
         on_delete=models.CASCADE,
@@ -112,7 +115,7 @@ class Item(models.Model):
     def save(self, *args, **kwargs):
         if self.sku == "":
             self.sku = f"{self.category.identifier}-0{self.count()}"
-        if self.wholesale_price != Decimal(0):
+        if self.wholesale_price == Decimal(0):
             self.wholesale_price = self.total_wholesale
         super().save(*args, **kwargs)
 
@@ -129,6 +132,8 @@ class Item(models.Model):
         return f"Item #{self.pk} - {self.name}"
 
 class ItemIngredient(models.Model):
+
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     ingredient = models.ForeignKey(IngredientStock, on_delete=models.CASCADE)
     item = models.ForeignKey(Item, on_delete=models.CASCADE)
     quantity = models.DecimalField(default=1, max_digits=12, decimal_places=2, null=True)
@@ -148,6 +153,7 @@ class ItemIngredient(models.Model):
 class Bundle(models.Model):
     """A bundle of items sold together."""
 
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     organization = models.ForeignKey(
         "users.Organization",
         on_delete=models.CASCADE,
@@ -190,6 +196,8 @@ class Bundle(models.Model):
 
 class BundleItem(models.Model):
     """Intermediate model for Bundle-Item relationship."""
+
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     bundle = models.ForeignKey(Bundle, on_delete=models.CASCADE)
     item = models.ForeignKey(Item, on_delete=models.CASCADE)
     quantity = models.DecimalField(default=1, max_digits=12, decimal_places=2,)
@@ -209,6 +217,7 @@ class BundleItem(models.Model):
 class StockLog(models.Model):
     """Log of stock changes."""
 
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     organization = models.ForeignKey(
         "users.Organization",
         on_delete=models.CASCADE,

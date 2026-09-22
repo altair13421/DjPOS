@@ -109,6 +109,7 @@ class SaleViewSet(OrganizationViewSetMixin, viewsets.ModelViewSet):
             created_by=self.request.user,
         )
         StockManager.process_sale(sale, performed_by=self.request.user)
+        # sync.payloads.enqueue_sale_bundle(sale)
 
     @action(detail=True, methods=["post"], url_path="print_receipt")
     def print_receipt(self, request, pk=None):

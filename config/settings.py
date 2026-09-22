@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     "pos",
     "inventory",
     "users",
+    "sync",
 ]
 
 MIDDLEWARE = [
