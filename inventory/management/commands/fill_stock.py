@@ -21,7 +21,7 @@ class Command(BaseCommand):
         try:
             organization = Organization.objects.exclude(name="Default Organization").last()
         except:
-            stdout.error("There is No organization filled. First Add one, Automated using 'create_users_groups' command.")
+            self.stdout.error("There is No organization filled. First Add one, Automated using 'create_users_groups' command.")
         # --- categories (same as before) ---
         cats = [
             {"name":"Bakery", "identifier":"BAKE", "description":"Baked goods"},

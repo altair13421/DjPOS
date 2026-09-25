@@ -262,13 +262,14 @@ class ItemCreateView(OrgLoginAndRoleRequiredMixin, OrganizationScopedMixin, Succ
 
         return super().form_valid(form)
 
-class ItemUpdateView(OrgLoginRequiredMixin, OrganizationScopedMixin, SuccessMessageMixin, UpdateView):
+class ItemUpdateView(OrgLoginAndRoleRequiredMixin, OrganizationScopedMixin, SuccessMessageMixin, UpdateView):
     model = Item
     form_class = ItemForm
     context_object_name = "item"
     template_name = "inventory/item_form.html"
     success_url = reverse_lazy("inventory:item_list")
     success_message = "Item updated."
+    required_roles = [OrganizationRole.OWNER, OrganizationRole.MANAGER]
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
