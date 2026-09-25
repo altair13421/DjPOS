@@ -2,7 +2,8 @@ from icecream import ic
 import json
 from django.contrib import messages
 from users.api_mixins import OrganizationViewSetMixin
-from users.mixins import OrgLoginRequiredMixin, OrganizationScopedMixin
+from users.choices import OrganizationRole
+from users.mixins import OrgLoginAndRoleRequiredMixin, OrgLoginRequiredMixin, OrganizationScopedMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.db import transaction
 from django.shortcuts import redirect
@@ -52,19 +53,21 @@ class IndexView(OrgLoginRequiredMixin, TemplateView):
 
 # ——— Category UI ———
 
-class CategoryListView(OrgLoginRequiredMixin, OrganizationScopedMixin, ListView):
+class CategoryListView(OrgLoginAndRoleRequiredMixin, OrganizationScopedMixin, ListView):
     model = Category
     queryset = Category.objects.all().order_by("name")
     context_object_name = "categories"
     template_name = "inventory/category_list.html"
+    required_roles = ["admin", "manager"]
 
 
-class CategoryCreateView(OrgLoginRequiredMixin, OrganizationScopedMixin, SuccessMessageMixin, CreateView):
+class CategoryCreateView(OrgLoginAndRoleRequiredMixin, OrganizationScopedMixin, SuccessMessageMixin, CreateView):
     model = Category
     form_class = CategoryForm
     template_name = "inventory/category_form.html"
     success_url = reverse_lazy("inventory:category_list")
     success_message = "Category created."
+    required_roles = [OrganizationRole.OWNER, OrganizationRole.MANAGER]
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -94,12 +97,13 @@ class StockListView(OrgLoginRequiredMixin, OrganizationScopedMixin, ListView):
     context_object_name = "stock"
     template_name = 'inventory/stock_list.html'
 
-class StockCreateView(OrgLoginRequiredMixin, OrganizationScopedMixin, SuccessMessageMixin, CreateView):
+class StockCreateView(OrgLoginAndRoleRequiredMixin, OrganizationScopedMixin, SuccessMessageMixin, CreateView):
     model = IngredientStock
     form_class = IngredientStockForm
     template_name = 'inventory/stock_form.html'
     success_url = reverse_lazy("inventory:stock_list")
     success_message = "Stock Created"
+    required_roles = [OrganizationRole.OWNER, OrganizationRole.MANAGER]
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -161,6 +165,7 @@ class StockUpdateView(OrgLoginRequiredMixin, OrganizationScopedMixin, SuccessMes
     template_name = 'inventory/stock_form.html'
     success_url = reverse_lazy("inventory:stock_list")
     success_message = "Stock Updated."
+    required_roles = [OrganizationRole.OWNER, OrganizationRole.MANAGER]
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -209,19 +214,21 @@ class StockUpdateView(OrgLoginRequiredMixin, OrganizationScopedMixin, SuccessMes
 
 # ——— Item UI (add category on same page) ———
 
-class ItemListView(OrgLoginRequiredMixin, OrganizationScopedMixin, ListView):
+class ItemListView(OrgLoginAndRoleRequiredMixin, OrganizationScopedMixin, ListView):
     model = Item
     queryset = Item.objects.select_related("category").all().order_by("-created_at")
     context_object_name = "items"
     template_name = "inventory/item_list.html"
 
 
-class ItemCreateView(OrgLoginRequiredMixin, OrganizationScopedMixin, SuccessMessageMixin, CreateView):
+class ItemCreateView(OrgLoginAndRoleRequiredMixin, OrganizationScopedMixin, SuccessMessageMixin, CreateView):
     model = Item
     form_class = ItemForm
     template_name = "inventory/item_form.html"
     success_url = reverse_lazy("inventory:item_list")
     success_message = "Item created."
+    required_roles = [OrganizationRole.OWNER, OrganizationRole.MANAGER]
+
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

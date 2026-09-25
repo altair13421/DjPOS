@@ -3,23 +3,23 @@
 
 echo "Setting up DJPOS..."
 
-# Create virtual environment if it doesn't exist
-if [ ! -d ".venv" ]; then
-    echo "Creating virtual environment..."
-    python3 -m venv .venv
+## Checking if uv is installed, and setting up evironment using it.
+if command -v uv &> /dev/null; then
+    echo "uv is installed. Initializing virtual environment..."
+    uv init
+    if [ ! -f "requirements.txt" ]; then
+        echo "Error: requirements.txt not found. Please ensure you are in the correct directory."
+        exit 1
+    fi
+    uv add -r requirements.txt
+    uv sync
+    echo "Virtual environment setup complete."
+    echo "running Django Migrations"
+    uv run python manage.py migrate
+    echo "Setup complete. You can now run the server using ./run.sh"
+    exit 0
+
+else
+    echo "Error: uv command not found. Please install uv first."
+    exit 1
 fi
-
-# Activate virtual environment
-source .venv/bin/activate
-
-# Install dependencies
-echo "Installing dependencies..."
-pip install -r requirements.txt
-
-# Run migrations
-echo "Running migrations..."
-python manage.py migrate
-
-echo "Setup complete! To start the server, run:"
-echo "source .venv/bin/activate"
-echo "python manage.py runserver"

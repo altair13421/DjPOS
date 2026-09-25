@@ -4,9 +4,13 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.models import User
 from django.contrib.auth.views import LoginView, LogoutView
 from django.contrib.messages.views import SuccessMessageMixin
+from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.views.generic import CreateView, DetailView, ListView, View
+
+from sync.payloads import enqueue_userlog
+from django.conf import settings as dj_settings
 
 from .choices import OrganizationRole, UserLogReasons
 from .forms import UserCreateForm
@@ -32,33 +36,46 @@ class UserLoginView(LoginView):
         if self.request.user.is_superuser:
             return redirect("/admin/")
 
-        UserLog.objects.create(
-            user=self.request.user,
-            reason=UserLogReasons.SIGNIN,
-            user_role=(
-                get_user_role_in_organization(self.request.user, org) if org else None
-            ),
-            organization=org,
-        )
+        with transaction.atomic():
+            log = UserLog.objects.create(
+                user=self.request.user,
+                reason=UserLogReasons.SIGNIN,
+                user_role=(
+                    get_user_role_in_organization(self.request.user, org) if org else None
+                ),
+                organization=org,
+                device_id=dj_settings.DEVICE_ID,
+                notes="",
+            )
+            if dj_settings.ROLE == "terminal":
+                log.notes += f"Terminal {dj_settings.DEVICE_ID} logged in."
+                log.save()
+                enqueue_userlog(log)
         return response
 
 
 class UserLogoutView(LogoutView):
     def dispatch(self, request, *args, **kwargs):
         if request.user.is_authenticated:
-            UserLog.objects.create(
-                user=request.user,
-                reason=UserLogReasons.SIGNOUT,
-                organization=getattr(request, "organization", None),
-                user_role=(
-                    get_user_role_in_organization(
-                        request.user, getattr(request, "organization", None)
-                    )
-                    if getattr(request, "organization", None)
-                    else None
-                ),
-                notes="User logged out.",
-            )
+            with transaction.atomic():
+                log = UserLog.objects.create(
+                    user=request.user,
+                    reason=UserLogReasons.SIGNOUT,
+                    organization=getattr(request, "organization", None),
+                    user_role=(
+                        get_user_role_in_organization(
+                            request.user, getattr(request, "organization", None)
+                        )
+                        if getattr(request, "organization", None)
+                        else None
+                    ),
+                    device_id=dj_settings.DEVICE_ID,
+                    notes="",
+                )
+                if dj_settings.ROLE == "terminal":
+                    log.notes += f"Terminal {dj_settings.DEVICE_ID} logged out."
+                    log.save()
+                    enqueue_userlog(log)
         return super().dispatch(request, *args, **kwargs)
 
 
@@ -87,15 +104,20 @@ class UserCreateView(OrgLoginAndRoleRequiredMixin, SuccessMessageMixin, CreateVi
                     "is_default": True,
                 },
             )
-        UserLog.objects.create(
-            user=self.request.user,
-            reason=UserLogReasons.CREATE,
-            organization=org,
-            user_role=(
-                get_user_role_in_organization(self.request.user, org) if org else None
-            ),
-            notes=f"Created user {self.object.username}",
-        )
+        with transaction.atomic():
+            log = UserLog.objects.create(
+                user=self.request.user,
+                reason=UserLogReasons.CREATE,
+                organization=org,
+                user_role=(
+                    get_user_role_in_organization(self.request.user, org) if org else None
+                ),
+                notes=f"Created user {self.object.username}",
+            )
+            if dj_settings.ROLE == "terminal":
+                log.notes = f"Terminal {dj_settings.DEVICE_ID} logged in."
+                log.save()
+                enqueue_userlog(log)
         return response
 
 
@@ -189,13 +211,15 @@ class OrganizationCreateView(
             },
         )
         set_session_organization(self.request, org)
-        UserLog.objects.create(
-            user=self.request.user,
-            reason=UserLogReasons.CREATE,
-            organization=org,
-            user_role=OrganizationRole.OWNER,
-            notes=f"Created organization {org.name}",
-        )
+        with transaction.atomic():
+            log = UserLog.objects.create(
+                user=self.request.user,
+                reason=UserLogReasons.CREATE,
+                organization=org,
+                user_role=OrganizationRole.OWNER,
+                notes=f"Created organization {org.name}",
+            )
+            enqueue_userlog(log)
         return response
 
 

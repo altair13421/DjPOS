@@ -19,7 +19,9 @@ class StockManager:
     ):
         """Deduct stock from an item."""
         if item.quantity < quantity:
-            raise ValueError(f"Insufficient stock for {item.name}. Required: {quantity}, Available: {item.quantity}")
+            raise ValueError(
+                f"Insufficient stock for {item.name}. Required: {quantity}, Available: {item.quantity}"
+            )
 
         item.quantity -= quantity
         item.save()
@@ -62,14 +64,16 @@ class StockManager:
     @transaction.atomic
     def process_sale(sale, performed_by=None):
         """Process stock deduction for a completed sale (items and bundles)."""
-        cart_items = sale.sale_items.select_related('item', 'bundle').prefetch_related(
-            'bundle__bundleitem_set__item__ingredients'
-        ).all()
+        cart_items = (
+            sale.sale_items.select_related("item", "bundle")
+            .prefetch_related("bundle__bundleitem_set__item__ingredients")
+            .all()
+        )
         for cart_item in cart_items:
             if cart_item.item_id:
                 item = cart_item.item
                 cart_item.stock_before = item.availability_count
-                cart_item.save(update_fields=['stock_before'])
+                cart_item.save(update_fields=["stock_before"])
 
                 revenue = cart_item.unit_price * cart_item.quantity
                 cost = item.wholesale_price * cart_item.quantity
@@ -86,20 +90,28 @@ class StockManager:
                     )
                 item.refresh_from_db()
                 cart_item.stock_after = item.availability_count
-                cart_item.save(update_fields=['stock_after'])
+                cart_item.save(update_fields=["stock_after"])
             elif cart_item.bundle_id:
-                bundle_items = cart_item.bundle.bundleitem_set.select_related('item').all()
-                total_retail = sum(bi.item.retail_price * bi.quantity for bi in bundle_items)
+                bundle_items = cart_item.bundle.bundleitem_set.select_related(
+                    "item"
+                ).all()
+                total_retail = sum(
+                    bi.item.retail_price * bi.quantity for bi in bundle_items
+                )
 
                 for bi in bundle_items:
                     qty = bi.quantity * cart_item.quantity
 
                     if total_retail > 0:
-                        item_retail_share = (bi.item.retail_price * bi.quantity) / total_retail
+                        item_retail_share = (
+                            bi.item.retail_price * bi.quantity
+                        ) / total_retail
                     else:
                         item_retail_share = 0
 
-                    revenue = (cart_item.unit_price * cart_item.quantity) * item_retail_share
+                    revenue = (
+                        cart_item.unit_price * cart_item.quantity
+                    ) * item_retail_share
                     cost = bi.item.wholesale_price * qty
                     for ingredient in bi.item.itemingredient_set.all():
                         StockManager.deduct_stock(

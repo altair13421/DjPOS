@@ -79,6 +79,20 @@ if not _default_db["HOST"]:
     }
 DATABASES = {"default": _default_db}
 
+# Sync settings for terminal and server roles
+ROLE = os.environ.get("APP_ROLE", "server")   # default = your current Render deploy, unchanged
+CENTRAL_URL = os.environ.get("CENTRAL_URL", "")
+DEVICE_ID = os.environ.get("DEVICE_ID", "")
+DEVICE_KEY = os.environ.get("DEVICE_KEY", "")
+
+if ROLE == "terminal":
+    DATABASES = {"default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
+        "OPTIONS": {"timeout": 20},   # prevents "database is locked" (worker + UI)
+    }}
+    TEMPLATES[0]["OPTIONS"]["context_processors"] += ["sync.context_processors.sync_status"]
+
 AUTH_PASSWORD_VALIDATORS = [
     {
         "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"

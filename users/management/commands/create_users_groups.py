@@ -37,7 +37,7 @@ class Command(BaseCommand):
         # Create a Basic default Organization
         # And a User that is a an Admin there. and give him organization ownership.
 
-        organization, _ = Organization.objects.get_or_create(name="Default Test", is_active=False)
+        organization, _ = Organization.objects.get_or_create(name="Default Test", defaults={"is_active": False, "slug": "default-test"})
         users = [{
             "first_name": "Test",
             "last_name": "Owner",

@@ -19,7 +19,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         created = {"categories":0, "ingredients":0, "items":0, "item_ingredients":0, "bundles":0, "bundle_items":0, "direct_items":0}
         try:
-            organization = Organization.objects.first()
+            organization = Organization.objects.exclude(name="Default Organization").last()
         except:
             stdout.error("There is No organization filled. First Add one, Automated using 'create_users_groups' command.")
         # --- categories (same as before) ---

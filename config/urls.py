@@ -12,3 +12,7 @@ urlpatterns = [
     path('inventory/', include('inventory.urls')),
     path('', RedirectView.as_view(url='/pos/')),
 ]
+from django.conf import settings
+# ...
+if settings.ROLE == "server":
+    urlpatterns += [path("api/sync/", include("sync.api_urls"))]
