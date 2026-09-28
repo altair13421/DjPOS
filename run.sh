@@ -26,6 +26,13 @@ fi
 
 
 if [ "$1" = "terminal" ]; then
+  # read .env
+  export $(grep -v '^#' terminal.env | xargs)
+  if [ "$2" ]; then
+    echo "Terminal data..."
+    uv run python manage.py $2
+    exit 0
+  fi
   if [ ! -f ".env" ]; then
     echo "Error: .env file not found. Please create a .env file with the required environment variables."
     cp terminal.env.example terminal.env
@@ -33,15 +40,19 @@ if [ "$1" = "terminal" ]; then
     exit 1
   fi
 
-  # read .env
-  export $(grep -v '^#' terminal.env | xargs)
-
   uv run python manage.py sync_now      # first pull: org, users, catalog
   uv run python manage.py runserver 0.0.0.0:8001
 fi
 
 
 if [ "$1" = "server" ]; then
+    # read .env
+    export $(grep -v '^#' server.env | xargs)
+    if [ "$2" ]; then
+        echo "Starting DJPOS Server.."
+        uv run python manage.py $2
+        exit 0
+    fi
     echo "Starting DJPOS Server..."
 
     if [ ! -f ".env" ]; then
@@ -51,8 +62,6 @@ if [ "$1" = "server" ]; then
         exit 1
     fi
 
-    # read .env
-    export $(grep -v '^#' server.env | xargs)
 
     # Starting the server
     echo "Starting Django server on http://127.0.0.1:8002/ ..."

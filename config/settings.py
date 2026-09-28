@@ -75,7 +75,8 @@ _default_db = {
 if not _default_db["HOST"]:
     _default_db = {
         "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "NAME": BASE_DIR / "db.server.sqlite3",
+        "OPTIONS": {"timeout": 20},   # prevents "database is locked" (worker + UI)
     }
 DATABASES = {"default": _default_db}
 
@@ -88,7 +89,7 @@ DEVICE_KEY = os.environ.get("DEVICE_KEY", "")
 if ROLE == "terminal":
     DATABASES = {"default": {
         "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "NAME": BASE_DIR / "db.terminal.sqlite3",
         "OPTIONS": {"timeout": 20},   # prevents "database is locked" (worker + UI)
     }}
     TEMPLATES[0]["OPTIONS"]["context_processors"] += ["sync.context_processors.sync_status"]
