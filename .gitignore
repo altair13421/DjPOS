@@ -215,3 +215,5 @@ __marimo__/
 static
 staticfiles
 
+db.*.sqlite3
+*.env

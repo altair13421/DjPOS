@@ -4,6 +4,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import F
+import config
 from users.models import Organization, OrganizationMembership, Settings, UserLog
 from inventory.models import (
     Bundle,
@@ -36,7 +37,7 @@ def _user(username):
 def freeze_sale(sale):
     return {
         "uuid": str(sale.uuid),
-        "device_id": sale.device_id or settings.DEVICE_ID,
+        "device_id": sale.device_id or (config.device_config() or {}).get("device_id", ""),
         "sold_at": sale.created_at.isoformat(),
         "created_by": sale.created_by.username if sale.created_by else None,
         "customer": (

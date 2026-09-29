@@ -23,11 +23,17 @@ dependencies = [
     "pygments==2.20.0",
     "pytest==9.0.3",
     "pytest-django==4.12.0",
+    "pywebview>=6.2.1",
+    "requests>=2.34.2",
     "sqlparse==0.5.5",
+    "waitress>=3.0.2",
 ]
 
 [dependency-groups]
-dev = ["poethepoet"]
+dev = [
+    "poethepoet",
+    "pyinstaller>=6.22.3",
+]
 
 [tool.poe.tasks]
 server = "python manage.py runserver"

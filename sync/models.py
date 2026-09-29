@@ -39,6 +39,17 @@ class SyncState(models.Model):  # terminal bookkeeping
     value = models.CharField(max_length=200)
 
 
+class PairingCode(models.Model):
+    organization = models.ForeignKey(
+        Organization, on_delete=models.CASCADE, related_name="pairing_codes"
+    )
+    code = models.CharField(max_length=12, unique=True)
+    terminal_name = models.CharField(max_length=120, default="Till")
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    used = models.BooleanField(default=False)
+
+
 def get_state(key, default=""):
     row = SyncState.objects.filter(key=key).first()
     return row.value if row else default

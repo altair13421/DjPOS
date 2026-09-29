@@ -7,8 +7,13 @@ class SyncConfig(AppConfig):
     name = "sync"
 
     def ready(self):
-        if os.environ.get("RUN_SYNC_WORKER") == "1" and os.environ.get("RUN_MAIN") == "true":
-            from django.conf import settings
-            if settings.ROLE == "terminal":
-                from .engine import worker
-                threading.Thread(target=worker, daemon=True).start()
+        if os.environ.get("RUN_SYNC_WORKER") != "1":
+            return
+        import sys
+        from django.conf import settings
+        if settings.ROLE != "terminal":
+            return
+        # autoreloader sets RUN_MAIN in its child; --noreload never does — accept both
+        if os.environ.get("RUN_MAIN") == "true" or "--noreload" in sys.argv:
+            from .engine import worker
+            threading.Thread(target=worker, daemon=True).start()

@@ -6,6 +6,9 @@ from django.utils import timezone
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+import secrets
+from rest_framework import status
+
 from inventory.models import (
     Bundle,
     BundleItem,
@@ -16,7 +19,7 @@ from inventory.models import (
 )
 from . import payloads
 from .auth import TerminalKeyAuth
-from .models import CatalogVersion, ReceivedEvent, Terminal
+from .models import CatalogVersion, ReceivedEvent, Terminal, PairingCode
 from users.models import Organization, OrganizationMembership, Settings
 
 
@@ -76,6 +79,33 @@ class PingView(APIView):
 
     def get(self, request):
         return Response({"status": "ok", "server_time": timezone.now().isoformat()})
+
+
+class PairView(APIView):
+    authentication_classes, permission_classes = [], []
+
+    def post(self, request):
+        code = (request.data.get("code") or "").strip().upper()
+        pc = PairingCode.objects.filter(
+            code=code, used=False, expires_at__gt=timezone.now()
+        ).first()
+        if not pc:
+            return Response(
+                {"error": "Invalid or expired code"}, status=status.HTTP_400_BAD_REQUEST
+            )
+        terminal = Terminal.objects.create(
+            organization=pc.organization,
+            name=pc.terminal_name,
+            device_id=f"TILL-{secrets.token_hex(3).upper()}",
+        )
+        PairingCode.objects.filter(pk=pc.pk).update(used=True)  # single-use
+        return Response(
+            {
+                "device_id": terminal.device_id,
+                "device_key": terminal.api_key,
+                "organization": pc.organization.name,
+            }
+        )
 
 
 class UploadView(APIView):

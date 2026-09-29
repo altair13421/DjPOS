@@ -1,38 +1,42 @@
 import time
 
 import requests
-from django.conf import settings
 from django.db import close_old_connections
 from django.utils import timezone
 
-from . import payloads
+from . import config, payloads
 from .models import OutboxRecord, get_state, set_state
 
-SESSION = requests.Session()  # reuses connections
+SESSION = requests.Session()
 
 
 def headers():
-    return {"X-Device-ID": settings.DEVICE_ID, "X-Device-Key": settings.DEVICE_KEY}
+    cfg = config.device_config()
+    return {"X-Device-ID": cfg["device_id"], "X-Device-Key": cfg["device_key"]}
 
 
 def ping(timeout=3):
+    cfg = config.device_config()
+    if not cfg:
+        return False
     try:
         r = SESSION.head(
-            f"{settings.CENTRAL_URL}/api/sync/ping/", timeout=timeout, headers=headers()
+            f"{cfg['central_url']}/api/sync/ping/", timeout=timeout, headers=headers()
         )
         return r.status_code == 200
-    except requests.RequestException:  # DNS fail / timeout / refused = offline
+    except requests.RequestException:
         return False
 
 
 def push(batch=100):
+    cfg = config.device_config()
     pending = list(
         OutboxRecord.objects.filter(pushed_at__isnull=True).order_by("id")[:batch]
     )
-    if not pending:
+    if not (cfg and pending):
         return 0
     r = SESSION.post(
-        f"{settings.CENTRAL_URL}/api/sync/upload/",
+        f"{cfg['central_url']}/api/sync/upload/",
         json={
             "events": [
                 {"event_id": str(p.event_id), "entity": p.entity, "payload": p.payload}
@@ -42,14 +46,15 @@ def push(batch=100):
         headers=headers(),
         timeout=30,
     )
-    r.raise_for_status()  # no ack → nothing marked → whole batch retried later
+    r.raise_for_status()
     ok = {p.id for p in pending if str(p.event_id) in set(r.json()["accepted"])}
     return OutboxRecord.objects.filter(id__in=ok).update(pushed_at=timezone.now())
 
 
 def pull():
+    cfg = config.device_config()
     r = SESSION.get(
-        f"{settings.CENTRAL_URL}/api/sync/download/",
+        f"{cfg['central_url']}/api/sync/download/",
         params={"catalog_version": get_state("catalog_version", "-1")},
         headers=headers(),
         timeout=60,
@@ -64,14 +69,16 @@ def pull():
 
 
 def run_sync():
+    if not config.is_paired():
+        return {"online": False, "error": "not paired yet"}
     result = {"online": ping()}
     if result["online"]:
         try:
-            result["pushed"] = push()  # PUSH FIRST — central's stock snapshot must
-            result["pulled"] = pull()  # already include this till's deltas
+            result["pushed"] = push()  # PUSH FIRST — central's stock numbers
+            result["pulled"] = pull()  # must include this till's deltas
             set_state("last_sync_at", timezone.now().isoformat())
         except requests.RequestException as e:
-            result["error"] = str(e)  # everything stays queued, retried next cycle
+            result["error"] = str(e)
     set_state("last_ping_ok", str(result["online"]).lower())
     return result
 
@@ -81,7 +88,7 @@ def worker(interval=30):
         try:
             run_sync()
         except Exception:
-            pass  # never let the worker die
+            pass
         finally:
-            close_old_connections()  # required in long-running threads
+            close_old_connections()
         time.sleep(interval)

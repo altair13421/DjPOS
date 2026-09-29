@@ -1,5 +1,7 @@
 from .organization_utils import get_user_organizations
 
+EXEMPT = ("/setup/",)  # ⚠ add any other exempt paths here
+
 
 class OrganizationMiddleware:
     def __init__(self, get_response):

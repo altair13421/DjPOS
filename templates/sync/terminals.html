@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Terminals</h2>
+
+<form method="post">{% csrf_token %}
+    <input name="name" placeholder="e.g. Front Counter">
+    <button>Pair a new till</button>
+</form>
+
+{% for c in codes %}
+<p>Code for <b>{{ c.terminal_name }}</b>: <b style="font-size:2rem">{{ c.code }}</b>
+    — valid until {{ c.expires_at|time:"H:i" }}</p>
+{% endfor %}
+
+<h3>Registered tills</h3>
+<ul>{% for t in terminals %}
+    <li>{{ t.name }} ({{ t.device_id }}) — last seen {{ t.last_seen|default:"never" }}</li>
+    {% endfor %}
+</ul>
+{% endblock %}

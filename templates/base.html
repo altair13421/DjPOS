@@ -74,10 +74,12 @@
       </button>
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav me-auto">
+          {% if app_role == "terminal" %}
           <li class="nav-item">
             <a class="nav-link  {% if 'dashboard' in request.resolver_match.app_name and request.resolver_match.url_name == 'index' %}active{% endif %}"
               href="{% url 'pos:index' %}">{% if sync_online %}🟢Online{% else %}🔴Offline{% endif %} {% if sync_pending %}({{ sync_pending }} queued){% endif %}</a>
           </li>
+          {% endif %}
           <li class="nav-item">
             <a class="nav-link {% if 'pos' in request.resolver_match.app_name and request.resolver_match.url_name == 'index' %}active{% endif %}"
               href="{% url 'pos:index' %}">POS</a>

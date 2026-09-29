@@ -72,27 +72,38 @@ _default_db = {
     "HOST": os.environ.get("POSTGRES_HOST", ""),
     "PORT": os.environ.get("POSTGRES_PORT", "5432"),
 }
+
 if not _default_db["HOST"]:
     _default_db = {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": BASE_DIR / "db.server.sqlite3",
-        "OPTIONS": {"timeout": 20},   # prevents "database is locked" (worker + UI)
+        "OPTIONS": {"timeout": 20},  # prevents "database is locked" (worker + UI)
     }
 DATABASES = {"default": _default_db}
 
 # Sync settings for terminal and server roles
-ROLE = os.environ.get("APP_ROLE", "server")   # default = your current Render deploy, unchanged
-CENTRAL_URL = os.environ.get("CENTRAL_URL", "")
+ROLE = os.environ.get(
+    "APP_ROLE", "server"
+)  # default = your current Render deploy, unchanged
+CENTRAL_URL = os.environ.get("CENTRAL_URL", "http://127.0.0.1:8002/")
 DEVICE_ID = os.environ.get("DEVICE_ID", "")
 DEVICE_KEY = os.environ.get("DEVICE_KEY", "")
 
 if ROLE == "terminal":
-    DATABASES = {"default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.terminal.sqlite3",
-        "OPTIONS": {"timeout": 20},   # prevents "database is locked" (worker + UI)
-    }}
-    TEMPLATES[0]["OPTIONS"]["context_processors"] += ["sync.context_processors.sync_status"]
+    MIDDLEWARE += ["sync.middleware.TerminalSetupMiddleware"]
+    # For Terminal DB To be Out of the way of Server DB, we will use a separate SQLite DB for Terminal
+    # And For terminal DB To be Out, So We will separate the DB from the Code, So App updates never wipe the DB
+    _data = Path(os.environ.get("DJPOS_DATA_DIR", BASE_DIR))
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": _data / "db.terminal.sqlite3",
+            "OPTIONS": {"timeout": 20},
+        }
+    }
+    TEMPLATES[0]["OPTIONS"]["context_processors"] += [
+        "sync.context_processors.sync_status"
+    ]
 
 AUTH_PASSWORD_VALIDATORS = [
     {
