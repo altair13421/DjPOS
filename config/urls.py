@@ -25,5 +25,5 @@ if settings.ROLE == "server":
     ]
 if settings.ROLE == "terminal":
     urlpatterns += [
-        path("setup/", setup_views.setup, name="setup"),
+        path("sync/", include("sync.urls")),
     ]

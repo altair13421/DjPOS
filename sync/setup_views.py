@@ -1,9 +1,24 @@
 # sync/setup_views.py  (till only)
+from django.http import JsonResponse
 import requests as rq
 from django.shortcuts import render, redirect
-
+from django.conf import settings
 from . import config
 from .engine import run_sync
+
+
+def ping(request):
+    if config.is_paired():
+        return redirect("/")
+    error = None
+    try:
+        device_cfg = config.device_config()
+        r = rq.head(f"{device_cfg['central_url']}/api/sync/ping/", timeout=10)
+        if r.status_code == 200:
+            return JsonResponse({"status": "ok", "server_time": r.headers.get("Date")})
+        return JsonResponse({"status": "Could not reach the central server.", "server_time": r.headers.get("Date")}, status=r.status_code)
+    except rq.RequestException:
+        return JsonResponse({"status": "Could not reach the central server.", "server_time": r.headers.get("Date")}, status=503)
 
 
 def setup(request):

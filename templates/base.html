@@ -77,9 +77,11 @@
           {% if app_role == "terminal" %}
           <li class="nav-item">
             <a class="nav-link  {% if 'dashboard' in request.resolver_match.app_name and request.resolver_match.url_name == 'index' %}active{% endif %}"
-              href="{% url 'pos:index' %}">{% if sync_online %}🟢Online{% else %}🔴Offline{% endif %} {% if sync_pending %}({{ sync_pending }} queued){% endif %}</a>
+              href="{% url 'sync:index' %}">{% if sync_online %}🟢Online{% else %}🔴Offline{% endif %} {% if sync_pending
+              %}({{ sync_pending }} queued){% endif %}</a>
           </li>
           {% endif %}
+          {% if user.is_authenticated %}
           <li class="nav-item">
             <a class="nav-link {% if 'pos' in request.resolver_match.app_name and request.resolver_match.url_name == 'index' %}active{% endif %}"
               href="{% url 'pos:index' %}">POS</a>
@@ -118,8 +120,15 @@
               href="{% url 'inventory:bundle_list' %}">Bundles</a>
           </li>
           {% endif %}
+          {% endif %}
         </ul>
         <ul class="navbar-nav">
+          {% if app_role == "terminal" %}
+          <li class="nav-item">
+            <a class="nav-link {% if 'sync' in request.resolver_match.app_name and request.resolver_match.url_name == 'index' %}active{% endif %}"
+              href="{% url 'sync:index' %}">Sync</a>
+          </li>
+          {% endif %}
           {% if debug %}
           <li class="nav-item">
             <a class="nav-link" href="{% url 'inventory:api_root' %}">API</a>

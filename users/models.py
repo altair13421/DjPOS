@@ -60,6 +60,10 @@ class Settings(models.Model):
     )
     shift_duration = models.CharField(max_length=31, default="8-hrs")
 
+    @property
+    def organization_name(self):
+        return self.organization.name
+
 
 class UserLog(models.Model):
     uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)

@@ -7,13 +7,13 @@ from django.contrib.messages.views import SuccessMessageMixin
 from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
-from django.views.generic import CreateView, DetailView, ListView, View
+from django.views.generic import CreateView, DetailView, FormView, ListView, View
 
 from sync.payloads import enqueue_userlog
 from django.conf import settings as dj_settings
 
 from .choices import OrganizationRole, UserLogReasons
-from .forms import UserCreateForm
+from .forms import UserCreateForm, BlankSignupForm
 from .models import Organization, OrganizationMembership, UserLog
 from .organization_utils import (
     get_default_organization,
@@ -41,7 +41,9 @@ class UserLoginView(LoginView):
                 user=self.request.user,
                 reason=UserLogReasons.SIGNIN,
                 user_role=(
-                    get_user_role_in_organization(self.request.user, org) if org else None
+                    get_user_role_in_organization(self.request.user, org)
+                    if org
+                    else None
                 ),
                 organization=org,
                 device_id=dj_settings.DEVICE_ID,
@@ -110,7 +112,9 @@ class UserCreateView(OrgLoginAndRoleRequiredMixin, SuccessMessageMixin, CreateVi
                 reason=UserLogReasons.CREATE,
                 organization=org,
                 user_role=(
-                    get_user_role_in_organization(self.request.user, org) if org else None
+                    get_user_role_in_organization(self.request.user, org)
+                    if org
+                    else None
                 ),
                 notes=f"Created user {self.object.username}",
             )
@@ -217,7 +221,7 @@ class OrganizationCreateView(
                 reason=UserLogReasons.CREATE,
                 organization=org,
                 user_role=OrganizationRole.OWNER,
-                notes=f"Created organization {org.name}",
+                notes=f"Created organization {org.name}, and set user {self.request.user.username} as owner.",
             )
             enqueue_userlog(log)
         return response
@@ -230,26 +234,25 @@ class OrganizationCreateView(
 ########################
 
 
-##### HOME Page Without signup and stuff. 
-# This is the first page that a user sees when they go to the site. It will 
-# have a button to create an organization, and then a button to create a 
-# user for that organization. Once the user is created, they can then create 
-# other users for that organization. The first user created will be the owner of 
-# the organization, and will have the ability to create other users with different 
-# roles. The owner can also delete users, and change their roles. 
-# The owner can also delete the organization, which 
+##### HOME Page Without signup and stuff.
+# This is the first page that a user sees when they go to the site. It will
+# have a button to create an organization, and then a button to create a
+# user for that organization. Once the user is created, they can then create
+# other users for that organization. The first user created will be the owner of
+# the organization, and will have the ability to create other users with different
+# roles. The owner can also delete users, and change their roles.
+# The owner can also delete the organization, which
 # will delete all users associated with that organization.
+
 
 class HomeView(View):
     def get(self, request, *args, **kwargs):
         if Organization.objects.exists():
             return redirect("users:select_organization")
-        
 
 
-
-# Need to Create Organization, and a User with Owner Role, and then Create a 
-# Membership for that User in that Organization. 
+# Need to Create Organization, and a User with Owner Role, and then Create a
+# Membership for that User in that Organization.
 # Then the User can create other Users in that Organization.
 class OrganizationBlankCreateView:
     def get(self, request, *args, **kwargs):
@@ -257,3 +260,20 @@ class OrganizationBlankCreateView:
             messages.error(request, "Organization already exists.")
             return redirect("users:select_organization")
         return redirect("users:organization_create")
+
+
+class OrganizationBlankCreateView(FormView):
+    form_class = BlankSignupForm
+    fields = ["name", "category"]
+    template_name = "users/organization_form.html"
+    success_url = reverse_lazy("users:user_create")
+    success_message = "Organization created."
+
+    def post(self, request, *args, **kwargs):
+        form = self.get_form()
+        if form.is_valid():
+            user, organization = form.save()
+            messages.success(request, self.success_message)
+            return redirect("users:login")
+        else:
+            return self.form_invalid(form)

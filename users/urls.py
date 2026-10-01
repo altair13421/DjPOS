@@ -22,4 +22,14 @@ urlpatterns = [
         views.switch_organization,
         name="switch_organization",
     ),
+    path(
+        "organization/create/",
+        views.OrganizationCreateView.as_view(),
+        name="organization_create_by_user",
+    ),
+    path(
+        "signup",
+        views.OrganizationBlankCreateView.as_view(),
+        name="organization_create",
+    ),
 ]

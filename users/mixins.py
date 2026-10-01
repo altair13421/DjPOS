@@ -28,13 +28,17 @@ class OrganizationScopedMixin:
         return super().get_object(queryset=queryset)
 
     def form_valid(self, form):
-        if hasattr(form.instance, "organization_id") and not form.instance.organization_id:
+        if (
+            hasattr(form.instance, "organization_id")
+            and not form.instance.organization_id
+        ):
             form.instance.organization = self.request.organization
         return super().form_valid(form)
 
 
 class OrgLoginRequiredMixin(LoginRequiredMixin, OrganizationRequiredMixin):
     pass
+
 
 class OrgLoginAndRoleRequiredMixin(OrgLoginRequiredMixin):
     required_roles = []
