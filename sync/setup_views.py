@@ -8,9 +8,6 @@ from .engine import run_sync
 
 
 def ping(request):
-    if config.is_paired():
-        return redirect("/")
-    error = None
     try:
         device_cfg = config.device_config()
         r = rq.head(f"{device_cfg['central_url']}/api/sync/ping/", timeout=10)

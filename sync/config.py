@@ -15,7 +15,7 @@ def data_dir() -> Path:
 
 def device_config():
     """Env vars win (dev machines); otherwise the paired terminal.json."""
-    if settings.DEVICE_ID and settings.DEVICE_KEY:
+    if settings.DEVICE_ID != "" and settings.DEVICE_KEY != "" and settings.CENTRAL_URL != "":
         return {
             "device_id": settings.DEVICE_ID,
             "device_key": settings.DEVICE_KEY,

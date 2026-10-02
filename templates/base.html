@@ -77,8 +77,7 @@
           {% if app_role == "terminal" %}
           <li class="nav-item">
             <a class="nav-link  {% if 'dashboard' in request.resolver_match.app_name and request.resolver_match.url_name == 'index' %}active{% endif %}"
-              href="{% url 'sync:index' %}">{% if sync_online %}🟢Online{% else %}🔴Offline{% endif %} {% if sync_pending
-              %}({{ sync_pending }} queued){% endif %}</a>
+              href="{% url 'sync:ping_server' %}">{% if sync_online %}🟢Online{% else %}🔴Offline{% endif %} {% if sync_pending %}({{ sync_pending }} queued){% endif %}</a>
           </li>
           {% endif %}
           {% if user.is_authenticated %}
@@ -123,12 +122,6 @@
           {% endif %}
         </ul>
         <ul class="navbar-nav">
-          {% if app_role == "terminal" %}
-          <li class="nav-item">
-            <a class="nav-link {% if 'sync' in request.resolver_match.app_name and request.resolver_match.url_name == 'index' %}active{% endif %}"
-              href="{% url 'sync:index' %}">Sync</a>
-          </li>
-          {% endif %}
           {% if debug %}
           <li class="nav-item">
             <a class="nav-link" href="{% url 'inventory:api_root' %}">API</a>
@@ -171,6 +164,21 @@
             <a class="nav-link {% if 'users' in request.resolver_match.app_name and request.resolver_match.url_name == 'login' %}active{% endif %}"
               href="{% url 'users:login' %}">Sign in</a>
           </li>
+          {% if app_role == "terminal" %}
+          <li class="nav-item">
+            <a class="nav-link {% if 'sync' in request.resolver_match.app_name and request.resolver_match.url_name == 'index' %}active{% endif %}"
+              href="{% url 'sync:ping_server' %}">Sync</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {% if 'users' in request.resolver_match.app_name and request.resolver_match.url_name == 'login' %}active{% endif %}"
+              href="{% url 'users:login' %}">Setup</a>
+          </li>
+          {% else %}
+          <li class="nav-item">
+            <a class="nav-link {% if 'users' in request.resolver_match.app_name and request.resolver_match.url_name == 'login' %}active{% endif %}"
+              href="{% url 'users:organization_create' %}">Sign up</a>
+          </li>
+          {% endif %}
           {% endif %}
         </ul>
       </div>
@@ -195,7 +203,16 @@
 
   <footer class="py-3 mt-auto">
     <div class="container text-muted small">
-      DJPOS Inventory — Categories &amp; Items
+      <div class="d-flex flex-column flex-md-row justify-content-between">
+        <div>
+          DJPOS Inventory — Categories &amp; Items<br>
+          &copy; 2024 <a href="https://github.com/altair13421/DjPOS" target="_blank">DjPOS</a>
+        </div>
+        <div class="text-md-end mt-2 mt-md-0">
+          <div>Server: <span id="serverClock" class="font-monospace">--:--:--</span></div>
+          <div>Local:&nbsp;&nbsp; <span id="localClock" class="font-monospace">--:--:--</span></div>
+        </div>
+      </div>
     </div>
   </footer>
 
@@ -239,7 +256,93 @@
         });
       }
     })();
+
+
+  (function () {
+  const localEl  = document.getElementById('localClock');
+
+  function fmt(d) {
+    return d.toLocaleString([], {
+      weekday: 'short', year: 'numeric', month: 'short', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit'
+    });
+  }
+
+  const appRole = "{{ app_role }}";
+
+  function tick() {
+    const now = Date.now();
+    localEl.textContent  = fmt(new Date(now));
+    if (appRole != "terminal") {
+      const serverEl = document.getElementById('serverClock');
+      if (serverEl) {
+        const serverTime = new Date(now);
+        serverEl.textContent = fmt(serverTime);
+      }
+    }
+  }
+
+  tick();
+  setInterval(tick, 1000);
+  }());
+
   </script>
+  {% if app_role == "terminal" %}
+  <script>
+    // ping function to type it once
+
+    async function pingServer() {
+      return fetch("{% url 'sync:ping_server' %}", {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json'
+        },
+        credentials: 'same-origin'
+      })
+        .then(response => response.json())
+        .then(data => {
+          const syncLink = document.querySelector(`a.nav-link[href="{% url 'sync:ping_server' %}"]`);
+          const serverClock = document.getElementById('serverClock');
+          if (syncLink) {
+            if (data.status == "ok") {
+              syncLink.textContent = `🟢Online {% if sync_pending %}({{ sync_pending }} queued){% endif %} `;
+              if (data.server_time) {
+                const serverTime = new Date(data.server_time);
+                serverClock.textContent = serverTime.toLocaleString([], {
+                  weekday: 'short', year: 'numeric', month: 'short', day: '2-digit',
+                  hour: '2-digit', minute: '2-digit', second: '2-digit'
+                });
+              }
+            } else {
+              syncLink.textContent = '🔴Offline {% if sync_pending %}({{ sync_pending }} queued){% endif %}';
+            }
+          }
+        })
+        .catch(e => {
+          const syncLink = document.querySelector(`a.nav-link[href="{% url 'sync:ping_server' %}"]`);
+          if (syncLink) {
+            syncLink.textContent = '🔴Offline {% if sync_pending %}({{ sync_pending }} queued){% endif %}';
+          }
+        });
+    }
+
+    // manually check ping with click of Online button
+    document.addEventListener('DOMContentLoaded', function () {
+      const syncLink = document.querySelector(`a.nav-link[href="{% url 'sync:ping_server' %}"]`);
+      if (syncLink) {
+        syncLink.addEventListener('click', function (e) {
+          e.preventDefault();
+          pingServer();
+        });
+      }
+    });
+
+    // Auto Checks ping status every 30 seconds
+    setInterval(function () {
+      pingServer();
+    }, 30000);
+    </script>
+    {% endif %}
   {% block extra_js %}{% endblock %}
 </body>
 
