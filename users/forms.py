@@ -36,10 +36,21 @@ class UserCreateForm(UserCreationForm):
 
     class Meta:
         model = User
-        fields = ("username", "email", "first_name", "last_name", "password1", "password2")
+        fields = (
+            "username",
+            "email",
+            "first_name",
+            "last_name",
+            "password1",
+            "password2",
+        )
         widgets = {
             "username": forms.TextInput(
-                attrs={"class": "form-control", "placeholder": "Username", "autofocus": True}
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Username",
+                    "autofocus": True,
+                }
             ),
         }
 
@@ -65,18 +76,27 @@ class UserCreateForm(UserCreationForm):
         return user
 
 
-
 class BlankSignupForm(forms.Form):
     username = forms.CharField(
         required=True,
         widget=forms.TextInput(
-            attrs={"class": "form-control", "placeholder": "Username", "autofocus": True}
+            attrs={
+                "class": "form-control",
+                "placeholder": "Username",
+                "autofocus": True,
+            }
         ),
     )
     first_name = forms.CharField(
         required=False,
         widget=forms.TextInput(
             attrs={"class": "form-control", "placeholder": "First name (optional)"}
+        ),
+    )
+    email = forms.EmailField(
+        required=False,
+        widget=forms.EmailInput(
+            attrs={"class": "form-control", "placeholder": "Email (optional)"}
         ),
     )
     last_name = forms.CharField(
@@ -98,53 +118,73 @@ class BlankSignupForm(forms.Form):
         ),
     )
 
-
     # Organization name and slug fields
     organization_name = forms.CharField(
         required=True,
         widget=forms.TextInput(
-            attrs={"class": "form-control", "placeholder": "Organization Name"}
+            attrs={
+                "class": "form-control",
+                "placeholder": "Organization Name",
+                "help_text": "Organization Name (e.g., Company, Store, etc.)",
+            }
         ),
     )
     store_name = forms.CharField(
         required=True,
         widget=forms.TextInput(
-            attrs={"class": "form-control", "placeholder": "Store Name"}
+            attrs={
+                "class": "form-control",
+                "placeholder": "Store Name",
+                "help_text": "Any Store Name (Like, <City, branch, etc.)",
+            }
         ),
     )
     store_address = forms.CharField(
         required=True,
         widget=forms.Textarea(
-            attrs={"class": "form-control", "placeholder": "Store Address"}
+            attrs={
+                "class": "form-control",
+                "placeholder": "Store Address",
+                "help_text": "Store Address",
+            }
         ),
     )
     currency = forms.CharField(
         required=True,
         widget=forms.TextInput(
-            attrs={"class": "form-control", "placeholder": "Currency"}
-        ),
-    )
-    owner_name = forms.CharField(
-        required=True,
-        widget=forms.TextInput(
-            attrs={"class": "form-control", "placeholder": "Owner Name"}
+            attrs={
+                "class": "form-control",
+                "placeholder": "Currency",
+                "value": "PKR",
+                "help_text": "Currency for all amounts in the application (default: PKR)",
+            }
         ),
     )
     owner_phone_number = forms.CharField(
         required=True,
         widget=forms.TextInput(
-            attrs={"class": "form-control", "placeholder": "Owner Phone Number"}
+            attrs={
+                "class": "form-control",
+                "placeholder": "Owner Phone Number",
+                "help_text": "Phone number of the Owner",
+            }
         ),
     )
     store_category = forms.ChoiceField(
         required=True,
         choices=StoreCategoryChoices.choices,
-        widget=forms.Select(attrs={"class": "form-select"}),
+        widget=forms.Select(
+            attrs={"class": "form-select", "help_text": "Category of the Store"}
+        ),
     )
     shift_duration = forms.CharField(
         required=True,
         widget=forms.TextInput(
-            attrs={"class": "form-control", "placeholder": "Shift Duration (e.g., 8-hrs)"}
+            attrs={
+                "class": "form-control",
+                "placeholder": "Shift Duration (e.g., 8-hrs)",
+                "help_text": "Duration of each shift (e.g., 8 hours)",
+            }
         ),
     )
 
@@ -164,6 +204,7 @@ class BlankSignupForm(forms.Form):
             user = User.objects.create_user(
                 username=self.cleaned_data["username"],
                 password=self.cleaned_data["password1"],
+                email=self.cleaned_data.get("email", ""),
                 first_name=self.cleaned_data.get("first_name", ""),
                 last_name=self.cleaned_data.get("last_name", ""),
             )
@@ -172,7 +213,7 @@ class BlankSignupForm(forms.Form):
             organization = Organization.objects.create(
                 name=self.cleaned_data["organization_name"],
                 slug=self.cleaned_data["organization_name"].lower().replace(" ", "-"),
-                is_active=False, # Set to False initially; can be activated later
+                is_active=False,  # Set to False initially; can be activated later
             )
 
             # Create the settings for the organization
@@ -181,7 +222,7 @@ class BlankSignupForm(forms.Form):
                 store_name=self.cleaned_data["store_name"],
                 store_address=self.cleaned_data["store_address"],
                 currency=self.cleaned_data["currency"],
-                owner_name=self.cleaned_data["owner_name"],
+                owner_name=f"{self.cleaned_data['first_name']} {self.cleaned_data['last_name']}",
                 owner_phone_number=self.cleaned_data["owner_phone_number"],
                 store_category=self.cleaned_data["store_category"],
                 shift_duration=self.cleaned_data["shift_duration"],
@@ -196,7 +237,7 @@ class BlankSignupForm(forms.Form):
             )
 
             log = UserLog.objects.create(
-                user=self.request.user,
+                user=user,
                 reason=UserLogReasons.CREATE,
                 organization=organization,
                 user_role=OrganizationRole.OWNER,
@@ -205,13 +246,19 @@ class BlankSignupForm(forms.Form):
 
         return user, organization
 
+
 class OrganizationSettingsForm(forms.ModelForm):
     organization_name = forms.CharField(
         required=True,
         widget=forms.TextInput(
-            attrs={"class": "form-control", "placeholder": "Organization Name", "disabled": "disabled"}
+            attrs={
+                "class": "form-control",
+                "placeholder": "Organization Name",
+                "disabled": "disabled",
+            }
         ),
     )
+
     class Meta:
         model = Settings
         fields = [
@@ -221,5 +268,5 @@ class OrganizationSettingsForm(forms.ModelForm):
             "owner_name",
             "owner_phone_number",
             "store_category",
-            "shift_duration"
+            "shift_duration",
         ]

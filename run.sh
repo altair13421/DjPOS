@@ -1,6 +1,8 @@
 #!/bin/bash
 # run.sh - Linux/Mac running script for DJPOS
 
+export ALLOWED_HOSTS="192.168.1.16,localhost,127.0.0.1"
+
 # Check if virtual environment exists
 if [ ! -d ".venv" ]; then
     echo "Error: Virtual environment '.venv' not found."

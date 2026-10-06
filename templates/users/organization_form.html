@@ -30,33 +30,151 @@
       <p class="text-muted mb-0">Create your account And Your Organization</p>
     </div>
 
+    <form method="post" action="">
     <div class="card">
+      <div class="card-header">
+        <h5 class="card-title mb-0">User Information</h5>
+      </div>
       <div class="card-body">
-        <form method="post" action="">
           {% csrf_token %}
           {% if form.non_field_errors %}
           <div class="alert alert-danger">{{ form.non_field_errors.0 }}</div>
           {% endif %}
           <div class="mb-3">
-            <label for="id_username" class="form-label">Username</label>
-            <input type="text" name="username" id="id_username" class="form-control" placeholder="Username"
-              autofocus required>
+            {{  form.first_name.label_tag }}
+            {{ form.first_name }}
+            {% if form.first_name.errors %}
+            <div class="invalid-feedback d-block">{{ form.first_name.errors.0 }}</div>
+            {% endif %}
+          </div>
+          <div class="mb-3">
+            {{ form.last_name.label_tag }}
+            {{ form.last_name }}
+            {% if form.last_name.errors %}
+            <div class="invalid-feedback d-block">{{ form.last_name.errors.0 }}</div>
+            {% endif %}
+          </div>
+          <div class="mb-3">
+            {{ form.email.label_tag }}
+            {{ form.email }}
+            {% if form.email.errors %}
+            <div class="invalid-feedback d-block">{{ form.email.errors.0 }}</div>
+            {% endif %}
+          </div>
+          <div class="mb-3">
+            {{ form.username.label_tag }}
+            {{ form.username }}
             {% if form.username.errors %}
             <div class="invalid-feedback d-block">{{ form.username.errors.0 }}</div>
             {% endif %}
           </div>
           <div class="mb-3">
-            <label for="id_password" class="form-label">Password</label>
-            <input type="password" name="password" id="id_password" class="form-control" placeholder="Password"
-              required>
-            {% if form.password.errors %}
-            <div class="invalid-feedback d-block">{{ form.password.errors.0 }}</div>
+            <label for="id_password1" class="form-label">Password</label>
+            {{ form.password1 }}
+            {% if form.password1.errors %}
+            <div class="invalid-feedback d-block">{{ form.password1.errors.0 }}</div>
             {% endif %}
           </div>
-          <button type="submit" class="btn btn-primary w-100">Sign Up</button>
-        </form>
+          <div class="mb-3">
+            <label for="id_password2" class="form-label">Confirm Password</label>
+            {{ form.password2 }}
+            {% if form.password2.errors %}
+            <div class="invalid-feedback d-block">{{ form.password2.errors.0 }}</div>
+            {% endif %}
+          </div>
+        </div>
       </div>
-    </div>
+    <div class="card">
+      <div class="card-header">
+        <h5 class="card-title mb-0">Organization Information</h5>
+      </div>
+      <div class="card-body">
+          <div class="mb-3">
+            {{ form.organization_name.label_tag }}
+            {{ form.organization_name }}
+            {% if form.organization_name.help_text %}
+            <small class="form-text text-muted">{{ form.organization_name.help_text }}</small>
+            {% endif %}
+            {% if form.organization_name.errors %}
+            <div class="invalid-feedback d-block">{{ form.organization_name.errors.0 }}</div>
+            {% endif %}
+        </div>
+        <div class="mb-3">
+            {{ form.store_name.label_tag }}
+            {{ form.store_name }}
+            {% if form.store_name.help_text %}
+            <small class="form-text text-muted">{{ form.store_name.help_text }}</small>
+            {% endif %}
+            {% if form.store_name.errors %}
+            <div class="invalid-feedback d-block">{{ form.store_name.errors.0 }}</div>
+            {% endif %}
+        </div>
+        <div class="mb-3">
+            {{ form.store_address.label_tag }}
+            {{ form.store_address }}
+            {% if form.store_address.help_text %}
+            <small class="form-text text-muted">{{ form.store_address.help_text }}</small>
+            {% endif %}
+            {% if form.store_address.errors %}
+            <div class="invalid-feedback d-block">{{ form.store_address.errors.0 }}</div>
+            {% endif %}
+        </div>
+        <div class="mb-3">
+            {{ form.currency.label_tag }}
+            {{ form.currency }}
+            {% if form.currency.help_text %}
+            <small class="form-text text-muted">{{ form.currency.help_text }}</small>
+            {% endif %}
+            {% if form.currency.errors %}
+            <div class="invalid-feedback d-block">{{ form.currency.errors.0 }}</div>
+            {% endif %}
+        </div>
+        <div class="mb-3">
+            {{ form.owner_phone_number.label_tag }}
+            {{ form.owner_phone_number }}
+            {% if form.owner_phone_number.errors %}
+            <div class="invalid-feedback d-block">{{ form.owner_phone_number.errors.0 }}</div>
+            {% endif %}
+            {% if form.owner_phone_number.help_text %}
+            <small class="form-text text-muted">{{ form.owner_phone_number.help_text }}</small>
+            {% endif %}
+        </div>
+        <div class="mb-3">
+            {{ form.store_category.label_tag }}
+            {{ form.store_category }}
+            {% if form.store_category.help_text %}
+            <small class="form-text text-muted">{{ form.store_category.help_text }}</small>
+            {% endif %}
+            {% if form.store_category.errors %}
+            <div class="invalid-feedback d-block">{{ form.store_category.errors.0 }}</div>
+            {% endif %}
+        </div>
+        <div class="mb-3">
+            {{ form.shift_duration.label_tag }}
+            {{ form.shift_duration }}
+            {% if form.shift_duration.help_text %}
+            <small class="form-text text-muted">{{ form.shift_duration.help_text }}</small>
+            {% endif %}
+            {% if form.shift_duration.errors %}
+            <div class="invalid-feedback d-block">{{ form.shift_duration.errors.0 }}</div>
+            {% endif %}
+        </div>
+      </div>
+    <div class="card">
+      <div class="card-header">
+        <h5 class="card-title mb-0">Finalize</h5>
+        <div class="card-body">
+          <div class="alert alert-danger" role="alert">
+            <strong>Warning!</strong> This action is irreversible. Please review your information carefully before finalizing.
+          </div>
+          <p class="card-text">By clicking "Sign Up", you agree to our <a href="#">terms and conditions</a>.</p>
+        </div>
+      </div>
+        <div class="card-body">
+          <button type="submit" class="btn btn-primary w-100">Sign Up</button>
+        </div>
+      </div>
+    </form>
   </div>
 </div>
 

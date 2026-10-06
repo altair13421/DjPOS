@@ -1,7 +1,14 @@
-from django.contrib.auth.models import User
+from django.contrib.auth.models import Group, User
 
 from .models import Organization, OrganizationMembership
 from .choices import OrganizationRole
+
+ROLE_TO_GROUP = {
+    OrganizationRole.OWNER: "owner",  # owners get manager-level perms
+    OrganizationRole.MANAGER: "manager",
+    OrganizationRole.CASHIER: "cashier",
+}
+
 
 def get_user_organizations(user: User):
     if not user.is_authenticated:
@@ -10,6 +17,15 @@ def get_user_organizations(user: User):
         memberships__user=user,
         is_active=True,
     ).distinct()
+
+
+def set_role_to_group(role: OrganizationRole, user: User):
+    cashier, _ = Group.objects.get_or_create(name="cashier")
+    manager, _ = Group.objects.get_or_create(name="manager")
+    owner, _ = Group.objects.get_or_create(name="owner")
+
+    groups = {"cashier": cashier, "manager": manager, "owner": owner}
+    return user.groups.add(groups[ROLE_TO_GROUP.get(role, "cashier")])
 
 
 def get_default_organization(user: User):
@@ -32,11 +48,13 @@ def set_session_organization(request, organization: Organization):
     request.session["organization_id"] = organization.pk
     request.organization = organization
 
+
 def get_user_role_in_organization(user: User, organization: Organization):
     membership = OrganizationMembership.objects.filter(
         user=user, organization=organization
     ).first()
     return membership.role if membership else None
+
 
 def get_roles_with_lower_priority(role):
     current_priority = role.priority()
