@@ -4,7 +4,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.models import User
 from django.contrib.auth.views import LoginView, LogoutView
 from django.contrib.messages.views import SuccessMessageMixin
-from django.db import transaction
+from django.db import models, transaction
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.views.generic import CreateView, DetailView, FormView, ListView, View
@@ -187,6 +187,61 @@ class UserLogDetailView(OrgLoginAndRoleRequiredMixin, DetailView):
         )
         return queryset
 
+class UserListView(OrgLoginAndRoleRequiredMixin, ListView):
+    model = User
+    template_name = "users/user_list.html"
+    context_object_name = "users"
+    paginate_by = 20
+
+    required_roles = [OrganizationRole.OWNER, OrganizationRole.MANAGER]
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        org = getattr(self.request, "organization", None)
+        # Get Users in the organization with their roles
+        users_with_roles = (
+            User.objects.filter(organizationmembership__organization=org)
+            .annotate(role=models.F("organizationmembership__role"))
+            .order_by("username")
+        )
+        context["users_with_roles"] = users_with_roles
+        return context
+
+    def get_queryset(self):
+        org = getattr(self.request, "organization", None)
+        queryset = User.objects.filter(
+            organizationmembership__organization=org
+        ).order_by("username")
+        return queryset
+
+class UserDetailView(OrgLoginAndRoleRequiredMixin, DetailView):
+    model = User
+    template_name = "users/user_detail.html"
+    context_object_name = "user"
+
+    required_roles = [OrganizationRole.OWNER, OrganizationRole.MANAGER]
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        org = getattr(self.request, "organization", None)
+        user = self.get_object()
+        membership = OrganizationMembership.objects.filter(
+            user=user, organization=org
+        ).first()
+        context["membership"] = membership
+        recent_activity = UserLog.objects.filter(
+            user=user, organization=org
+        ).order_by("-created_at")[:10]
+        context["recent_activity"] = recent_activity
+        return context
+
+    def get_queryset(self):
+        org = getattr(self.request, "organization", None)
+        user_id = self.kwargs.get("pk")
+        queryset = User.objects.filter(
+            organizationmembership__organization=org, id=user_id
+        )
+        return queryset
 
 class OrganizationCreateView(
     OrgLoginAndRoleRequiredMixin, SuccessMessageMixin, CreateView
@@ -223,7 +278,10 @@ class OrganizationCreateView(
                 user_role=OrganizationRole.OWNER,
                 notes=f"Created organization {org.name}, and set user {self.request.user.username} as owner.",
             )
-            enqueue_userlog(log)
+            if dj_settings.ROLE == "terminal":
+                log.notes += f" Terminal {dj_settings.DEVICE_ID} Created organization."
+                log.save()
+                enqueue_userlog(log)
         return response
 
 

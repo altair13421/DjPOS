@@ -119,6 +119,21 @@
               href="{% url 'inventory:bundle_list' %}">Bundles</a>
           </li>
           {% endif %}
+
+          <li class="nav-item">
+            <a class="nav-link {% if 'inventory' in request.resolver_match.app_name and request.resolver_match.url_name == 'index' %}active{% endif %}"
+              href="{% url 'inventory:index' %}">Users</a>
+          </li>
+          {% if 'user' in request.resolver_match.app_name %}
+          <li class="nav-item">
+            <a class="nav-link {% if 'category' in request.resolver_match.url_name %}active{% endif %}"
+              href="{% url 'inventory:category_list' %}">Create Staff</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {% if 'item' in request.resolver_match.url_name %}active{% endif %}"
+              href="{% url 'inventory:item_list' %}">User Log</a>
+          </li>
+          {% endif %}
           {% endif %}
         </ul>
         <ul class="navbar-nav">
