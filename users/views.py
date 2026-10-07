@@ -23,6 +23,8 @@ from .organization_utils import (
 )
 from .mixins import OrgLoginAndRoleRequiredMixin
 
+from pos.models import Sale
+
 
 class UserLoginView(LoginView):
     template_name = "users/login.html"
@@ -232,10 +234,14 @@ class UserDetailView(OrgLoginAndRoleRequiredMixin, DetailView):
             user=user, organization=org
         ).first()
         context["membership"] = membership
-        recent_activity = UserLog.objects.filter(user=user, organization=org).order_by(
-            "-created_at"
-        )[:10]
-        context["recent_activity"] = recent_activity
+
+        context["recent_account_activity"] = UserLog.objects.filter(
+            user=user, organization=org
+        ).order_by("-created_at")[:10]
+
+        context["recent_sales_activity"] = Sale.objects.filter(
+            created_by=user, organization=org
+        ).order_by("-created_at")[:10]
         return context
 
     def get_queryset(self):

@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}User Details{% endblock %}
+
+{% block content %}
+
+
+<h2>User Logs</h2>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">User Information</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Key</th>
+                        <th>Value</th>
+                   </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Username</td>
+                        <td>{{ user.username }}</td>
+                    </tr>
+                    <tr>
+                        <td>Email</td>
+                        <td>{{ user.email }}</td>
+                    </tr>
+                    <tr>
+                        <td>Role</td>
+                        <td>{{ membership.role }}</td>
+                    </tr>
+                    <tr>
+                        <td>Created At:</td>
+                        <td>{{ user.created_at }}</td>
+                    </tr>
+                    <tr>
+                        <td>Last seen</td>
+                        <td></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+ 
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">Recent Sales Activity</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Created At</th>
+                        <th>Total</th>
+                        <th>Paid</th>
+                        <th>Discount|Tax</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                  {% for sale in recent_sales_activity %}
+                    <tr>
+                        <td>{{ sale.created_at }}</td>
+                        <td>{{ sale.total }}</td>
+                        <td>{{ sale.paid }}</td>
+                        <td>{{ sale.discount }}|{{ sale.tax }}</td>
+                        <td>{{ sale.notes }}</td>
+                    </tr>
+                  {% empty %}
+                    <tr>No Recent Entry Found</tr>
+                  {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">Recent Account Activity</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Created At</th>
+                        <th>Reason</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                  {% for userlog in recent_account_activity %}
+                    <tr>
+                        <td>{{ userlog.created_at }}</td>
+                        <td>{{ userlog.reason }}</td>
+                        <td>{{ userlog.notes }}</td>
+                    </tr>
+                  {% empty %}
+                    <tr>No Recent Activity Found</tr>
+                  {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<a href="{% url 'user:user_list' %}" class="btn btn-secondary mt-3">Back to User List</a>
+
+{% endblock %}
