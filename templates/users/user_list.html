@@ -10,6 +10,7 @@
         <!-- Add a button to create a new user -->
         <div class="d-flex justify-content-end mb-3">
             <a href="{% url 'user_create' %}" class="btn btn-primary">Create New User</a>
+            <p class="ms-3 mb-0">Total Users: {{ user_count }}</p>
         </div>
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">

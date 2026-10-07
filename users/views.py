@@ -187,6 +187,7 @@ class UserLogDetailView(OrgLoginAndRoleRequiredMixin, DetailView):
         )
         return queryset
 
+
 class UserListView(OrgLoginAndRoleRequiredMixin, ListView):
     model = User
     template_name = "users/user_list.html"
@@ -205,6 +206,7 @@ class UserListView(OrgLoginAndRoleRequiredMixin, ListView):
             .order_by("username")
         )
         context["users_with_roles"] = users_with_roles
+        context["user_count"] = users_with_roles.count()
         return context
 
     def get_queryset(self):
@@ -213,6 +215,7 @@ class UserListView(OrgLoginAndRoleRequiredMixin, ListView):
             organizationmembership__organization=org
         ).order_by("username")
         return queryset
+
 
 class UserDetailView(OrgLoginAndRoleRequiredMixin, DetailView):
     model = User
@@ -229,9 +232,9 @@ class UserDetailView(OrgLoginAndRoleRequiredMixin, DetailView):
             user=user, organization=org
         ).first()
         context["membership"] = membership
-        recent_activity = UserLog.objects.filter(
-            user=user, organization=org
-        ).order_by("-created_at")[:10]
+        recent_activity = UserLog.objects.filter(user=user, organization=org).order_by(
+            "-created_at"
+        )[:10]
         context["recent_activity"] = recent_activity
         return context
 
@@ -242,6 +245,7 @@ class UserDetailView(OrgLoginAndRoleRequiredMixin, DetailView):
             organizationmembership__organization=org, id=user_id
         )
         return queryset
+
 
 class OrganizationCreateView(
     OrgLoginAndRoleRequiredMixin, SuccessMessageMixin, CreateView
