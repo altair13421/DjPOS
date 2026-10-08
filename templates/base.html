@@ -121,17 +121,21 @@
           {% endif %}
 
           <li class="nav-item">
-            <a class="nav-link {% if 'inventory' in request.resolver_match.app_name and request.resolver_match.url_name == 'index' %}active{% endif %}"
-              href="{% url 'inventory:index' %}">Users</a>
+            <a class="nav-link {% if 'users' in request.resolver_match.app_name and request.resolver_match.url_name == 'user_list' %}active{% endif %}"
+              href="{% url 'users:user_list' %}">Users</a>
           </li>
           {% if 'user' in request.resolver_match.app_name %}
           <li class="nav-item">
-            <a class="nav-link {% if 'category' in request.resolver_match.url_name %}active{% endif %}"
-              href="{% url 'inventory:category_list' %}">Create Staff</a>
+            <a class="nav-link {% if 'create_user' in request.resolver_match.url_name %}active{% endif %}"
+              href="{% url 'users:create_user' %}">Create Staff</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link {% if 'item' in request.resolver_match.url_name %}active{% endif %}"
-              href="{% url 'inventory:item_list' %}">User Log</a>
+            <a class="nav-link {% if 'organization_logs' in request.resolver_match.url_name %}active{% endif %}"
+              href="{% url 'users:organization_logs' %}">User Log</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {% if 'terminals' in request.resolver_match.url_name %}active{% endif %}"
+              href="{% url 'terminals' %}">Terminals</a>
           </li>
           {% endif %}
           {% endif %}

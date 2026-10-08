@@ -8,11 +8,6 @@ urlpatterns = [
     path("login/", views.UserLoginView.as_view(), name="login"),
     path("logout/", views.UserLogoutView.as_view(), name="logout"),
     path("organization/", views.select_organization, name="select_organization"),
-    path(
-        "organization/users/logs/",
-        views.UserLogListView.as_view(),
-        name="organization_logs",
-    ),
     path("organization/users/", views.UserListView.as_view(), name="user_list"),
     path(
         "organization/users/<int:pk>/",
@@ -21,6 +16,11 @@ urlpatterns = [
     ),
     path(
         "organization/users/create/", views.UserCreateView.as_view(), name="user_create"
+    ),
+    path(
+        "organization/users/logs/",
+        views.UserLogListView.as_view(),
+        name="organization_logs",
     ),
     path(
         "organization/logs/<int:pk>/",
