@@ -8,13 +8,51 @@
 </form>
 
 {% for c in codes %}
-<p>Code for <b>{{ c.terminal_name }}</b>: <b style="font-size:2rem">{{ c.code }}</b>
+<div class="alert alert-important" role="alert">
+  <strong>Code!</strong> <p>Code for <b>{{ c.terminal_name }}</b>: <b style="font-size:2rem">{{ c.code }}</b>
     — valid until {{ c.expires_at|time:"H:i" }}</p>
+</div>
+ 
+
 {% endfor %}
 
-<h3>Registered tills</h3>
-<ul>{% for t in terminals %}
-    <li>{{ t.name }} ({{ t.device_id }}) — last seen {{ t.last_seen|default:"never" }}</li>
-    {% endfor %}
-</ul>
+<div class="card">
+    <div class="card-body p-0">
+        <!-- Add a button to create a new user -->
+        <div class="d-flex justify-content-end mb-3">
+            <a href="{% url 'user_create' %}" class="btn btn-primary">Create New User</a>
+            <p class="ms-3 mb-0">Registered Tills: {{ user_count }}</p>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Created At</th>
+                        <th>Expires at</th>
+                        <th>Till Name</th>
+                        <th>Used</th>
+                        <th>Code</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for term in terminals %}
+                    <tr>
+                        <td>{{ term.created_at }}</td>
+                        <td>{{ term.expires_at }}</td>
+                        <td>{{ term.terminal_name }}</td>
+                        <td>{% if term.used %}<i class="bi bi-check"></i>{% else %}<i class="bi bi-cross"></i>{% endif %}</td>
+                        <td>{{ term.code }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4">No terminals Added.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+
 {% endblock %}
