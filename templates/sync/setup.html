@@ -1,20 +1,20 @@
-{# templates/sync/setup.html — till's first-run screen #}
-<!doctype html>
-<html>
+{% extends "base.html" %}
 
-<body style="font-family:sans-serif;max-width:28rem;margin:5rem auto">
+{% block content %}
     <h1>Set up this till</h1>
     {% if error %}<p style="color:red">{{ error }}</p>{% endif %}
-    <form method="post">{% csrf_token %}
-        <label>Central server
-            <input name="central_url" value="https://your-app.onrender.com" style="width:100%">
-        </label>
-        <label>Pairing code
-            <input name="code" placeholder="e.g. 3FA9C21B" style="width:100%;font-size:1.5rem" autofocus>
-        </label>
-        <button style="margin-top:1rem">Pair this till</button>
+    <form method="post" class="form">{% csrf_token %}
+        {{ form.central_url.label }}
+        {{ form.central_url }}
+        {{ form.device_key.label }}
+        {{ form.device_key }}
+        {{ form.device_id.label }}
+        {{ form.device_id }}
+        {{ form.organization.label }}
+        {{ form.organization }}
+        {{ form.code.label }}
+        {{ form.code }}
+        <button style="margin-top:1rem" class="btn btn-primary">Pair this till</button>
     </form>
     <p>Get a code from <b>Terminals</b> on the central dashboard.</p>
-</body>
-
-</html>
+{% endblock %}
