@@ -28,7 +28,7 @@ fi
 
 if [ "$1" = "terminal" ]; then
   # read .env
-  if [ ! -f ".env" ]; then
+  if [ ! -f "terminal.env" ]; then
     echo "Error: .env file not found. Please create a .env file with the required environment variables."
     cp terminal.env.example terminal.env
     echo "A sample .env file has been created as .env. Please edit it with your configuration."
@@ -51,7 +51,7 @@ fi
 if [ "$1" = "server" ]; then
   # read .env
 
-  if [ ! -f ".env" ]; then
+  if [ ! -f "server.env" ]; then
     echo "Error: .env file not found. Please create a .env file with the required environment variables."
     cp server.env.example server.env
     echo "A sample .env file has been created as .env. Please edit it with your configuration."
