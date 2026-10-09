@@ -20,6 +20,9 @@
           {% if form.non_field_errors %}
           <div class="alert alert-danger">{{ form.non_field_errors.0 }}</div>
           {% endif %}
+          {% if error %}
+          <div class="alert alert-danger">{{ error }}</div>
+          {% endif %}
           <div class="mb-3">
             {{ form.central_url.label_tag }}
             {{ form.central_url }}
