@@ -126,8 +126,8 @@
           </li>
           {% if 'user' in request.resolver_match.app_name %}
           <li class="nav-item">
-            <a class="nav-link {% if 'create_user' in request.resolver_match.url_name %}active{% endif %}"
-              href="{% url 'users:create_user' %}">Create Staff</a>
+            <a class="nav-link {% if 'user_create' in request.resolver_match.url_name %}active{% endif %}"
+              href="{% url 'users:user_create' %}">Create Staff</a>
           </li>
           <li class="nav-item">
             <a class="nav-link {% if 'organization_logs' in request.resolver_match.url_name %}active{% endif %}"
@@ -164,16 +164,6 @@
           {% elif current_organization %}
           <li class="nav-item">
             <span class="nav-link text-muted">{{ current_organization.name }}</span>
-          </li>
-          {% endif %}
-          {% if user.is_staff %}
-          <li class="nav-item">
-            <a class="nav-link {% if 'users' in request.resolver_match.app_name and request.resolver_match.url_name == 'create' %}active{% endif %}"
-              href="{% url 'users:user_create' %}">Create user</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link {% if 'users' in request.resolver_match.app_name and request.resolver_match.url_name == 'create' %}active{% endif %}"
-              href="{% url 'terminals' %}">Terminals</a>
           </li>
           {% endif %}
           <li class="nav-item">

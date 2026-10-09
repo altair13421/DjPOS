@@ -34,11 +34,11 @@
                     </tr>
                     <tr>
                         <td>Created At:</td>
-                        <td>{{ user.created_at }}</td>
+                        <td>{{ user.date_joined }}</td>
                     </tr>
                     <tr>
                         <td>Last seen</td>
-                        <td></td>
+                        <td>{{ user.last_login }}</td>
                     </tr>
                 </tbody>
             </table>
@@ -46,7 +46,7 @@
  
     </div>
 </div>
-
+<br>
 <div class="card">
     <div class="card-header">
         <h5 class="card-title mb-0">Recent Sales Activity</h5>
@@ -73,14 +73,14 @@
                         <td>{{ sale.notes }}</td>
                     </tr>
                   {% empty %}
-                    <tr>No Recent Entry Found</tr>
+                    <tr class="alert alert-info">No Recent Entry Found</tr>
                   {% endfor %}
                 </tbody>
             </table>
         </div>
     </div>
 </div>
-
+<br>
 <div class="card">
     <div class="card-header">
         <h5 class="card-title mb-0">Recent Account Activity</h5>
@@ -110,6 +110,6 @@
         </div>
     </div>
 </div>
-<a href="{% url 'user:user_list' %}" class="btn btn-secondary mt-3">Back to User List</a>
+<a href="{% url 'users:user_list' %}" class="btn btn-secondary mt-3">Back to User List</a>
 
 {% endblock %}

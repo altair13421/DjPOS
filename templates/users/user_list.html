@@ -9,8 +9,8 @@
     <div class="card-body p-0">
         <!-- Add a button to create a new user -->
         <div class="d-flex justify-content-end mb-3">
-            <a href="{% url 'user_create' %}" class="btn btn-primary">Create New User</a>
-            <p class="ms-3 mb-0">Total Users: {{ user_count }}</p>
+            <div class="ms-3 mb-0" style="margin-right: 1rem;">Total Users: {{ user_count }}</div>
+            <a href="{% url 'users:user_create' %}" class="btn btn-primary">Create New User</a>
         </div>
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
@@ -27,13 +27,13 @@
                 <tbody>
                     {% for user in users_with_roles %}
                     <tr>
-                        <td>{{ user.created_at }}</td>
+                        <td>{{ user.date_joined }}</td>
                         <td>{{ user.username }}</td>
                         <td>{{ user.first_name }} {{ user.last_name }}</td>
                         <td>{{ user.email }}</td>
                         <td>{{ user.role }}</td>
                         <td>
-                            <a href="{% url 'user_detail' user.pk %}" class="btn btn-sm btn-outline-primary">View</a>
+                            <a href="{% url 'users:user_detail' user.pk %}" class="btn btn-sm btn-outline-primary">View</a>
                         </td>
                     </tr>
                     {% empty %}

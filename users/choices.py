@@ -7,15 +7,6 @@ class OrganizationRole(models.TextChoices):
     MANAGER = "manager", _("Manager")
     CASHIER = "cashier", _("Cashier")
 
-    @staticmethod
-    def priority(role):
-        priorities = {
-            OrganizationRole.OWNER: 3,
-            OrganizationRole.MANAGER: 2,
-            OrganizationRole.CASHIER: 1,
-        }
-        return priorities.get(role, 0)
-
 class UserLogReasons(models.TextChoices):
     SIGNIN = "SIGNIN", _("Signin")  # Can be The Same as Check in
     SIGNOUT = "SIGNOUT", _("Signout")  # Can be the Same as Check Out

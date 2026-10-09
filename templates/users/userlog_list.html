@@ -24,7 +24,7 @@
                         <td>{{ userlog.user }}</td>
                         <td>{{ userlog.user_role }}</td>
                         <td>
-                            <a href="{% url 'userlog_detail' userlog.pk %}" class="btn btn-sm btn-outline-primary">View</a>
+                            <a href="{% url 'users:userlog_detail' userlog.pk %}" class="btn btn-sm btn-outline-primary">View</a>
                         </td>
                     </tr>
                     {% empty %}

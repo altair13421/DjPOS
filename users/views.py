@@ -87,7 +87,7 @@ class UserCreateView(OrgLoginAndRoleRequiredMixin, SuccessMessageMixin, CreateVi
     model = User
     form_class = UserCreateForm
     template_name = "users/user_form.html"
-    success_url = reverse_lazy("users:create")
+    success_url = reverse_lazy("users:user_list")
     success_message = "User created."
 
     required_roles = [OrganizationRole.OWNER, OrganizationRole.MANAGER]
@@ -97,18 +97,20 @@ class UserCreateView(OrgLoginAndRoleRequiredMixin, SuccessMessageMixin, CreateVi
         return super().handle_no_permission()
 
     def form_valid(self, form):
-        response = super().form_valid(form)
-        org = getattr(self.request, "organization", None)
-        if org:
-            OrganizationMembership.objects.get_or_create(
-                user=self.object,
-                organization=org,
-                defaults={
-                    "role": OrganizationRole.CASHIER,
-                    "is_default": True,
-                },
-            )
         with transaction.atomic():
+            cleaned_data = form.cleaned_data
+            response = super().form_valid(form)
+            org = getattr(self.request, "organization", None)
+            if org:
+                print(self.object)
+                OrganizationMembership.objects.get_or_create(
+                    user=self.object,
+                    organization=org,
+                    defaults={
+                        "role": cleaned_data.get("group", OrganizationRole.CASHIER),
+                        "is_default": True,
+                    },
+                )
             log = UserLog.objects.create(
                 user=self.request.user,
                 reason=UserLogReasons.CREATE,
@@ -167,7 +169,7 @@ class UserLogListView(OrgLoginAndRoleRequiredMixin, ListView):
         org = getattr(self.request, "organization", None)
         queryset = UserLog.objects.filter(
             organization=org,
-            user_role=get_roles_with_lower_priority(
+            user_role__in=get_roles_with_lower_priority(
                 get_user_role_in_organization(self.request.user, org)
             ),
         ).order_by("-created_at")
@@ -203,8 +205,8 @@ class UserListView(OrgLoginAndRoleRequiredMixin, ListView):
         org = getattr(self.request, "organization", None)
         # Get Users in the organization with their roles
         users_with_roles = (
-            User.objects.filter(organizationmembership__organization=org)
-            .annotate(role=models.F("organizationmembership__role"))
+            User.objects.filter(memberships__organization=org)
+            .annotate(role=models.F("memberships__role"))
             .order_by("username")
         )
         context["users_with_roles"] = users_with_roles
@@ -214,7 +216,7 @@ class UserListView(OrgLoginAndRoleRequiredMixin, ListView):
     def get_queryset(self):
         org = getattr(self.request, "organization", None)
         queryset = User.objects.filter(
-            organizationmembership__organization=org
+            memberships__organization=org
         ).order_by("username")
         return queryset
 
@@ -248,7 +250,7 @@ class UserDetailView(OrgLoginAndRoleRequiredMixin, DetailView):
         org = getattr(self.request, "organization", None)
         user_id = self.kwargs.get("pk")
         queryset = User.objects.filter(
-            organizationmembership__organization=org, id=user_id
+            memberships__organization=org, id=user_id
         )
         return queryset
 

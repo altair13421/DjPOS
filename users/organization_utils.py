@@ -9,6 +9,14 @@ ROLE_TO_GROUP = {
     OrganizationRole.CASHIER: "cashier",
 }
 
+def role_priority(role):
+    priorities = {
+        OrganizationRole.OWNER: 3,
+        OrganizationRole.MANAGER: 2,
+        OrganizationRole.CASHIER: 1,
+    }
+    return priorities.get(role, 0)
+
 
 def get_user_organizations(user: User):
     if not user.is_authenticated:
@@ -57,5 +65,6 @@ def get_user_role_in_organization(user: User, organization: Organization):
 
 
 def get_roles_with_lower_priority(role):
-    current_priority = role.priority()
-    return [r for r in OrganizationRole if r.priority() <= current_priority]
+    current_priority = role_priority(role)
+    roles = [r for r in OrganizationRole if role_priority(r) <= current_priority]
+    return roles

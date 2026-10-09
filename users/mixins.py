@@ -45,7 +45,7 @@ class OrgLoginAndRoleRequiredMixin(OrgLoginRequiredMixin):
 
     def dispatch(self, request, *args, **kwargs):
         if not self.has_required_role():
-            return redirect(reverse("users:select_organization"))
+            return redirect(reverse("pos:index"))
         return super().dispatch(request, *args, **kwargs)
 
     def has_required_role(self):
@@ -54,6 +54,7 @@ class OrgLoginAndRoleRequiredMixin(OrgLoginRequiredMixin):
         if not org:
             return False
         membership = user.memberships.filter(organization=org).first()
+        print(user, org, membership)
         if not membership:
             return False
         return membership.role in self.required_roles
