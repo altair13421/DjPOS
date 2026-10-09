@@ -39,6 +39,7 @@ class SetupView(FormView):
 
     def dispatch(self, request, *args, **kwargs):
         if config.is_paired():
+            print("Device is already paired. Redirecting to home.")
             return redirect("/")
         return super().dispatch(request, *args, **kwargs)
 

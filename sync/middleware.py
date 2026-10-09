@@ -1,7 +1,7 @@
 from django.shortcuts import redirect
 from . import config
 
-EXEMPT = ("/setup/", "/static/")
+EXEMPT = ("/sync/setup/", "/static/")
 
 
 class TerminalSetupMiddleware:
