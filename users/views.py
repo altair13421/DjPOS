@@ -102,7 +102,6 @@ class UserCreateView(OrgLoginAndRoleRequiredMixin, SuccessMessageMixin, CreateVi
             response = super().form_valid(form)
             org = getattr(self.request, "organization", None)
             if org:
-                print(self.object)
                 OrganizationMembership.objects.get_or_create(
                     user=self.object,
                     organization=org,

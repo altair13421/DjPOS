@@ -10,7 +10,7 @@ class TerminalSetupMiddleware:
 
     def __call__(self, request):
         if not config.is_paired() and not request.path.startswith(EXEMPT):
-            return redirect("/setup/")
-        if config.is_paired() and request.path == "/setup/":
-            return redirect("/")
+            return redirect("sync:setup_terminal")
+        if config.is_paired() and request.path == "/sync/setup/":
+            return redirect("sync:terminal_list")
         return self.get_response(request)
