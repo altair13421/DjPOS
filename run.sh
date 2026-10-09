@@ -20,6 +20,7 @@ fi
 # Using uv to sync the virtual environment
 if command -v uv &>/dev/null; then
   uv sync
+  uv run python manage.py makemigrations
   uv run python manage.py migrate
 else
   echo "Error: uv command not found. Please install uv and initialize the virtual environment."

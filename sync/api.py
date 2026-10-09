@@ -17,6 +17,7 @@ from inventory.models import (
     Item,
     ItemIngredient,
 )
+from users.choices import UserLogReasons
 from . import payloads
 from .auth import TerminalKeyAuth
 from .models import CatalogVersion, ReceivedEvent, Terminal, PairingCode
@@ -93,17 +94,19 @@ class PairView(APIView):
             return Response(
                 {"error": "Invalid or expired code"}, status=status.HTTP_400_BAD_REQUEST
             )
-        terminal = Terminal.objects.create(
-            organization=pc.organization,
-            name=pc.terminal_name,
-            device_id=f"TILL-{secrets.token_hex(3).upper()}",
-        )
-        PairingCode.objects.filter(pk=pc.pk).update(used=True)  # single-use
-        UserLog.objects.create(
-            user=request.user,
-            organization=pc.organization,
-            action=f"Paired terminal {terminal.device_id} ({terminal.name})",
-        )
+        with transaction.atomic():
+            terminal = Terminal.objects.create(
+                organization=pc.organization,
+                name=pc.terminal_name,
+                device_id=f"TILL-{secrets.token_hex(3).upper()}",
+            )
+            PairingCode.objects.filter(pk=pc.pk).update(used=True)  # single-use
+            UserLog.objects.create(
+                user=pc.created_by,
+                organization=pc.organization,
+                reason=UserLogReasons.CREATE_TERMINAL,
+                notes=f"Paired terminal {terminal.device_id} ({terminal.name})",
+            )
         return Response(
             {
                 "device_id": terminal.device_id,

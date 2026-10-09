@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-
+{% block title %}Setup Terminal{% endblock %}
 {% block content %}
 
 
@@ -25,27 +25,6 @@
             {{ form.central_url }}
             {% if form.central_url.errors %}
             <div class="invalid-feedback d-block">{{ form.central_url.errors.0 }}</div>
-            {% endif %}
-          </div>
-          <div class="mb-3">
-            {{ form.device_key.label_tag }}
-            {{ form.device_key }}
-            {% if form.device_key.errors %}
-            <div class="invalid-feedback d-block">{{ form.device_key.errors.0 }}</div>
-            {% endif %}
-          </div>
-          <div class="mb-3">
-            {{ form.device_id.label_tag }}
-            {{ form.device_id }}
-            {% if form.device_id.errors %}
-            <div class="invalid-feedback d-block">{{ form.device_id.errors.0 }}</div>
-            {% endif %}
-          </div>
-          <div class="mb-3">
-            {{ form.organization.label_tag }}
-            {{ form.organization }}
-            {% if form.organization.errors %}
-            <div class="invalid-feedback d-block">{{ form.organization.errors.0 }}</div>
             {% endif %}
           </div>
           <div class="mb-3">

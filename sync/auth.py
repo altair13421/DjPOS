@@ -13,4 +13,5 @@ class TerminalKeyAuth(BaseAuthentication):
         terminal = Terminal.objects.filter(device_id=device_id, is_active=True).first()
         if not terminal or not hmac.compare_digest(terminal.api_key, key):
             raise AuthenticationFailed("Unknown device")
-        return (terminal, None)   # → request.terminal
+        request.terminal = terminal
+        return (terminal, None)

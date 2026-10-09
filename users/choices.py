@@ -13,6 +13,8 @@ class UserLogReasons(models.TextChoices):
     ACCESS = "ACCESS", _("Access")
     EDIT = "EDIT", _("Edit")
     CREATE = "CREATE", _("Create")
+    CREATE_TERMINAL = "CREATE_TERMINAL", _("Create Terminal")
+    DELETE_TERMINAL = "DELETE_TERMINAL", _("Delete Terminal")
 
 
 class StoreCategoryChoices(models.TextChoices):

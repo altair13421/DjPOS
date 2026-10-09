@@ -1,6 +1,6 @@
 import secrets, uuid
 from django.db import models
-from users.models import Organization
+from users.models import Organization, User
 
 
 class Terminal(models.Model):
@@ -12,6 +12,9 @@ class Terminal(models.Model):
     api_key = models.CharField(max_length=64, unique=True, default=secrets.token_hex)
     is_active = models.BooleanField(default=True)
     last_seen = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.name} ({self.device_id}) @ {self.organization.name}"
 
 
 class OutboxRecord(models.Model):  # terminal side — the queue
@@ -48,6 +51,12 @@ class PairingCode(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField()
     used = models.BooleanField(default=False)
+    created_by = models.ForeignKey(
+        User, null=True, blank=True, on_delete=models.SET_NULL
+    )
+
+    def __str__(self):
+        return f"{self.code} ({self.terminal_name}) @ {self.organization.name}"
 
 
 def get_state(key, default=""):
