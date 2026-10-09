@@ -20,7 +20,7 @@ from inventory.models import (
 from . import payloads
 from .auth import TerminalKeyAuth
 from .models import CatalogVersion, ReceivedEvent, Terminal, PairingCode
-from users.models import Organization, OrganizationMembership, Settings
+from users.models import Organization, OrganizationMembership, Settings, UserLog
 
 
 # ---- bump the org's catalog version on any central-side catalog edit ----
@@ -99,6 +99,11 @@ class PairView(APIView):
             device_id=f"TILL-{secrets.token_hex(3).upper()}",
         )
         PairingCode.objects.filter(pk=pc.pk).update(used=True)  # single-use
+        UserLog.objects.create(
+            user=request.user,
+            organization=pc.organization,
+            action=f"Paired terminal {terminal.device_id} ({terminal.name})",
+        )
         return Response(
             {
                 "device_id": terminal.device_id,
