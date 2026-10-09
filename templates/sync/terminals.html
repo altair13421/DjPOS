@@ -2,9 +2,10 @@
 {% block content %}
 <h2>Terminals</h2>
 
-<form method="post">{% csrf_token %}
-    <input name="name" placeholder="e.g. Front Counter">
-    <button>Pair a new till</button>
+<form method="post" class="form-horizontal mb-3">{% csrf_token %}
+    <label for="name" class="form-label">New Till Name</label>
+    <input name="name" placeholder="e.g. Front Counter" class="form-control mb-2" required>
+    <button class="btn btn-primary">Pair a new till</button>
 </form>
 
 {% for c in codes %}
@@ -18,9 +19,7 @@
 
 <div class="card">
     <div class="card-body p-0">
-        <!-- Add a button to create a new user -->
         <div class="d-flex justify-content-end mb-3">
-            <a href="{% url 'user_create' %}" class="btn btn-primary">Create New User</a>
             <p class="ms-3 mb-0">Registered Tills: {{ user_count }}</p>
         </div>
         <div class="table-responsive">
