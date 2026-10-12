@@ -4,6 +4,7 @@ Django settings for DJPOS project.
 
 import os
 from pathlib import Path
+import json
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -109,8 +110,15 @@ if ROLE == "terminal":
             "OPTIONS": {"timeout": 20},
         }
     }
+    with open(_data / "terminal.json") as terminal_data:
+        terminal_data = json.loads(terminal_data.read_text())
+    ORGANIZATION_NAME = terminal_data["organization"]
+    DEVICE_ID = terminal_data["device_id"]
+    DEVICE_KEY = terminal_data["device_key"]
+
     TEMPLATES[0]["OPTIONS"]["context_processors"] += [
-        "sync.context_processors.sync_status"
+        "sync.context_processors.sync_status",
+        "users.context_processors.organization_context",
     ]
 
 AUTH_PASSWORD_VALIDATORS = [
