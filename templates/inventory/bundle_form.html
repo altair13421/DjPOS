@@ -11,6 +11,11 @@
     <div class="card-body">
       <form method="post" action="" id="bundle-form">
         {% csrf_token %}
+        {% if form.non_field_errors %}
+          <div class="alert alert-danger" role="alert">
+            {{ form.non_field_errors }}
+          </div>
+        {% endif %}
         <div class="row g-3 mb-4">
           <div class="col-md-6">
             <label for="id_name" class="form-label">Bundle name</label>

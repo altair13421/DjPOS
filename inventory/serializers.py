@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from django.db import transaction
 from .models import Category, Item, Bundle, BundleItem, StockLog, IngredientStock, ItemIngredient
 
 
@@ -93,6 +94,7 @@ class BundleSerializer(serializers.ModelSerializer):
             out.append({'item_id': int(item_id), 'quantity': int(quantity)})
         return out
 
+    @transaction.atomic
     def create(self, validated_data):
         item_ids = self._item_ids_internal_value(validated_data.pop('item_ids', []))
         bundle = Bundle.objects.create(**validated_data)
@@ -104,6 +106,7 @@ class BundleSerializer(serializers.ModelSerializer):
             )
         return bundle
 
+    @transaction.atomic
     def update(self, instance, validated_data):
         item_ids = validated_data.pop('item_ids', None)
         instance.name = validated_data.get('name', instance.name)

@@ -1,6 +1,7 @@
 import pytest
 from rest_framework import status
 from inventory.models import Category, Item, Bundle, BundleItem
+from inventory.serializers import BundleSerializer
 
 @pytest.fixture
 def category(organization):
@@ -53,6 +54,28 @@ class TestItemAPI:
 
 @pytest.mark.django_db
 class TestBundleAPI:
+    def test_failed_bundle_item_write_rolls_back_bundle_creation(
+        self, organization, monkeypatch
+    ):
+        serializer = BundleSerializer(
+            data={
+                "name": "Invalid Bundle",
+                "price": "15.00",
+                "item_ids": [{"item_id": 1, "quantity": 1}],
+            }
+        )
+        assert serializer.is_valid()
+
+        def fail_create(*args, **kwargs):
+            raise RuntimeError("failed bundle item write")
+
+        monkeypatch.setattr(BundleItem.objects, "create", fail_create)
+
+        with pytest.raises(RuntimeError, match="failed bundle item write"):
+            serializer.save(organization=organization)
+
+        assert not Bundle.objects.filter(name="Invalid Bundle").exists()
+
     def test_create_bundle(self, api_client, item):
         data = {
             'name': 'Test Bundle',

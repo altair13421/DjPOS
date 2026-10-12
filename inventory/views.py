@@ -110,6 +110,7 @@ class StockCreateView(OrgLoginAndRoleRequiredMixin, OrganizationScopedMixin, Suc
         context["is_edit"] = False
         return context
 
+    @transaction.atomic
     def form_valid(self, form):
         stock = self.request.POST
         is_item = stock.get('is_item', "off")
@@ -127,12 +128,12 @@ class StockCreateView(OrgLoginAndRoleRequiredMixin, OrganizationScopedMixin, Suc
                 if category_existing != 0 and new_category_name != "":
                     ingredient.delete()
                     return super().form_invalid(form)
-                if category_existing != 0:
-                    category = Category.objects.get(id=category_existing, organization=org)
-                elif new_category_name != "":
+                if new_category_name != "":
                     category, _ = Category.objects.get_or_create(
                         name=new_category_name, organization=org
                     )
+                elif category_existing != 0:
+                    category = Category.objects.get(id=category_existing, organization=org)
 
                 if not category:
                     category, _ = Category.objects.get_or_create(
@@ -182,6 +183,7 @@ class StockUpdateView(OrgLoginAndRoleRequiredMixin, OrganizationScopedMixin, Suc
             context["quantity_consumed"] = item_ingredient.quantity
         return context
 
+    @transaction.atomic
     def form_valid(self, form):
         stock = self.request.POST
         is_item = stock.get('is_item', "off")
@@ -242,6 +244,7 @@ class ItemCreateView(OrgLoginAndRoleRequiredMixin, OrganizationScopedMixin, Succ
         context["items_json"] = '[]'
         return context
 
+    @transaction.atomic
     def form_valid(self, form):
         ingredients_json = self.request.POST.get("ingredients_json", "[]")
         try:
@@ -288,6 +291,7 @@ class ItemUpdateView(OrgLoginAndRoleRequiredMixin, OrganizationScopedMixin, Succ
         context["items_json"] = json.dumps(item_ingredients, cls=DecimalEncoder)
         return context
 
+    @transaction.atomic
     def form_valid(self, form):
         ingredients_json = self.request.POST.get("ingredients_json", "[]")
         try:
@@ -336,22 +340,47 @@ class BundleCreateView(OrgLoginAndRoleRequiredMixin, OrganizationScopedMixin, Su
         context["bundle_items_json"] = "[]"
         return context
 
+    @transaction.atomic
     def form_valid(self, form):
         items_json = self.request.POST.get("items_json", "[]")
         try:
             item_ids = json.loads(items_json)
         except (json.JSONDecodeError, TypeError):
             item_ids = []
+
+        requested_items = []
+        for entry in item_ids:
+            if isinstance(entry, dict) and "item_id" in entry:
+                try:
+                    requested_items.append(
+                        (int(entry["item_id"]), int(entry.get("quantity", 1)))
+                    )
+                except (TypeError, ValueError):
+                    form.add_error(None, "Bundle items must have valid IDs and quantities.")
+                    return self.form_invalid(form)
+
+        valid_item_ids = set(
+            Item.objects.filter(
+                organization=self.request.organization,
+                pk__in=[item_id for item_id, _ in requested_items],
+            ).values_list("pk", flat=True)
+        )
+        if valid_item_ids != {item_id for item_id, _ in requested_items}:
+            form.add_error(
+                None, "All bundle items must belong to your current organization."
+            )
+            return self.form_invalid(form)
+
         with transaction.atomic():
+            form.instance.organization = self.request.organization
             bundle = form.save()
             BundleItem.objects.filter(bundle=bundle).delete()
-            for entry in item_ids:
-                if isinstance(entry, dict) and "item_id" in entry:
-                    BundleItem.objects.create(
-                        bundle=bundle,
-                        item_id=int(entry["item_id"]),
-                        quantity=int(entry.get("quantity", 1)),
-                    )
+            for item_id, quantity in requested_items:
+                BundleItem.objects.create(
+                    bundle=bundle,
+                    item_id=item_id,
+                    quantity=quantity,
+                )
         return super().form_valid(form)
 
 
@@ -379,6 +408,7 @@ class BundleUpdateView(OrgLoginRequiredMixin, OrganizationScopedMixin, SuccessMe
         context["bundle_items_json"] = json.dumps(bundle_items)
         return context
 
+    @transaction.atomic
     def form_valid(self, form):
         items_json = self.request.POST.get("items_json", "[]")
         try:

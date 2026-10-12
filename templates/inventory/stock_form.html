@@ -84,14 +84,13 @@ const itemForm = `
 <div class="col-12">
   <label for="category" class="form-label">Category (existing)</label>
   <select name="category" class="form-control" id="id_category">
+    <option value="0">No category added</option>
     {% for category in categories %}
       <option value="{{ category.id }}" {% if ingredient.added_as == "ITEM" %}
         {% if category.id == item.category.id %}
           selected
         {% endif %}
       {% endif %} >{{ category.name }}</option>
-    {% empty %}
-      <option value="0">No category added</option>
     {% endfor %}
   </select>
 </div>

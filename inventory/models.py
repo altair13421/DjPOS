@@ -37,6 +37,7 @@ class Category(models.Model):
             self.identifier = self.name.upper()[:4]
         super().save(*args, **kwargs)
 
+
 class IngredientStock(models.Model):
     """The Actual Ingredients go here, Hence The STOCK"""
 
@@ -65,6 +66,9 @@ class IngredientStock(models.Model):
     @property
     def check_availability(self):
         return self.quantity > 0
+
+    def __str__(self):
+        return f"IngredientStock #{self.pk} - {self.name}"
 
 
 class Item(models.Model):
