@@ -103,6 +103,8 @@ if ROLE == "terminal":
     # For Terminal DB To be Out of the way of Server DB, we will use a separate SQLite DB for Terminal
     # And For terminal DB To be Out, So We will separate the DB from the Code, So App updates never wipe the DB
     _data = data_dir()
+    _data.mkdir(parents=True, exist_ok=True)
+
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
