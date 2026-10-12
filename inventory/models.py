@@ -115,7 +115,7 @@ class Item(models.Model):
     def save(self, *args, **kwargs):
         if self.sku == "":
             self.sku = f"{self.category.identifier}-0{self.count()}"
-        if self.wholesale_price == Decimal(0):
+        if self.wholesale_price == Decimal(0) and self.pk:
             self.wholesale_price = self.total_wholesale
         super().save(*args, **kwargs)
 
@@ -241,4 +241,3 @@ class StockLog(models.Model):
 
     def __str__(self):
         return f"{self.item.name}: {self.change_quantity} ({self.get_reason_display()})"
-

@@ -6,6 +6,7 @@ from types import SimpleNamespace
 from unittest.mock import Mock
 
 from inventory.models import IngredientStock
+from inventory.models import Item
 from pos.models import Sale
 from pos.views import SaleViewSet
 from users.choices import OrganizationRole
@@ -230,3 +231,65 @@ class OutgoingEventTests(TestCase):
         self.assertEqual(
             OutboxRecord.objects.values_list("entity", flat=True).get(), "sale"
         )
+
+
+class CatalogApplyTests(TestCase):
+    def test_pull_creates_zero_wholesale_item_before_restoring_catalog_price(self):
+        organization = Organization.objects.create(
+            name="Catalog Org", slug="catalog-org"
+        )
+        payloads.apply_catalog(
+            {
+                "organization": {
+                    "pk": organization.pk,
+                    "name": organization.name,
+                    "slug": organization.slug,
+                    "is_active": True,
+                },
+                "users": [],
+                "settings": None,
+                "categories": [
+                    {
+                        "uuid": "11111111-1111-4111-8111-111111111111",
+                        "name": "Bakery",
+                        "identifier": "BAKE",
+                        "description": "",
+                    }
+                ],
+                "ingredients": [
+                    {
+                        "uuid": "22222222-2222-4222-8222-222222222222",
+                        "name": "Flour",
+                        "quantity": "10",
+                        "wholesale_price": "2",
+                        "retail_price": "3",
+                        "added_as": "STOCK",
+                        "item_id": 0,
+                    }
+                ],
+                "items": [
+                    {
+                        "uuid": "33333333-3333-4333-8333-333333333333",
+                        "name": "Bread",
+                        "sku": "BAKE-001",
+                        "category": "11111111-1111-4111-8111-111111111111",
+                        "cost_price": "4",
+                        "retail_price": "8",
+                        "wholesale_price": "0",
+                    }
+                ],
+                "item_ingredients": [
+                    {
+                        "uuid": "44444444-4444-4444-8444-444444444444",
+                        "item": "33333333-3333-4333-8333-333333333333",
+                        "ingredient": "22222222-2222-4222-8222-222222222222",
+                        "quantity": "1",
+                    }
+                ],
+                "bundles": [],
+            }
+        )
+
+        item = Item.objects.get(uuid="33333333-3333-4333-8333-333333333333")
+        self.assertEqual(item.wholesale_price, 0)
+        self.assertEqual(item.itemingredient_set.count(), 1)
