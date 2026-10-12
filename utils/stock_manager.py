@@ -2,6 +2,7 @@ from django.db import transaction
 from inventory.models import StockLog, IngredientStock
 from inventory.choices import StockChangeReason
 from pos.models import Sale
+from sync.payloads import enqueue_stock_adjust
 
 
 class StockManager:
@@ -26,7 +27,7 @@ class StockManager:
         item.quantity -= quantity
         item.save()
 
-        StockLog.objects.create(
+        log = StockLog.objects.create(
             item=item,
             organization=item.organization,
             performed_by=performed_by,
@@ -37,6 +38,8 @@ class StockManager:
             note=note,
             sale=sale,
         )
+        if sale is None:
+            enqueue_stock_adjust(log)
 
     @staticmethod
     @transaction.atomic
@@ -51,7 +54,7 @@ class StockManager:
         item.quantity += quantity
         item.save()
 
-        StockLog.objects.create(
+        log = StockLog.objects.create(
             item=item,
             organization=item.organization,
             performed_by=performed_by,
@@ -59,6 +62,7 @@ class StockManager:
             reason=reason,
             note=note,
         )
+        enqueue_stock_adjust(log)
 
     @staticmethod
     @transaction.atomic

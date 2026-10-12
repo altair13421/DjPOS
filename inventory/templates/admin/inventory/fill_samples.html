@@ -1,0 +1,20 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+  <form method="post">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <div>
+      {{ form.organization.errors }}
+      {{ form.organization.label_tag }}
+      {{ form.organization }}
+      {% if form.organization.help_text %}
+        <div class="help">{{ form.organization.help_text }}</div>
+      {% endif %}
+    </div>
+    <div class="submit-row">
+      <input type="submit" value="Add dummy inventory" class="default">
+      <a href="{% url 'admin:inventory_category_changelist' %}">Cancel</a>
+    </div>
+  </form>
+{% endblock %}

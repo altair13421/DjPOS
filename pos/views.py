@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
+from django.db import transaction
 from django.shortcuts import render, get_object_or_404
 from django.utils import timezone
 from datetime import timedelta, datetime
@@ -10,6 +11,7 @@ from rest_framework.response import Response
 from users.api_mixins import OrganizationViewSetMixin
 from users.decorators import org_required
 from utils.stock_manager import StockManager
+from sync.payloads import enqueue_sale_bundle
 
 from .models import Customer, Sale
 from .serializers import CustomerSerializer, SaleSerializer
@@ -103,13 +105,14 @@ class SaleViewSet(OrganizationViewSetMixin, viewsets.ModelViewSet):
     ).all()
     serializer_class = SaleSerializer
 
+    @transaction.atomic
     def perform_create(self, serializer):
         sale = serializer.save(
             organization=self.request.organization,
             created_by=self.request.user,
         )
         StockManager.process_sale(sale, performed_by=self.request.user)
-        # sync.payloads.enqueue_sale_bundle(sale)
+        enqueue_sale_bundle(sale)
 
     @action(detail=True, methods=["post"], url_path="print_receipt")
     def print_receipt(self, request, pk=None):

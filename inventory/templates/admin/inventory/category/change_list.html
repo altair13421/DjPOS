@@ -1,0 +1,10 @@
+{% extends "admin/change_list.html" %}
+
+{% block object-tools-items %}
+  {% if show_fill_samples %}
+    <li>
+      <a href="{% url 'admin:inventory_category_fill_samples' %}">Add dummy inventory</a>
+    </li>
+  {% endif %}
+  {{ block.super }}
+{% endblock %}

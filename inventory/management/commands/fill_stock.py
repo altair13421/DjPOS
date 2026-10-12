@@ -1,5 +1,5 @@
 from decimal import Decimal
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from inventory.models import (
     Category,
@@ -15,14 +15,42 @@ from inventory.choices import StockAddedAs
 class Command(BaseCommand):
     help = "Populate DB with example categories, ingredient stocks, items, bundles, and direct-consumption items."
 
+    def add_arguments(self, parser):
+        parser.add_argument(
+            "organization_id",
+            nargs="?",
+            type=int,
+            help="Organization to populate (defaults to the latest non-default organization).",
+        )
+
     @transaction.atomic
     def handle(self, *args, **options):
-        created = {"categories":0, "ingredients":0, "items":0, "item_ingredients":0, "bundles":0, "bundle_items":0, "direct_items":0}
-        try:
-            organization = Organization.objects.exclude(name="Default Organization").last()
-        except:
-            self.stdout.error("There is No organization filled. First Add one, Automated using 'create_users_groups' command.")
-        # --- categories (same as before) ---
+        organization_id = options.get("organization_id")
+        if organization_id is not None:
+            organization = Organization.objects.filter(pk=organization_id).first()
+            if organization is None:
+                raise CommandError(f"Organization {organization_id} does not exist.")
+        else:
+            organization = (
+                Organization.objects.exclude(name="Default Organization")
+                .order_by("pk")
+                .last()
+            )
+            if organization is None:
+                raise CommandError(
+                    "No organization found. Create an organization before filling sample inventory."
+                )
+
+        created = {
+            "categories": 0,
+            "ingredients": 0,
+            "items": 0,
+            "item_ingredients": 0,
+            "bundles": 0,
+            "bundle_items": 0,
+            "direct_items": 0,
+        }
+
         cats = [
             {"name":"Bakery", "identifier":"BAKE", "description":"Baked goods"},
             {"name":"Beverages", "identifier":"BEV", "description":"Drinks"},
@@ -30,7 +58,11 @@ class Command(BaseCommand):
         ]
         categories = {}
         for c in cats:
-            obj, ok = Category.objects.get_or_create(identifier=c["identifier"], defaults={"name":c["name"], "description":c["description"], "organization": organization})
+            obj, ok = Category.objects.get_or_create(
+                organization=organization,
+                identifier=c["identifier"],
+                defaults={"name": c["name"], "description": c["description"]},
+            )
             categories[c["identifier"]] = obj
             if ok:
                 created["categories"] += 1
@@ -48,12 +80,15 @@ class Command(BaseCommand):
         ]
         ingredients = {}
         for d in ingr_data:
-            obj, ok = IngredientStock.objects.get_or_create(name=d["name"], defaults={
-                "quantity": d["quantity"],
-                "wholesale_price": d["wholesale_price"],
-                "retail_price": d["retail_price"],
-                "organization": organization,
-            })
+            obj, ok = IngredientStock.objects.get_or_create(
+                organization=organization,
+                name=d["name"],
+                defaults={
+                    "quantity": d["quantity"],
+                    "wholesale_price": d["wholesale_price"],
+                    "retail_price": d["retail_price"],
+                },
+            )
             ingredients[d["name"]] = obj
             if ok:
                 created["ingredients"] += 1
@@ -69,14 +104,17 @@ class Command(BaseCommand):
         ]
         items = {}
         for d in items_data:
-            obj, ok = Item.objects.get_or_create(sku=d["sku"], defaults={
-                "name": d["name"],
-                "category": d["category"],
-                "cost_price": d["cost_price"],
-                "retail_price": d["retail_price"],
-                "wholesale_price": d["wholesale_price"],
-                "organization": organization,
-            })
+            obj, ok = Item.objects.get_or_create(
+                organization=organization,
+                sku=d["sku"],
+                defaults={
+                    "name": d["name"],
+                    "category": d["category"],
+                    "cost_price": d["cost_price"],
+                    "retail_price": d["retail_price"],
+                    "wholesale_price": d["wholesale_price"],
+                },
+            )
             items[d["sku"]] = obj
             if ok:
                 created["items"] += 1
@@ -111,13 +149,13 @@ class Command(BaseCommand):
         for d in direct_items:
             # Ensure IngredientStock exists with same name/prices (acts as the consumed unit)
             ing_obj, ing_created = IngredientStock.objects.get_or_create(
+                organization=organization,
                 name=d["name"],
                 defaults={
                     "quantity": d["quantity"],
                     "wholesale_price": d["wholesale_price"],
                     "retail_price": d["retail_price"],
                     "added_as": StockAddedAs.ITEM,
-                    "organization": organization,
                 },
             )
             if ing_created:
@@ -125,6 +163,7 @@ class Command(BaseCommand):
 
             # Ensure Item exists
             item_obj, item_created = Item.objects.get_or_create(
+                organization=organization,
                 sku=d["sku"],
                 defaults={
                     "name": d["name"],
@@ -132,10 +171,11 @@ class Command(BaseCommand):
                     "cost_price": d["wholesale_price"],
                     "retail_price": d["retail_price"],
                     "wholesale_price": d["wholesale_price"],
-                    "organization": organization
                 },
             )
-            ing_obj.item_id = item_obj.id
+            if ing_obj.item_id != item_obj.id:
+                ing_obj.item_id = item_obj.id
+                ing_obj.save(update_fields=["item_id"])
             if item_created:
                 created["items"] += 1
                 created["direct_items"] += 1
@@ -155,14 +195,22 @@ class Command(BaseCommand):
             {"name":"Snack Pack", "price":Decimal("300.00"), "items":[("BAKE-002", Decimal("2")), ("COND-001", Decimal("1"))]},
         ]
         for b in bundles_data:
-            bundle_obj, ok = Bundle.objects.get_or_create(name=b["name"], defaults={"price": b["price"], "active": True, "organization": organization})
+            bundle_obj, ok = Bundle.objects.get_or_create(
+                organization=organization,
+                name=b["name"],
+                defaults={"price": b["price"], "active": True},
+            )
             if ok:
                 created["bundles"] += 1
             for sku, qty in b["items"]:
                 item = items.get(sku)
                 if not item:
                     continue
-                bi_obj, bi_ok = BundleItem.objects.get_or_create(bundle=bundle_obj, item=item, defaults={"quantity": qty})
+                bi_obj, bi_ok = BundleItem.objects.get_or_create(
+                    bundle=bundle_obj,
+                    item=item,
+                    defaults={"quantity": qty},
+                )
                 if bi_ok:
                     created["bundle_items"] += 1
 
@@ -178,4 +226,3 @@ class Command(BaseCommand):
                 created.get("bundle_items",0),
             )
         ))
-

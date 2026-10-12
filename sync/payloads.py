@@ -4,7 +4,6 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import F
-import config
 from users.models import Organization, OrganizationMembership, Settings, UserLog
 from inventory.models import (
     Bundle,
@@ -16,10 +15,13 @@ from inventory.models import (
     StockLog,
 )
 from pos.models import CartItem, Customer, Sale
+from . import config
 from .models import OutboxRecord
 
 
 def enqueue(entity, payload):
+    if settings.ROLE != "terminal":
+        return None
     OutboxRecord.objects.create(entity=entity, payload=payload)
 
 

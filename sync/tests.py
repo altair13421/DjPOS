@@ -1,14 +1,20 @@
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from rest_framework.request import Request
 from rest_framework.test import APIRequestFactory
+from types import SimpleNamespace
+from unittest.mock import Mock
 
+from inventory.models import IngredientStock
+from pos.models import Sale
+from pos.views import SaleViewSet
 from users.choices import OrganizationRole
 from users.models import Organization, OrganizationMembership
+from utils.stock_manager import StockManager
 from . import payloads
 from .auth import TerminalKeyAuth
 from .api import DownloadView
-from .models import CatalogVersion, Terminal
+from .models import CatalogVersion, OutboxRecord, Terminal
 
 
 class TerminalKeyAuthTests(TestCase):
@@ -157,3 +163,70 @@ class DownloadViewDebugSuperuserTests(TestCase):
         self.assertFalse(debug_user.is_active)
         self.assertFalse(debug_user.is_staff)
         self.assertFalse(debug_user.is_superuser)
+
+
+class OutgoingEventTests(TestCase):
+    def setUp(self):
+        self.organization = Organization.objects.create(
+            name="Sync Org", slug="sync-org"
+        )
+
+    def test_stock_adjustment_is_saved_on_server_without_enqueuing(self):
+        ingredient = IngredientStock.objects.create(
+            organization=self.organization, name="Flour", quantity=10
+        )
+
+        with override_settings(ROLE="server"):
+            StockManager.restock_item(ingredient, 2)
+
+        self.assertEqual(ingredient.stock_logs.count(), 1)
+        self.assertEqual(OutboxRecord.objects.count(), 0)
+
+    def test_terminal_stock_adjustment_is_saved_and_enqueued(self):
+        ingredient = IngredientStock.objects.create(
+            organization=self.organization, name="Flour", quantity=10
+        )
+
+        with override_settings(ROLE="terminal"):
+            StockManager.restock_item(ingredient, 2)
+
+        self.assertEqual(ingredient.stock_logs.count(), 1)
+        self.assertEqual(
+            OutboxRecord.objects.values_list("entity", flat=True).get(), "stock_adjust"
+        )
+
+    def test_terminal_stock_deduction_without_sale_is_enqueued(self):
+        ingredient = IngredientStock.objects.create(
+            organization=self.organization, name="Flour", quantity=10
+        )
+
+        with override_settings(ROLE="terminal"):
+            StockManager.deduct_stock(ingredient, 2)
+
+        self.assertEqual(ingredient.stock_logs.count(), 1)
+        self.assertEqual(
+            OutboxRecord.objects.values_list("entity", flat=True).get(), "stock_adjust"
+        )
+
+    def test_sale_is_enqueued_only_on_terminal(self):
+        user = get_user_model().objects.create_user(username="cashier")
+        def create_sale(**kwargs):
+            return Sale.objects.create(total=10, **kwargs)
+
+        serializer = Mock()
+        serializer.save.side_effect = create_sale
+        view = SaleViewSet()
+        view.request = SimpleNamespace(organization=self.organization, user=user)
+
+        with override_settings(ROLE="server"):
+            view.perform_create(serializer)
+        self.assertEqual(Sale.objects.count(), 1)
+        self.assertEqual(OutboxRecord.objects.count(), 0)
+
+        with override_settings(ROLE="terminal"):
+            view.perform_create(serializer)
+
+        self.assertEqual(Sale.objects.count(), 2)
+        self.assertEqual(
+            OutboxRecord.objects.values_list("entity", flat=True).get(), "sale"
+        )
