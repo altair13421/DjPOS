@@ -18,6 +18,14 @@ ALLOWED_HOSTS = os.environ.get(
     "localhost,127.0.0.1,preinstructive-dilan-evaluatingly.ngrok-free.dev,djpos.onrender.com",
 ).split(",")
 
+def data_dir() -> Path:
+    """Where to store the terminal.json and local SQLite DB."""
+    if os.environ.get("DJPOS_DATA_DIR"):
+        return Path(os.environ["DJPOS_DATA_DIR"] / ".djpos")
+    path = Path(os.environ.get("DJPOS_DATA_DIR", Path.home() / ".djpos"))
+    return path
+
+
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -93,7 +101,7 @@ if ROLE == "terminal":
     MIDDLEWARE += ["sync.middleware.TerminalSetupMiddleware"]
     # For Terminal DB To be Out of the way of Server DB, we will use a separate SQLite DB for Terminal
     # And For terminal DB To be Out, So We will separate the DB from the Code, So App updates never wipe the DB
-    _data = Path(os.environ.get("DJPOS_DATA_DIR", BASE_DIR))
+    _data = data_dir()
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
