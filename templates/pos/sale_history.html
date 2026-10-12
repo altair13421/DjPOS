@@ -41,6 +41,7 @@
             <th>Items sold</th>
             <th class="text-end">Total</th>
             <th class="text-end">Receipt</th>
+            <th class="text-end">By</th>
           </tr>
         </thead>
         <tbody>
@@ -55,12 +56,12 @@
                     {% if ci.bundle_id %}
                       <strong>{{ ci.bundle.name }}</strong> <span class="badge bg-info">Bundle</span> &times; {{ ci.quantity }}
                       &ndash; PKR {{ ci.unit_price|floatformat:0 }} &times; {{ ci.quantity }} = PKR {{ ci.line_total|floatformat:0 }}
-                      <span class="text-muted">(components deducted)</span>
+                      <span class="text-muted"></span>
                     {% else %}
                       <strong>{{ ci.item.name }}</strong> &times; {{ ci.quantity }}
                       &ndash; PKR {{ ci.unit_price|floatformat:0 }} &times; {{ ci.quantity }} = PKR {{ ci.line_total|floatformat:0 }}
                       {% if ci.stock_before is not None and ci.stock_after is not None %}
-                        <span class="text-muted">(stock {{ ci.stock_before }} &rarr; {{ ci.stock_after }} Check Log for accurate results.)</span>
+                        <span class="text-muted">(stock {{ ci.stock_before }} &rarr; {{ ci.stock_after }}</span>
                       {% else %}
                         <span class="text-muted">(stock —)</span>
                       {% endif %}
@@ -77,6 +78,10 @@
                 <button type="button" class="btn btn-sm btn-outline-secondary receipt-direct-print" data-sale-id="{{ sale.id }}">Print receipt</button>
               {% endif %}
             </td>
+            <td class="text-end">
+              {% if sale.created_by %}
+                {{ sale.created_by.username }}
+              {% endif %}
           </tr>
           {% endfor %}
         </tbody>

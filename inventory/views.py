@@ -81,6 +81,7 @@ class CategoryUpdateView(OrgLoginAndRoleRequiredMixin, OrganizationScopedMixin, 
     template_name = "inventory/category_form.html"
     success_url = reverse_lazy("inventory:category_list")
     success_message = "Category updated."
+    required_roles = [OrganizationRole.OWNER, OrganizationRole.MANAGER]
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -95,6 +96,55 @@ class StockListView(OrgLoginRequiredMixin, OrganizationScopedMixin, ListView):
     queryset = IngredientStock.objects.all()
     context_object_name = "stock"
     template_name = 'inventory/stock_list.html'
+
+
+class StockLogView(OrgLoginRequiredMixin, ListView):
+    model = StockLog
+    context_object_name = "stock_logs"
+    template_name = "inventory/stock_log_list.html"
+    paginate_by = 50
+
+    def get_queryset(self):
+        organization = self.request.organization
+        queryset = StockLog.objects.filter(organization=organization).select_related(
+            "item", "performed_by", "sale"
+        ).order_by("-created_at", "-pk")
+
+        reason = self.request.GET.get("reason", "")
+        if reason in StockChangeReason.values:
+            queryset = queryset.filter(reason=reason)
+
+        item_id = self.request.GET.get("item", "")
+        if item_id.isdigit():
+            queryset = queryset.filter(item_id=int(item_id))
+
+        search = self.request.GET.get("q", "").strip()
+        if search:
+            search_filter = (
+                Q(item__name__icontains=search)
+                | Q(note__icontains=search)
+                | Q(performed_by__username__icontains=search)
+            )
+            if search.isdigit():
+                search_filter |= Q(sale_id=int(search))
+            queryset = queryset.filter(search_filter)
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update(
+            {
+                "items": IngredientStock.objects.filter(
+                    organization=self.request.organization
+                ).order_by("name"),
+                "reasons": StockChangeReason.choices,
+                "selected_reason": self.request.GET.get("reason", ""),
+                "selected_item": self.request.GET.get("item", ""),
+                "search": self.request.GET.get("q", ""),
+            }
+        )
+        return context
+
 
 class StockCreateView(OrgLoginAndRoleRequiredMixin, OrganizationScopedMixin, SuccessMessageMixin, CreateView):
     model = IngredientStock
@@ -384,13 +434,15 @@ class BundleCreateView(OrgLoginAndRoleRequiredMixin, OrganizationScopedMixin, Su
         return super().form_valid(form)
 
 
-class BundleUpdateView(OrgLoginRequiredMixin, OrganizationScopedMixin, SuccessMessageMixin, UpdateView):
+class BundleUpdateView(OrgLoginAndRoleRequiredMixin, OrganizationScopedMixin, SuccessMessageMixin, UpdateView):
     model = Bundle
     form_class = BundleForm
     context_object_name = "bundle"
     template_name = "inventory/bundle_form.html"
     success_url = reverse_lazy("inventory:bundle_list")
     success_message = "Bundle updated."
+
+    required_roles = [OrganizationRole.OWNER, OrganizationRole.MANAGER]
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

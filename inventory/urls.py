@@ -11,6 +11,7 @@ urlpatterns = [
     path("categories/<int:pk>/edit/", views.CategoryUpdateView.as_view(), name="category_edit"),
     # ---- Stock
     path('stock/', views.StockListView.as_view(), name='stock_list'),
+    path('stock/logs/', views.StockLogView.as_view(), name='stock_logs'),
     path('stock/new/', views.StockCreateView.as_view(), name="stock_create"),
     path('stock/<int:pk>/edit/', views.StockUpdateView.as_view(), name="stock_edit"),
 

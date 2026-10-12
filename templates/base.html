@@ -94,19 +94,23 @@
             <a class="nav-link {% if request.resolver_match.url_name == 'sale_history' %}active{% endif %}"
               href="{% url 'pos:sale_history' %}">Sale History</a>
           </li>
+          {% endif %}
           <li class="nav-item">
             <a class="nav-link {% if 'inventory' in request.resolver_match.app_name and request.resolver_match.url_name == 'index' %}active{% endif %}"
               href="{% url 'inventory:index' %}">Inventory</a>
           </li>
-          {% endif %}
           {% if 'inventory' in request.resolver_match.app_name %}
           <li class="nav-item">
             <a class="nav-link {% if 'category' in request.resolver_match.url_name %}active{% endif %}"
               href="{% url 'inventory:category_list' %}">Categories</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link {% if 'stock' in request.resolver_match.url_name %}active{% endif %}"
+            <a class="nav-link {% if request.resolver_match.url_name == 'stock_list' or request.resolver_match.url_name == 'stock_create' or request.resolver_match.url_name == 'stock_edit' %}active{% endif %}"
               href="{% url 'inventory:stock_list' %}">Stock</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {% if request.resolver_match.url_name == 'stock_logs' %}active{% endif %}"
+              href="{% url 'inventory:stock_logs' %}">Stock Logs</a>
           </li>
           <li class="nav-item">
             <a class="nav-link {% if 'item' in request.resolver_match.url_name %}active{% endif %}"

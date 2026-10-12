@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}Stock Logs{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex flex-wrap align-items-center justify-content-between gap-2">
+  <div>
+    <h1 class="h2 mb-1">Stock Logs</h1>
+    <p class="text-muted mb-0">History of stock changes for your organization.</p>
+  </div>
+  <a href="{% url 'inventory:stock_list' %}" class="btn btn-outline-secondary">Back to Stock</a>
+</div>
+
+<form method="get" class="card mb-3">
+  <div class="card-body">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-5">
+        <label for="stock-log-search" class="form-label">Search</label>
+        <input id="stock-log-search" class="form-control" type="search" name="q"
+          value="{{ search }}" placeholder="Item, note, user, or sale number">
+      </div>
+      <div class="col-md-3">
+        <label for="stock-log-item" class="form-label">Stock item</label>
+        <select id="stock-log-item" name="item" class="form-select">
+          <option value="">All items</option>
+          {% for item in items %}
+            <option value="{{ item.pk }}" {% if selected_item == item.pk|stringformat:"s" %}selected{% endif %}>{{ item.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label for="stock-log-reason" class="form-label">Reason</label>
+        <select id="stock-log-reason" name="reason" class="form-select">
+          <option value="">All reasons</option>
+          {% for value, label in reasons %}
+            <option value="{{ value }}" {% if selected_reason == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2 d-flex gap-2">
+        <button class="btn btn-primary flex-grow-1" type="submit">Filter</button>
+        <a class="btn btn-outline-secondary" href="{% url 'inventory:stock_logs' %}">Clear</a>
+      </div>
+    </div>
+  </div>
+</form>
+
+<div class="card">
+  <div class="card-body p-0">
+    {% if stock_logs %}
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Date &amp; time</th>
+              <th>Stock item</th>
+              <th class="text-end">Change</th>
+              <th>Reason</th>
+              <th>Sale</th>
+              <th>Performed by</th>
+              <th>Note</th>
+              <th class="text-end">Revenue</th>
+              <th class="text-end">Cost</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for log in stock_logs %}
+              <tr>
+                <td class="text-nowrap">{{ log.created_at|date:"M d, Y g:i A" }}</td>
+                <td>{{ log.item.name }}</td>
+                <td class="text-end {% if log.change_quantity < 0 %}text-danger{% else %}text-success{% endif %}">
+                  {% if log.change_quantity > 0 %}+{% endif %}{{ log.change_quantity }}
+                </td>
+                <td>{{ log.get_reason_display }}</td>
+                <td>{% if log.sale_id %}#{{ log.sale_id }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+                <td>{{ log.performed_by.username|default:"System" }}</td>
+                <td class="text-break">{{ log.note|default:"—" }}</td>
+                <td class="text-end text-nowrap">PKR {{ log.revenue|floatformat:2 }}</td>
+                <td class="text-end text-nowrap">PKR {{ log.cost|floatformat:2 }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="mb-0 p-4 text-muted">No stock logs match these filters.</p>
+    {% endif %}
+  </div>
+</div>
+
+{% if is_paginated %}
+  <nav class="mt-3" aria-label="Stock log pages">
+    <ul class="pagination justify-content-center">
+      {% if page_obj.has_previous %}
+        <li class="page-item"><a class="page-link" href="?q={{ search|urlencode }}&amp;item={{ selected_item|urlencode }}&amp;reason={{ selected_reason|urlencode }}&amp;page={{ page_obj.previous_page_number }}">Previous</a></li>
+      {% else %}
+        <li class="page-item disabled"><span class="page-link">Previous</span></li>
+      {% endif %}
+      <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} of {{ paginator.num_pages }}</span></li>
+      {% if page_obj.has_next %}
+        <li class="page-item"><a class="page-link" href="?q={{ search|urlencode }}&amp;item={{ selected_item|urlencode }}&amp;reason={{ selected_reason|urlencode }}&amp;page={{ page_obj.next_page_number }}">Next</a></li>
+      {% else %}
+        <li class="page-item disabled"><span class="page-link">Next</span></li>
+      {% endif %}
+    </ul>
+  </nav>
+{% endif %}
+{% endblock %}
