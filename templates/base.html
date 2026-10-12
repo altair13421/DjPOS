@@ -133,7 +133,7 @@
               <a class="nav-link {% if 'organization_logs' in request.resolver_match.url_name %}active{% endif %}"
                 href="{% url 'users:organization_logs' %}">User Log</a>
             </li>
-              {% if app_role == "terminal" %}
+              {% if app_role != "terminal" %}
               <li class="nav-item">
                 <a class="nav-link {% if 'terminals' in request.resolver_match.url_name %}active{% endif %}"
                   href="{% url 'terminals' %}">Terminals</a>
