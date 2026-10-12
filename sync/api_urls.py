@@ -7,4 +7,5 @@ urlpatterns = [
     path("upload/", api.UploadView.as_view()),      # POST
     path("pair/", api.PairView.as_view()),
     path("download/", api.DownloadView.as_view()),  # GET ?catalog_version=N
+    path("sales-history/", api.SalesHistoryView.as_view()),
 ]

@@ -7,6 +7,7 @@ from django.shortcuts import redirect
 from .forms import SetupForm
 from . import config
 from .engine import run_sync
+from .models import set_state
 
 
 def ping(request):
@@ -62,8 +63,12 @@ class SetupView(FormView):
                         "device_id": data["device_id"],
                         "device_key": data["device_key"],
                         "organization": data["organization"],
+                        "organization_id": data["organization_id"],
                     }
                 )
+                set_state("catalog_version", "-1")
+                set_state("sales_history_cursor", "0")
+                set_state("sales_history_complete", "false")
                 run_sync()
                 return redirect(self.get_success_url())
             error = r.json().get("error", "Central rejected the code.")

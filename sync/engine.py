@@ -6,6 +6,7 @@ from django.utils import timezone
 
 from . import config, payloads
 from .models import OutboxRecord, get_state, set_state
+from users.models import Organization
 
 SESSION = requests.Session()
 
@@ -63,10 +64,56 @@ def pull():
     data = r.json()
     if not data.get("update"):
         return 0
-    payloads.apply_catalog(data)
+    organization = payloads.apply_catalog(data)
+    set_state("organization_id", str(organization.pk))
     set_state("catalog_version", str(data["catalog_version"]))
     return len(data["items"])
 
+
+def pull_sales_history():
+    cfg = config.device_config()
+    if get_state("sales_history_complete", "false") == "true":
+        return 0
+
+    cursor = int(get_state("sales_history_cursor", "0"))
+    imported = 0
+    while True:
+        r = SESSION.get(
+            f"{cfg['central_url']}/api/sync/sales-history/",
+            params={"after": cursor},
+            headers=headers(),
+            timeout=60,
+        )
+        r.raise_for_status()
+        data = r.json()
+        sales = data.get("sales")
+        next_cursor = data.get("next_cursor")
+        complete = data.get("complete")
+        organization_id = data.get("organization_id")
+        if (
+            not isinstance(sales, list)
+            or not isinstance(next_cursor, int)
+            or not isinstance(complete, bool)
+            or not isinstance(organization_id, int)
+        ):
+            raise ValueError("Invalid server sales history response")
+        stored_org_id = get_state("organization_id")
+        if stored_org_id and stored_org_id != str(organization_id):
+            raise ValueError("Sales history organization does not match this terminal")
+        if sales and next_cursor <= cursor:
+            raise ValueError("Server sales history cursor did not advance")
+        if not sales and not complete:
+            raise ValueError("Server sales history returned an empty incomplete page")
+
+        if sales:
+            organization = Organization.objects.get(pk=organization_id)
+            imported += payloads.apply_sales_history(sales, organization)
+            cursor = next_cursor
+            set_state("sales_history_cursor", str(cursor))
+            set_state("organization_id", str(organization_id))
+        if complete:
+            set_state("sales_history_complete", "true")
+            return imported
 
 def run_sync():
     if not config.is_paired():
@@ -76,6 +123,7 @@ def run_sync():
         try:
             result["pushed"] = push()  # PUSH FIRST — central's stock numbers
             result["pulled"] = pull()  # must include this till's deltas
+            result["sales_imported"] = pull_sales_history()
             set_state("last_sync_at", timezone.now().isoformat())
         except requests.RequestException as e:
             result["error"] = str(e)

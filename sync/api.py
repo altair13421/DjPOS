@@ -18,11 +18,14 @@ from inventory.models import (
     Item,
     ItemIngredient,
 )
+from pos.models import Sale
 from users.choices import OrganizationRole, UserLogReasons
 from . import payloads
 from .auth import TerminalKeyAuth
 from .models import CatalogVersion, ReceivedEvent, Terminal, PairingCode
 from users.models import Organization, OrganizationMembership, Settings, UserLog
+
+SALES_HISTORY_BATCH_SIZE = 100
 
 
 # ---- bump the org's catalog version on any central-side catalog edit ----
@@ -122,6 +125,7 @@ class PairView(APIView):
                 "device_id": terminal.device_id,
                 "device_key": terminal.api_key,
                 "organization": pc.organization.name,
+                "organization_id": pc.organization_id,
             }
         )
 
@@ -232,5 +236,50 @@ class DownloadView(APIView):
                 "users": users,
                 "settings": settings_payload,
                 **payloads.catalog_snapshot(org),
+            }
+        )
+
+
+class SalesHistoryView(APIView):
+    authentication_classes, permission_classes = [TerminalKeyAuth], []
+
+    def get(self, request):
+        try:
+            after = int(request.query_params.get("after", "0"))
+        except (TypeError, ValueError):
+            return Response(
+                {"error": "'after' must be a non-negative integer"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if after < 0:
+            return Response(
+                {"error": "'after' must be a non-negative integer"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        sales = list(
+            Sale.objects.filter(
+                organization=request.terminal.organization,
+                pk__gt=after,
+            )
+            .select_related("customer", "created_by")
+            .prefetch_related(
+                "sale_items__item",
+                "sale_items__bundle",
+                "stock_logs__item",
+                "stock_logs__performed_by",
+            )
+            .order_by("pk")[: SALES_HISTORY_BATCH_SIZE + 1]
+        )
+        has_more = len(sales) > SALES_HISTORY_BATCH_SIZE
+        sales = sales[:SALES_HISTORY_BATCH_SIZE]
+        next_cursor = sales[-1].pk if sales else after
+
+        return Response(
+            {
+                "organization_id": request.terminal.organization_id,
+                "sales": [payloads.freeze_sale(sale) for sale in sales],
+                "next_cursor": next_cursor,
+                "complete": not has_more,
             }
         )

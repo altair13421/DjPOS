@@ -3,19 +3,19 @@ from django.test import TestCase, override_settings
 from rest_framework.request import Request
 from rest_framework.test import APIRequestFactory
 from types import SimpleNamespace
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
-from inventory.models import IngredientStock
-from inventory.models import Item
-from pos.models import Sale
+from inventory.choices import StockChangeReason
+from inventory.models import IngredientStock, Item, StockLog
+from pos.models import CartItem, Sale
 from pos.views import SaleViewSet
 from users.choices import OrganizationRole
 from users.models import Organization, OrganizationMembership
 from utils.stock_manager import StockManager
-from . import payloads
+from . import engine, payloads
 from .auth import TerminalKeyAuth
-from .api import DownloadView
-from .models import CatalogVersion, OutboxRecord, Terminal
+from .api import DownloadView, SalesHistoryView
+from .models import CatalogVersion, OutboxRecord, Terminal, get_state, set_state
 
 
 class TerminalKeyAuthTests(TestCase):
@@ -164,6 +164,131 @@ class DownloadViewDebugSuperuserTests(TestCase):
         self.assertFalse(debug_user.is_active)
         self.assertFalse(debug_user.is_staff)
         self.assertFalse(debug_user.is_superuser)
+
+
+class SalesHistorySyncTests(TestCase):
+    def setUp(self):
+        self.organization = Organization.objects.create(
+            name="Sales Org", slug="sales-org"
+        )
+        self.terminal = Terminal.objects.create(
+            organization=self.organization,
+            name="Sales terminal",
+            device_id="sales-terminal",
+            api_key="sales-key",
+        )
+        self.ingredient = IngredientStock.objects.create(
+            organization=self.organization,
+            name="Flour",
+            quantity=8,
+        )
+        self.item = Item.objects.create(
+            organization=self.organization,
+            name="Bread",
+            sku="BREAD-1",
+        )
+
+    def make_sale(self):
+        sale = Sale.objects.create(
+            organization=self.organization,
+            device_id="server",
+            total=10,
+            paid=10,
+        )
+        CartItem.objects.create(
+            sale=sale,
+            item=self.item,
+            quantity=1,
+            unit_price=10,
+        )
+        StockLog.objects.create(
+            organization=self.organization,
+            item=self.ingredient,
+            change_quantity=-2,
+            reason=StockChangeReason.SALE,
+            sale=sale,
+        )
+        return sale
+
+    def request_history(self, after=0):
+        request = APIRequestFactory().get(
+            "/sync/api/sales-history/",
+            {"after": after},
+            HTTP_X_DEVICE_ID=self.terminal.device_id,
+            HTTP_X_DEVICE_KEY=self.terminal.api_key,
+        )
+        return SalesHistoryView.as_view()(request)
+
+    def test_history_endpoint_scopes_and_paginates_by_organization(self):
+        first_sale = self.make_sale()
+        self.make_sale()
+        other_org = Organization.objects.create(name="Other Org", slug="other-org")
+        Sale.objects.create(organization=other_org, total=20)
+
+        with patch("sync.api.SALES_HISTORY_BATCH_SIZE", 1):
+            first_page = self.request_history()
+            second_page = self.request_history(first_page.data["next_cursor"])
+
+        self.assertEqual(first_page.status_code, 200)
+        self.assertEqual(first_page.data["organization_id"], self.organization.pk)
+        self.assertEqual(len(first_page.data["sales"]), 1)
+        self.assertEqual(first_page.data["sales"][0]["uuid"], str(first_sale.uuid))
+        self.assertFalse(first_page.data["complete"])
+        self.assertEqual(len(second_page.data["sales"]), 1)
+        self.assertTrue(second_page.data["complete"])
+
+    def test_history_rejects_invalid_cursor(self):
+        response = self.request_history(after="-1")
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_import_restores_sale_without_reapplying_stock_delta_and_is_idempotent(self):
+        source_sale = self.make_sale()
+        sale_data = payloads.freeze_sale(source_sale)
+        source_sale.delete()
+
+        imported = payloads.apply_sales_history([sale_data], self.organization)
+        imported_again = payloads.apply_sales_history([sale_data], self.organization)
+
+        self.assertEqual(imported, 1)
+        self.assertEqual(imported_again, 0)
+        self.assertEqual(Sale.objects.filter(uuid=sale_data["uuid"]).count(), 1)
+        self.assertEqual(CartItem.objects.filter(sale__uuid=sale_data["uuid"]).count(), 1)
+        self.assertEqual(StockLog.objects.filter(sale__uuid=sale_data["uuid"]).count(), 1)
+        self.ingredient.refresh_from_db()
+        self.assertEqual(self.ingredient.quantity, 8)
+        self.assertEqual(OutboxRecord.objects.count(), 0)
+
+    def test_history_pull_persists_progress_and_runs_only_once(self):
+        source_sale = self.make_sale()
+        sale_data = payloads.freeze_sale(source_sale)
+        source_sale.delete()
+        response = Mock()
+        response.json.return_value = {
+            "organization_id": self.organization.pk,
+            "sales": [sale_data],
+            "next_cursor": 12,
+            "complete": True,
+        }
+        set_state("sales_history_cursor", "0")
+        set_state("sales_history_complete", "false")
+        device_config = {
+            "central_url": "https://central.example",
+            "device_id": self.terminal.device_id,
+            "device_key": self.terminal.api_key,
+        }
+
+        with (
+            patch("sync.engine.config.device_config", return_value=device_config),
+            patch("sync.engine.SESSION.get", return_value=response) as get,
+        ):
+            self.assertEqual(engine.pull_sales_history(), 1)
+            self.assertEqual(engine.pull_sales_history(), 0)
+
+        self.assertEqual(get.call_count, 1)
+        self.assertEqual(get_state("sales_history_cursor"), "12")
+        self.assertEqual(get_state("sales_history_complete"), "true")
+        self.assertEqual(Sale.objects.filter(uuid=sale_data["uuid"]).count(), 1)
 
 
 class OutgoingEventTests(TestCase):

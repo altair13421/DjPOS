@@ -111,7 +111,7 @@ def _thaw_customer(p, org):
 
 
 @transaction.atomic
-def thaw_sale(p, org):
+def thaw_sale(p, org, update_stock=True):
     if Sale.objects.filter(uuid=p["uuid"]).exists():
         return "duplicate"
     sale = Sale.objects.create(
@@ -159,15 +159,25 @@ def thaw_sale(p, org):
         )
         # keep central's stock cache current; queryset.update() intentionally
         # bypasses save() AND the catalog-version bump signal
-        IngredientStock.objects.filter(uuid=sl["ingredient"]).update(
-            quantity=F("quantity") + sl["change_quantity"]
-        )
+        if update_stock:
+            IngredientStock.objects.filter(uuid=sl["ingredient"]).update(
+                quantity=F("quantity") + sl["change_quantity"]
+            )
     # auto_now_add stamped "now" on insert — restore the real till time
     # (queryset.update() bypasses auto_now_add)
     Sale.objects.filter(pk=sale.pk).update(created_at=p["sold_at"])
     for sl in p["stock_logs"]:
         StockLog.objects.filter(uuid=sl["uuid"]).update(created_at=sl["created_at"])
     return "ok"
+
+
+@transaction.atomic
+def apply_sales_history(sales, org):
+    imported = 0
+    for sale in sales:
+        if thaw_sale(sale, org, update_stock=False) == "ok":
+            imported += 1
+    return imported
 
 
 # ══════════════════ STOCK ADJUSTMENTS, no sale (fill_stock etc.) ══════════════════

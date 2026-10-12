@@ -673,7 +673,6 @@ class InventoryStatsView(OrgLoginRequiredMixin, TemplateView):
             items_list.append(it)
 
         context["items"] = sorted(items_list, key=lambda x: x["name"])
-        ic(context['items'])
         return context
 
 

@@ -44,6 +44,9 @@
             <input type="text" class="form-control" name="phone" value="" placeholder="Enter Phone" id="customer-phone">
             <input type="text" class="form-control" name="address" value="" placeholder="Address" id="customer-address">
             <input type="text" class="form-control" name="email" value="" placeholder="Email" id="customer-email">
+            <label class="form-label small text-muted" for="discount">Sale discount (%)</label>
+            <input type="number" class="form-control" name="discount" value="0" placeholder="Discount (%)" id="discount" min="0" max="100" step="0.01" inputmode="decimal">
+            <div id="discount-error" class="invalid-feedback">Enter a discount from 0 to 100%.</div>
         </div>
 
         <div id="cart-items" class="flex-grow-1 overflow-auto mb-3 border-top border-bottom bg-white p-2">
@@ -51,9 +54,21 @@
         </div>
 
         <div class="mt-auto">
+            <div class="d-flex justify-content-between small">
+                <span>Subtotal:</span>
+                <span id="cart-subtotal">PKR 0.00</span>
+            </div>
+            <div class="d-flex justify-content-between small text-muted">
+                <span>Tax rate:</span>
+                <span>{{ tax_rate_percent|floatformat:"-2" }}%</span>
+            </div>
+            <div class="d-flex justify-content-between small text-muted">
+                <span id="cart-discount-label">Discount (0%):</span>
+                <span id="cart-discount">PKR 0.00</span>
+            </div>
             <div class="d-flex justify-content-between h5">
                 <span>Total:</span>
-                <span id="cart-total">PKR 0</span>
+                <span id="cart-total">PKR 0.00</span>
             </div>
             <div class="d-flex justify-content-between">
               <input class="form-control" placeholder="Notes" type="text" name="note" value="" id="cart_note">
@@ -227,6 +242,27 @@
         });
     }
 
+    function money(amount) {
+        return 'PKR ' + amount.toFixed(2);
+    }
+
+    function calculateSaleTotals(subtotal) {
+        const discountInput = document.getElementById('discount');
+        const discountPercent = discountInput.value === '' ? 0 : Number(discountInput.value);
+        const validDiscount = discountInput.checkValidity() && Number.isFinite(discountPercent);
+        const discount = validDiscount
+            ? Math.round(subtotal * discountPercent) / 100
+            : 0;
+
+        document.getElementById('cart-subtotal').innerText = money(subtotal);
+        document.getElementById('cart-discount-label').innerText =
+            'Discount (' + (validDiscount ? discountPercent : 0) + '%):';
+        document.getElementById('cart-discount').innerText = money(discount);
+        document.getElementById('cart-total').innerText = money(subtotal - discount);
+        discountInput.classList.toggle('is-invalid', !validDiscount);
+        return { discountPercent, validDiscount };
+    }
+
 
     function renderCart() {
         const container = document.getElementById('cart-items');
@@ -235,8 +271,8 @@
 
         if (cart.length === 0) {
             container.innerHTML = '<div class="text-center text-muted py-5">Cart is empty</div>';
+            calculateSaleTotals(0);
             document.getElementById('checkout-btn').disabled = true;
-            document.getElementById('cart-total').innerText = 'PKR 0';
             return;
         }
 
@@ -265,8 +301,8 @@
             container.appendChild(el);
         });
 
-        document.getElementById('cart-total').innerText = 'PKR ' + Math.round(total);
-        document.getElementById('checkout-btn').disabled = false;
+        const { validDiscount } = calculateSaleTotals(total);
+        document.getElementById('checkout-btn').disabled = !validDiscount;
     }
 
     // --- Interaction ---
@@ -355,6 +391,7 @@
     // --- Filter & Mode ---
     document.getElementById('search-input').addEventListener('input', () => renderGrid());
     document.getElementById('category-filter').addEventListener('change', () => renderGrid());
+    document.getElementById('discount').addEventListener('input', () => renderCart());
     document.querySelectorAll('input[name="grid-mode"]').forEach(radio => {
         radio.addEventListener('change', () => renderGrid());
     });
@@ -362,6 +399,12 @@
     // --- Checkout ---
     document.getElementById('checkout-btn').addEventListener('click', async () => {
         if (cart.length === 0) return;
+        const discountInput = document.getElementById('discount');
+        if (!discountInput.checkValidity()) {
+            discountInput.classList.add('is-invalid');
+            discountInput.focus();
+            return;
+        }
 
         const btn = document.getElementById('checkout-btn');
         btn.disabled = true;
@@ -377,6 +420,7 @@
         const payload = {
             customer: customerData,
             notes: document.getElementById('cart_note').value || "",
+            discount_percent: discountInput.value || "0",
             items: cart.map(i => {
               if (i.type === 'bundle') return { bundle_id: i.id, quantity: i.quantity, note: document.getElementById(`${i.id}_note`).value };
                 return { item_id: i.id, quantity: i.quantity, note: document.getElementById(`${i.id}_note`).value };

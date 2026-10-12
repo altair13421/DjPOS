@@ -1,4 +1,4 @@
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from rest_framework import serializers
 from .models import Customer, Sale, CartItem
 from inventory.models import Item, Bundle
@@ -74,15 +74,25 @@ class SaleSerializer(serializers.ModelSerializer):
     )
     sale_items = CartItemReadSerializer(many=True, read_only=True)
     customer = CustomerSerializer()
+    discount_percent = serializers.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        min_value=Decimal("0"),
+        max_value=Decimal("100"),
+        required=False,
+        default=Decimal("0"),
+        write_only=True,
+    )
 
     class Meta:
         model = Sale
-        fields = ['id', 'customer', 'total', 'created_at', 'updated_at', 'items', 'sale_items', 'notes']
+        fields = ['id', 'customer', 'total', 'created_at', 'updated_at', 'items', 'sale_items', 'notes', 'discount_percent']
         read_only_fields = ['total']
 
     def create(self, validated_data):
         items_data = validated_data.pop('items')
         customer_data = validated_data.pop('customer')
+        discount_percent = validated_data.pop('discount_percent', Decimal("0"))
         organization = validated_data.pop('organization')
         created_by = validated_data.pop('created_by', None)
         customer, _ = Customer.objects.get_or_create(
@@ -125,6 +135,9 @@ class SaleSerializer(serializers.ModelSerializer):
                 )
             total += unit_price * quantity
 
+        sale.discount = (total * discount_percent / Decimal("100")).quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP
+        )
         sale.total = total
         sale.save()
         return sale

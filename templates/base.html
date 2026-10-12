@@ -85,18 +85,20 @@
             <a class="nav-link {% if 'pos' in request.resolver_match.app_name and request.resolver_match.url_name == 'index' %}active{% endif %}"
               href="{% url 'pos:index' %}">POS</a>
           </li>
+          {% if 'pos' in request.resolver_match.app_name %}
           <li class="nav-item">
-            <a class="nav-link {% if 'pos' in request.resolver_match.app_name and request.resolver_match.url_name == 'sale_panel' %}active{% endif %}"
+            <a class="nav-link {% if request.resolver_match.url_name == 'sale_panel' %}active{% endif %}"
               href="{% url 'pos:sale_panel' %}">Sale Panel</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link {% if 'pos' in request.resolver_match.app_name and request.resolver_match.url_name == 'sale_history' %}active{% endif %}"
+            <a class="nav-link {% if request.resolver_match.url_name == 'sale_history' %}active{% endif %}"
               href="{% url 'pos:sale_history' %}">Sale History</a>
           </li>
           <li class="nav-item">
             <a class="nav-link {% if 'inventory' in request.resolver_match.app_name and request.resolver_match.url_name == 'index' %}active{% endif %}"
               href="{% url 'inventory:index' %}">Inventory</a>
           </li>
+          {% endif %}
           {% if 'inventory' in request.resolver_match.app_name %}
           <li class="nav-item">
             <a class="nav-link {% if 'category' in request.resolver_match.url_name %}active{% endif %}"

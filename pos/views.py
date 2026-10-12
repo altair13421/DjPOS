@@ -13,7 +13,7 @@ from users.decorators import org_required
 from utils.stock_manager import StockManager
 from sync.payloads import enqueue_sale_bundle
 
-from .models import Customer, Sale
+from .models import Customer, Sale, TAX_RATE_PERCENT
 from .serializers import CustomerSerializer, SaleSerializer
 
 from icecream import ic
@@ -37,6 +37,7 @@ def sale_panel(request):
     """POS sale_panel view."""
     return render(request, 'pos/sale_panel.html', {
         'use_web_print': getattr(settings, 'USE_WEB_PRINT', True),
+        'tax_rate_percent': TAX_RATE_PERCENT,
     })
 
 
@@ -84,7 +85,9 @@ def sale_history(request):
 def receipt(request, sale_id):
     """Thermal-styled receipt view for web print (opens in new window)."""
     sale = get_object_or_404(
-        _org_sales(request),
+        _org_sales(request)
+        .select_related("created_by")
+        .prefetch_related("sale_items__bundle__bundleitem_set__item"),
         pk=sale_id,
     )
     return render(request, 'pos/receipt.html', {

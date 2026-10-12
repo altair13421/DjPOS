@@ -1,7 +1,12 @@
+from decimal import Decimal
+
 from django.conf import settings
 from django.db import models
 from .choices import CustomerType
 import secrets, uuid
+
+TAX_RATE_PERCENT = Decimal("18")
+
 
 class Customer(models.Model):
     """Customer for POS sales."""
@@ -116,7 +121,34 @@ class Sale(models.Model):
 
     @property
     def total_price(self):
-        return self.total - self.discount - self.tax
+        return self.total - self.discount
+
+    @property
+    def tax_percent(self):
+        if not self.total:
+            return Decimal("0")
+        return (self.tax * Decimal("100") / self.total).quantize(Decimal("0.01"))
+
+    @property
+    def discount_percent(self):
+        if not self.total:
+            return Decimal("0")
+        return (self.discount * Decimal("100") / self.total).quantize(Decimal("0.01"))
+
+    def subtotal(self):
+        return self.total - self.tax
+
+    @property
+    def username(self):
+        if self.created_by:
+            return self.created_by.username
+        return "Anonymous"
+
+    def save(self, *args, **kwargs):
+        if self.tax == Decimal(0):
+            tax = self.total * TAX_RATE_PERCENT / Decimal("100")
+            self.tax = tax.quantize(Decimal("0.01"))
+        super().save(*args, **kwargs)
 
     class Meta:
         """Meta class for the Sale model."""
