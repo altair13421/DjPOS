@@ -53,12 +53,11 @@ class IndexView(OrgLoginRequiredMixin, TemplateView):
 
 # ——— Category UI ———
 
-class CategoryListView(OrgLoginAndRoleRequiredMixin, OrganizationScopedMixin, ListView):
+class CategoryListView(OrgLoginRequiredMixin, OrganizationScopedMixin, ListView):
     model = Category
     queryset = Category.objects.all().order_by("name")
     context_object_name = "categories"
     template_name = "inventory/category_list.html"
-    required_roles = ["admin", "manager"]
 
 
 class CategoryCreateView(OrgLoginAndRoleRequiredMixin, OrganizationScopedMixin, SuccessMessageMixin, CreateView):
@@ -75,7 +74,7 @@ class CategoryCreateView(OrgLoginAndRoleRequiredMixin, OrganizationScopedMixin, 
         return context
 
 
-class CategoryUpdateView(OrgLoginRequiredMixin, OrganizationScopedMixin, SuccessMessageMixin, UpdateView):
+class CategoryUpdateView(OrgLoginAndRoleRequiredMixin, OrganizationScopedMixin, SuccessMessageMixin, UpdateView):
     model = Category
     form_class = CategoryForm
     context_object_name = "category"
@@ -159,7 +158,7 @@ class StockCreateView(OrgLoginAndRoleRequiredMixin, OrganizationScopedMixin, Suc
         return redirect(self.success_url)
 
 
-class StockUpdateView(OrgLoginRequiredMixin, OrganizationScopedMixin, SuccessMessageMixin, UpdateView):
+class StockUpdateView(OrgLoginAndRoleRequiredMixin, OrganizationScopedMixin, SuccessMessageMixin, UpdateView):
     model = IngredientStock
     form_class = IngredientStockForm
     template_name = 'inventory/stock_form.html'
@@ -214,7 +213,7 @@ class StockUpdateView(OrgLoginRequiredMixin, OrganizationScopedMixin, SuccessMes
 
 # ——— Item UI (add category on same page) ———
 
-class ItemListView(OrgLoginAndRoleRequiredMixin, OrganizationScopedMixin, ListView):
+class ItemListView(OrgLoginRequiredMixin, OrganizationScopedMixin, ListView):
     model = Item
     queryset = Item.objects.select_related("category").all().order_by("-created_at")
     context_object_name = "items"
@@ -318,12 +317,13 @@ class BundleListView(OrgLoginRequiredMixin, OrganizationScopedMixin, ListView):
     template_name = "inventory/bundle_list.html"
 
 
-class BundleCreateView(OrgLoginRequiredMixin, OrganizationScopedMixin, SuccessMessageMixin, CreateView):
+class BundleCreateView(OrgLoginAndRoleRequiredMixin, OrganizationScopedMixin, SuccessMessageMixin, CreateView):
     model = Bundle
     form_class = BundleForm
     template_name = "inventory/bundle_form.html"
     success_url = reverse_lazy("inventory:bundle_list")
     success_message = "Bundle created."
+    required_roles = [OrganizationRole.OWNER, OrganizationRole.MANAGER]
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
