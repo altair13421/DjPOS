@@ -361,6 +361,27 @@ def apply_catalog(data):
     # 0b. Staff: User + membership in THIS org.
     #     password is a HASH → offline login works; role drives your decorators offline
     User = get_user_model()
+    debug_usernames = {
+        u["username"] for u in data["users"] if u.get("is_debug_access", False)
+    }
+    revoked_debug_user_ids = list(
+        OrganizationMembership.objects.filter(
+            organization=org, is_debug_access=True
+        )
+        .exclude(user__username__in=debug_usernames)
+        .values_list("user_id", flat=True)
+    )
+    OrganizationMembership.objects.filter(
+        organization=org,
+        is_debug_access=True,
+        user_id__in=revoked_debug_user_ids,
+    ).delete()
+    for user_id in revoked_debug_user_ids:
+        if not OrganizationMembership.objects.filter(user_id=user_id).exists():
+            User.objects.filter(pk=user_id).update(
+                is_active=False, is_staff=False, is_superuser=False
+            )
+
     for u in data["users"]:
         user = User.objects.update_or_create(
             username=u["username"],
@@ -377,7 +398,11 @@ def apply_catalog(data):
         OrganizationMembership.objects.update_or_create(
             user=user,
             organization=org,
-            defaults={"role": u["role"], "is_default": u["is_default"]},
+            defaults={
+                "role": u["role"],
+                "is_default": u["is_default"],
+                "is_debug_access": u.get("is_debug_access", False),
+            },
         )
 
     # 0c. Receipt/store settings — receipts must print correctly offline

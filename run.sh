@@ -1,7 +1,7 @@
 #!/bin/bash
 # run.sh - Linux/Mac running script for DJPOS
 
-export ALLOWED_HOSTS="192.168.1.5,localhost,127.0.0.1"
+export ALLOWED_HOSTS="192.168.1.4,localhost,127.0.0.1"
 
 # Check if virtual environment exists
 if [ ! -d ".venv" ]; then
@@ -21,7 +21,6 @@ fi
 if command -v uv &>/dev/null; then
   uv sync
   uv run python manage.py makemigrations
-  uv run python manage.py migrate
 else
   echo "Error: uv command not found. Please install uv and initialize the virtual environment."
   exit 1

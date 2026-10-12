@@ -8,6 +8,13 @@ class Organization(models.Model):
     name = models.CharField(max_length=127)
     slug = models.SlugField(unique=True)
     is_active = models.BooleanField(default=False)
+    allow_debug_superusers = models.BooleanField(
+        default=False,
+        help_text=(
+            "Copy active global superusers without organization memberships to this "
+            "organization's terminals for debugging, including their password hashes."
+        ),
+    )
     # Plan to be included.
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -34,6 +41,7 @@ class OrganizationMembership(models.Model):
         default=OrganizationRole.CASHIER,
     )
     is_default = models.BooleanField(default=False)
+    is_debug_access = models.BooleanField(default=False)
 
     class Meta:
         unique_together = [("user", "organization")]

@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models.signals import post_save, post_delete
 from django.utils import timezone
+from gunicorn.config import User
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -17,7 +18,7 @@ from inventory.models import (
     Item,
     ItemIngredient,
 )
-from users.choices import UserLogReasons
+from users.choices import OrganizationRole, UserLogReasons
 from . import payloads
 from .auth import TerminalKeyAuth
 from .models import CatalogVersion, ReceivedEvent, Terminal, PairingCode
@@ -26,6 +27,8 @@ from users.models import Organization, OrganizationMembership, Settings, UserLog
 
 # ---- bump the org's catalog version on any central-side catalog edit ----
 def _org_id(instance):
+    if isinstance(instance, Organization):
+        return instance.pk
     if getattr(instance, "organization_id", None):
         return instance.organization_id
     if getattr(instance, "item_id", None):
@@ -56,7 +59,13 @@ def _bump_user(sender, instance, **kwargs):
     """User saves (password change, is_active=False) must reach every org they're in."""
     if settings.ROLE != "server":
         return
-    for org_id in instance.memberships.values_list("organization_id", flat=True):
+    org_ids = set(instance.memberships.values_list("organization_id", flat=True))
+    org_ids.update(
+        Organization.objects.filter(allow_debug_superusers=True).values_list(
+            "pk", flat=True
+        )
+    )
+    for org_id in org_ids:
         _bump_org(org_id)
 
 
@@ -68,6 +77,7 @@ for _m in (
     Bundle,
     BundleItem,
     Settings,
+    Organization,
     OrganizationMembership,
 ):
     post_save.connect(_bump, sender=_m)
@@ -169,9 +179,31 @@ class DownloadView(APIView):
                 "is_superuser": m.user.is_superuser,
                 "role": m.role,
                 "is_default": m.is_default,
+                "is_debug_access": m.is_debug_access,
             }
             for m in memberships
         ]
+
+        if org.allow_debug_superusers:
+            debug_superusers = get_user_model().objects.filter(
+                is_active=True, is_superuser=True
+            ).exclude(memberships__organization=org)
+            users.extend(
+                {
+                    "username": user.username,
+                    "email": user.email,
+                    "password": user.password,
+                    "first_name": user.first_name,
+                    "last_name": user.last_name,
+                    "is_active": user.is_active,
+                    "is_staff": user.is_staff,
+                    "is_superuser": user.is_superuser,
+                    "role": OrganizationRole.OWNER,
+                    "is_default": False,
+                    "is_debug_access": True,
+                }
+                for user in debug_superusers
+            )
 
         try:
             s = org.settings
