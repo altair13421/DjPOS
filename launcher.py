@@ -2,18 +2,20 @@
 import os, sys, threading
 from pathlib import Path
 
+def data_dir() -> Path:
+    """Where to store the terminal.json and local SQLite DB."""
+    if os.environ.get("DJPOS_DATA_DIR"):
+        return Path(os.environ["DJPOS_DATA_DIR"] / ".djpos")
+    path = Path(os.environ.get("DJPOS_DATA_DIR", Path.home() / ".djpos"))
+    return path
 
 def main():
-    data_dir = (
-        Path(sys.executable).parent
-        if getattr(sys, "frozen", False)
-        else Path(__file__).parent
-    ) / "data"
+    data_dir_path = data_dir()
     os.environ.update(
         {
             "APP_ROLE": "terminal",
             "DJANGO_SETTINGS_MODULE": "config.settings",
-            "DJPOS_DATA_DIR": str(data_dir),
+            "DJPOS_DATA_DIR": str(data_dir_path),
         }
     )
 

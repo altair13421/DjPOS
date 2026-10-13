@@ -92,9 +92,9 @@ DATABASES = {"default": _default_db}
 
 # Sync settings for terminal and server roles
 ROLE = os.environ.get(
-    "APP_ROLE", "server"
-)  # default = your current Render deploy, unchanged
-CENTRAL_URL = os.environ.get("CENTRAL_URL", "http://127.0.0.1:8002/")
+    "APP_ROLE", "terminal"
+)  # default = your terminal
+CENTRAL_URL = os.environ.get("CENTRAL_URL", "")
 DEVICE_ID = os.environ.get("DEVICE_ID", "")
 DEVICE_KEY = os.environ.get("DEVICE_KEY", "")
 

@@ -21,6 +21,7 @@ dependencies = [
     "pluggy==1.6.0",
     "psycopg2-binary==2.9.12",
     "pygments==2.20.0",
+    "pyinstaller>=6.22.3",
     "pytest==9.0.3",
     "pytest-django==4.12.0",
     "pywebview>=6.2.1",
