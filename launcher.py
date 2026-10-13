@@ -3,14 +3,7 @@ import os, sys, threading
 import re
 from datetime import datetime
 from pathlib import Path
-
-
-def data_dir() -> Path:
-    """Where to store the terminal.json and local SQLite DB."""
-    if os.environ.get("DJPOS_DATA_DIR"):
-        return (Path(os.environ["DJPOS_DATA_DIR"]) / ".djpos")
-    path = Path(os.environ.get("DJPOS_DATA_DIR", Path.home() / ".djpos"))
-    return path
+from config.paths import data_dir
 
 
 def receipt_pdf_filename(page_url, now=None):
@@ -83,7 +76,7 @@ def main():
         {
             "APP_ROLE": "terminal",
             "DJANGO_SETTINGS_MODULE": "config.settings",
-            "DJPOS_DATA_DIR": str(data_dir_path),
+            "DJPOS_DATA_DIR": str(data_dir_path.parent),
         }
     )
 

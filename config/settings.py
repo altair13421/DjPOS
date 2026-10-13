@@ -5,6 +5,7 @@ Django settings for DJPOS project.
 import os
 from pathlib import Path
 import json
+from config.paths import data_dir
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -18,14 +19,6 @@ ALLOWED_HOSTS = os.environ.get(
     "ALLOWED_HOSTS",
     "localhost,127.0.0.1,preinstructive-dilan-evaluatingly.ngrok-free.dev,djpos.onrender.com",
 ).split(",")
-
-def data_dir() -> Path:
-    """Where to store the terminal.json and local SQLite DB."""
-    if os.environ.get("DJPOS_DATA_DIR"):
-        return (Path(os.environ["DJPOS_DATA_DIR"]) / ".djpos")
-    path = Path(os.environ.get("DJPOS_DATA_DIR", Path.home() / ".djpos"))
-    return path
-
 
 INSTALLED_APPS = [
     "django.contrib.admin",
