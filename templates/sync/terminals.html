@@ -20,27 +20,25 @@
 <div class="card">
     <div class="card-body p-0">
         <div class="d-flex justify-content mb-3">
-            <p class="ms-3 mb-0">Registered Tills: {{ codes|length }}</p>
+            <p class="ms-3 mb-0">Registered Tills: {{ terminals|length }}</p>
         </div>
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-light">
                     <tr>
-                        <th>Created At</th>
-                        <th>Expires at</th>
+                        <th>Last Seen</th>
                         <th>Till Name</th>
-                        <th>Used</th>
-                        <th>Code</th>
+                        <th>API Key</th>
+                        <th>Is Active</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for term in codes %}
+                    {% for term in terminals %}
                     <tr>
-                        <td>{{ term.created_at }}</td>
-                        <td>{{ term.expires_at }}</td>
-                        <td>{{ term.terminal_name }}</td>
-                        <td>{% if term.used %}<i class="bi bi-check"></i>{% else %}<i class="bi bi-cross"></i>{% endif %}</td>
-                        <td>{{ term.code }}</td>
+                        <td>{{ term.last_seen }}</td>
+                        <td>{{ term.name }}</td>
+                        <td>{{ term.api_key }}</td>
+                        <td>{{ term.is_active }}</td>
                     </tr>
                     {% empty %}
                     <tr>

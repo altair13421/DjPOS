@@ -70,10 +70,10 @@
                 {% endfor %}
               </ul>
             </td>
-            <td class="text-end fw-bold">PKR {{ sale.total|floatformat:0 }}</td>
+            <td class="text-end fw-bold">PKR {{ sale.total_price|floatformat:0 }} {% if sale.total_price != sale.total %} ({{ sale.total|floatformat:0 }}){% endif %}</span></td>
             <td class="text-end">
               {% if use_web_print %}
-                <a href="{% url 'pos:receipt' sale.id %}?auto=1" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">Print receipt</a>
+                <a href="{% url 'pos:receipt' sale.id %}?auto=1" class="btn btn-sm btn-outline-secondary">Print receipt</a>
               {% else %}
                 <button type="button" class="btn btn-sm btn-outline-secondary receipt-direct-print" data-sale-id="{{ sale.id }}">Print receipt</button>
               {% endif %}

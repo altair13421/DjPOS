@@ -8,7 +8,7 @@ from django.conf import settings
 def data_dir() -> Path:
     """Where to store the terminal.json and local SQLite DB."""
     if os.environ.get("DJPOS_DATA_DIR"):
-        return Path(os.environ["DJPOS_DATA_DIR"] / ".djpos")
+        return (Path(os.environ["DJPOS_DATA_DIR"]) / ".djpos")
     path = Path(os.environ.get("DJPOS_DATA_DIR", Path.home() / ".djpos"))
     return path
 

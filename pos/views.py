@@ -83,15 +83,17 @@ def sale_history(request):
 
 @org_required
 def receipt(request, sale_id):
-    """Thermal-styled receipt view for web print (opens in new window)."""
+    """Render a thermal-styled receipt page for web printing."""
     sale = get_object_or_404(
         _org_sales(request)
         .select_related("created_by")
         .prefetch_related("sale_items__bundle__bundleitem_set__item"),
         pk=sale_id,
     )
+    org_name = sale.organization.name
     return render(request, 'pos/receipt.html', {
         'sale': sale,
+        "org_name": org_name,
         'store_name': getattr(settings, 'RECEIPT_STORE_NAME', 'DJPOS'),
         'currency': getattr(settings, 'CURRENCY_CODE', 'PKR'),
     })

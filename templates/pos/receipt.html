@@ -119,7 +119,8 @@
 <body>
   <main class="receipt">
     <header class="center">
-      <h1 class="store-name">{{ store_name }}</h1>
+      <!-- <h1 class="store-name">{{ store_name }}</h1> -->
+      <h1 class="store-name">{{ org_name }}</h1>
       <div class="receipt-meta">Receipt #{{ sale.id }}</div>
       <div class="receipt-meta">Cashier: {{ sale.username }}</div>
       <div class="receipt-meta">{{ sale.created_at|date:"M d, Y g:i A" }}</div>
@@ -183,6 +184,8 @@
     <hr class="divider">
     <footer class="center footer">
       <strong>Thank you for your purchase!</strong>
+      <strong>Copyright (c) 2026 Faez Akhtar. All Rights Reserved.</strong>
+      <strong>+92-321-7480678.</strong>
     </footer>
   </main>
 
