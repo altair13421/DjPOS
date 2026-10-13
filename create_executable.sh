@@ -1,6 +1,7 @@
 #!/bin/bash
 
-uv run pyinstaller --noconsole --onefile --name "DJPOS-Till" \
-  --add-data "templates:templates" \
-  --add-data "static:static" \
+uv run python manage.py collectstatic --noinput
+uv run pyinstaller --noconsole \
+  --collect-all webview --collect-all qtpy --collect-all PyQt6 \
+  --add-data "staticfiles:staticfiles" \
   launcher.py

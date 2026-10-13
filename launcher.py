@@ -40,7 +40,11 @@ def enable_receipt_pdf_saving(window):
 
         def save_receipt_pdf(self, pdf_data):
             if not pdf_data:
-                QMessageBox.warning(native_window, "PDF generation failed", "Could not generate receipt PDF.")
+                QMessageBox.warning(
+                    native_window,
+                    "PDF generation failed",
+                    "Could not generate receipt PDF.",
+                )
                 return
 
             filename = receipt_pdf_filename(native_window.webview.url().toString())
@@ -86,6 +90,7 @@ def main():
     from django.core.management import call_command
 
     call_command("migrate", "--noinput")
+    call_command("collectstatic", "--noinput")
 
     from sync.engine import worker
 
@@ -102,13 +107,17 @@ def main():
     ).start()
     import webview
 
-    window = webview.create_window("DJPOS", "http://127.0.0.1:8001", width=1280, height=800)
+    gui = "qt" if sys.platform in ("linux", "win32") else None
+
+    window = webview.create_window(
+        "DJPOS", "http://127.0.0.1:8001", width=1280, height=800
+    )
 
     def setup_printing(*_):
         enable_receipt_pdf_saving(window)
 
     window.events.shown += setup_printing
-    webview.start()  # blocks; closing the window closes the till app — nice kiosk behavior
+    webview.start(gui=gui)  # blocks; closing the window closes the till app — nice kiosk behavior
 
 
 if __name__ == "__main__":

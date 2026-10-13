@@ -75,6 +75,19 @@ The app runs with **Debian (bookworm-slim)** in the Dockerfile and **PostgreSQL*
    docker compose exec web python3 manage.py createsuperuser
    ```
 
+## Build the Windows executable
+
+Install [uv](https://docs.astral.sh/uv/) and Python 3.14 or newer, then run
+this from the project directory:
+
+```bat
+create_executable_windows.bat
+```
+
+The script syncs the locked dependencies, collects static files, and builds
+`dist\DJPOS-Till.exe`. The Windows build uses the Qt WebEngine backend; Windows
+must have the Microsoft Visual C++ runtime required by the bundled Qt libraries.
+
 ## API overview
 
 - **POS**

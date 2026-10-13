@@ -36,6 +36,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -90,6 +91,15 @@ ROLE = os.environ.get(
 CENTRAL_URL = os.environ.get("CENTRAL_URL", "")
 DEVICE_ID = os.environ.get("DEVICE_ID", "")
 DEVICE_KEY = os.environ.get("DEVICE_KEY", "")
+
+import sys
+FROZEN = getattr(sys, "frozen", False)
+
+STATIC_URL = "static/"
+if FROZEN:
+    STATIC_ROOT = Path(sys._MEIPASS) / "staticfiles"   # bundled copy
+else:
+    STATIC_ROOT = BASE_DIR / "staticfiles"
 
 if ROLE == "terminal":
     MIDDLEWARE += ["sync.middleware.TerminalSetupMiddleware"]
