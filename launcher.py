@@ -91,7 +91,6 @@ def main():
 
     call_command("migrate", "--noinput")
     call_command("collectstatic", "--noinput")
-    call_command("sync")
 
     from sync.engine import worker
 
