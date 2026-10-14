@@ -13,7 +13,12 @@
           <h5 class="card-title">Categories</h5>
           <p class="card-text text-muted">Manage product categories.</p>
           <a href="{% url 'inventory:category_list' %}" class="btn btn-outline-primary">View categories</a>
+          {% if app_role == "terminal" %}
+          <button type="button" class="btn btn-primary" disabled>Add category</button>
+          <small class="form-text d-block mt-2">Add on the main Server</small>
+          {% else %}
           <a href="{% url 'inventory:category_create' %}" class="btn btn-primary">Add category</a>
+          {% endif %}
         </div>
       </div>
     </div>
@@ -23,7 +28,12 @@
           <h5 class="card-title">Items</h5>
           <p class="card-text text-muted">Manage inventory items. Add a category on the same page when creating an item.</p>
           <a href="{% url 'inventory:item_list' %}" class="btn btn-outline-primary">View items</a>
+          {% if app_role == "terminal" %}
+          <button type="button" class="btn btn-primary" disabled>Add item</button>
+          <small class="form-text d-block mt-2">Add on the main Server</small>
+          {% else %}
           <a href="{% url 'inventory:item_create' %}" class="btn btn-primary">Add item</a>
+          {% endif %}
         </div>
       </div>
     </div>
@@ -33,7 +43,28 @@
           <h5 class="card-title">Bundles</h5>
           <p class="card-text text-muted">Sell items together as bundles with a custom price.</p>
           <a href="{% url 'inventory:bundle_list' %}" class="btn btn-outline-primary">View bundles</a>
+          {% if app_role == "terminal" %}
+          <button type="button" class="btn btn-primary" disabled>Add bundle</button>
+          <small class="form-text d-block mt-2">Add on the main Server</small>
+          {% else %}
           <a href="{% url 'inventory:bundle_create' %}" class="btn btn-primary">Add bundle</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6 col-lg-4">
+      <div class="card h-100">
+        <div class="card-body">
+          <h5 class="card-title">Stock</h5>
+          <p class="card-text text-muted">View stock levels and stock change history.</p>
+          <a href="{% url 'inventory:stock_list' %}" class="btn btn-outline-primary">View stock</a>
+          <a href="{% url 'inventory:stock_logs' %}" class="btn btn-outline-primary">View stock logs</a>
+          {% if app_role == "terminal" %}
+          <button type="button" class="btn btn-primary" disabled>Add stock</button>
+          <small class="form-text d-block mt-2">Add on the main Server</small>
+          {% else %}
+          <a href="{% url 'inventory:stock_create' %}" class="btn btn-primary">Add stock</a>
+          {% endif %}
         </div>
       </div>
     </div>
