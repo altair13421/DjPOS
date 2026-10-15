@@ -1,20 +1,35 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.models import User
 from django.contrib.auth.views import LoginView, LogoutView
 from django.contrib.messages.views import SuccessMessageMixin
 from django.db import models, transaction
+from django.http import HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
-from django.views.generic import CreateView, DetailView, FormView, ListView, View
+from django.views.generic import (
+    CreateView,
+    DetailView,
+    FormView,
+    ListView,
+    UpdateView,
+    View,
+)
 
 from sync.payloads import enqueue_userlog
 from django.conf import settings as dj_settings
 
 from .choices import OrganizationRole, UserLogReasons
-from .forms import UserCreateForm, BlankSignupForm
-from .models import Organization, OrganizationMembership, UserLog
+from .forms import (
+    BlankSignupForm,
+    OrganizationSettingsForm,
+    UserCreateForm,
+    UserProfileForm,
+)
+from .models import Organization, OrganizationMembership, Settings, UserLog
 from .organization_utils import (
     get_default_organization,
     set_session_organization,
@@ -189,6 +204,87 @@ class UserLogDetailView(OrgLoginAndRoleRequiredMixin, DetailView):
             "-created_at"
         )
         return queryset
+
+
+class OrganizationSettingsView(
+    OrgLoginAndRoleRequiredMixin, SuccessMessageMixin, UpdateView
+):
+    model = Settings
+    form_class = OrganizationSettingsForm
+    template_name = "users/organization_settings.html"
+    success_url = reverse_lazy("users:general_settings")
+    success_message = "Organization settings updated."
+
+    required_roles = [OrganizationRole.OWNER]
+
+    def dispatch(self, request, *args, **kwargs):
+        if dj_settings.ROLE == "terminal" and request.method == "POST":
+            messages.error(request, "Organization settings can only be changed on the server.")
+            return redirect("users:general_settings")
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_object(self, queryset=None):
+        organization = self.request.organization
+        return Settings.objects.filter(organization=organization).first() or Settings(
+            organization=organization
+        )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["can_edit"] = dj_settings.ROLE != "terminal"
+        context["organization_settings"] = self.object
+        return context
+
+
+class UserSettingsView(LoginRequiredMixin, View):
+    template_name = "users/user_settings.html"
+
+    def get_context_data(self, profile_form=None, password_form=None):
+        return {
+            "profile_form": profile_form or UserProfileForm(instance=self.request.user),
+            "password_form": password_form
+            or PasswordChangeForm(user=self.request.user),
+            "memberships": self.request.user.memberships.select_related(
+                "organization"
+            ),
+            "can_edit": dj_settings.ROLE != "terminal",
+        }
+
+    def get(self, request, *args, **kwargs):
+        return render(request, self.template_name, self.get_context_data())
+
+    def post(self, request, *args, **kwargs):
+        if dj_settings.ROLE == "terminal":
+            messages.error(request, "User settings can only be changed on the server.")
+            return redirect("users:user_settings")
+
+        action = request.POST.get("action")
+        if action == "profile":
+            profile_form = UserProfileForm(request.POST, instance=request.user)
+            if profile_form.is_valid():
+                profile_form.save()
+                messages.success(request, "Profile updated.")
+                return redirect("users:user_settings")
+            return render(
+                request,
+                self.template_name,
+                self.get_context_data(profile_form=profile_form),
+            )
+        if action == "password":
+            password_form = PasswordChangeForm(
+                user=request.user, data=request.POST
+            )
+            if password_form.is_valid():
+                user = password_form.save()
+                update_session_auth_hash(request, user)
+                messages.success(request, "Password changed.")
+                return redirect("users:user_settings")
+            return render(
+                request,
+                self.template_name,
+                self.get_context_data(password_form=password_form),
+            )
+        return HttpResponseBadRequest("Unknown user settings form.")
 
 
 class UserListView(OrgLoginAndRoleRequiredMixin, ListView):

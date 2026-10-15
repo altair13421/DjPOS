@@ -1,6 +1,6 @@
 from collections import defaultdict
 from decimal import Decimal
-from datetime import timedelta
+from datetime import datetime, time, timedelta
 
 from rest_framework import viewsets
 from rest_framework.decorators import action
@@ -111,6 +111,112 @@ class AnalyticsViewSet(viewsets.ViewSet):
         )
 
     @action(detail=False, methods=["get"])
+    def overview(self, request):
+        organization = getattr(request, "organization", None)
+        if organization is None:
+            return Response({"detail": "Organization required."}, status=403)
+
+        today = timezone.localdate()
+        first_day = today - timedelta(days=6)
+        current_tz = timezone.get_current_timezone()
+        start = timezone.make_aware(datetime.combine(first_day, time.min), current_tz)
+        end = timezone.make_aware(
+            datetime.combine(today + timedelta(days=1), time.min), current_tz
+        )
+        sales = list(
+            self._org_sales(request)
+            .filter(created_at__gte=start, created_at__lt=end)
+            .select_related("customer")
+            .prefetch_related(
+                "sale_items__item",
+                "sale_items__bundle__bundleitem_set__item",
+            )
+            .order_by("-created_at")
+        )
+
+        sales_by_day = defaultdict(list)
+        for sale in sales:
+            sales_by_day[timezone.localdate(sale.created_at)].append(sale)
+
+        daily = []
+        week_item_qty = defaultdict(Decimal)
+        week_item_revenue = defaultdict(Decimal)
+        today_revenue = Decimal("0.00")
+        today_cost = Decimal("0.00")
+        today_count = 0
+        for day_offset in range(7):
+            day = first_day + timedelta(days=day_offset)
+            day_sales = sales_by_day[day]
+            revenue = sum((sale.total for sale in day_sales), Decimal("0.00"))
+            quantities, item_revenues, item_costs = _expanded_qty_rev_cost_for_sales(
+                day_sales
+            )
+            cost = sum(item_costs.values(), Decimal("0.00"))
+            daily.append(
+                {
+                    "date": day.isoformat(),
+                    "revenue": str(revenue),
+                    "cost": str(cost),
+                    "profit": str(revenue - cost),
+                    "sales_count": len(day_sales),
+                }
+            )
+            for item_id, quantity in quantities.items():
+                week_item_qty[item_id] += quantity
+                week_item_revenue[item_id] += item_revenues[item_id]
+            if day == today:
+                today_revenue = revenue
+                today_cost = cost
+                today_count = len(day_sales)
+
+        item_ids = list(week_item_qty)
+        names = dict(
+            Item.objects.filter(
+                id__in=item_ids, organization=organization
+            ).values_list("id", "name")
+        )
+        top_items = [
+            {
+                "item_name": names.get(item_id, str(item_id)),
+                "total_sold": str(quantity),
+                "revenue": str(week_item_revenue[item_id]),
+            }
+            for item_id, quantity in week_item_qty.items()
+        ]
+        top_items.sort(
+            key=lambda item: Decimal(item["total_sold"]), reverse=True
+        )
+        top_items = top_items[:5]
+
+        return Response(
+            {
+                "today": {
+                    "revenue": str(today_revenue),
+                    "cost": str(today_cost),
+                    "profit": str(today_revenue - today_cost),
+                    "sales_count": today_count,
+                    "average_sale": str(
+                        today_revenue / today_count if today_count else Decimal("0.00")
+                    ),
+                },
+                "daily": daily,
+                "top_items": top_items,
+                "recent_sales": [
+                    {
+                        "id": sale.pk,
+                        "customer": sale.customer.name if sale.customer else "Walk-in",
+                        "created_at": sale.created_at.isoformat(),
+                        "total": str(sale.total),
+                        "item_count": sum(
+                            line.quantity for line in sale.sale_items.all()
+                        ),
+                    }
+                    for sale in sales[:6]
+                ],
+            }
+        )
+
+    @action(detail=False, methods=["get"])
     def items_sold_7d(self, request):
         sales = self._last_7d_sales(request)
         qty_by_item_id, _, _ = _expanded_qty_rev_cost_for_sales(sales)
@@ -143,4 +249,3 @@ class AnalyticsViewSet(viewsets.ViewSet):
         ]
         result.sort(key=lambda x: x["total_sold"], reverse=True)
         return Response(result[:5])
-

@@ -248,25 +248,40 @@ class BlankSignupForm(forms.Form):
 
 
 class OrganizationSettingsForm(forms.ModelForm):
-    organization_name = forms.CharField(
-        required=True,
-        widget=forms.TextInput(
-            attrs={
-                "class": "form-control",
-                "placeholder": "Organization Name",
-                "disabled": "disabled",
-            }
-        ),
-    )
-
     class Meta:
         model = Settings
         fields = [
             "store_name",
             "store_address",
-            "currency",
-            "owner_name",
             "owner_phone_number",
             "store_category",
             "shift_duration",
         ]
+        widgets = {
+            "store_name": forms.TextInput(attrs={"class": "form-control"}),
+            "store_address": forms.Textarea(
+                attrs={"class": "form-control", "rows": 3}
+            ),
+            "owner_phone_number": forms.TextInput(attrs={"class": "form-control"}),
+            "store_category": forms.Select(attrs={"class": "form-select"}),
+            "shift_duration": forms.TextInput(attrs={"class": "form-control"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["store_address"].required = False
+        self.fields["store_name"].label = "Store name"
+        self.fields["owner_phone_number"].label = "Phone number"
+        self.fields["store_category"].label = "Category"
+        self.fields["shift_duration"].label = "Shift duration"
+
+
+class UserProfileForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ["first_name", "last_name", "email"]
+        widgets = {
+            "first_name": forms.TextInput(attrs={"class": "form-control"}),
+            "last_name": forms.TextInput(attrs={"class": "form-control"}),
+            "email": forms.EmailInput(attrs={"class": "form-control"}),
+        }

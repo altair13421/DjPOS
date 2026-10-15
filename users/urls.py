@@ -7,7 +7,13 @@ app_name = "users"
 urlpatterns = [
     path("login/", views.UserLoginView.as_view(), name="login"),
     path("logout/", views.UserLogoutView.as_view(), name="logout"),
+    path("profile/", views.UserSettingsView.as_view(), name="user_settings"),
     path("organization/", views.select_organization, name="select_organization"),
+    path(
+        "organization/settings/",
+        views.OrganizationSettingsView.as_view(),
+        name="general_settings",
+    ),
     path("organization/users/", views.UserListView.as_view(), name="user_list"),
     path(
         "organization/users/<int:pk>/",

@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}User Settings{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="h2 mb-1">User Settings</h1>
+  <p class="text-muted mb-0">Your profile and account security</p>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-6">
+    <section class="card h-100">
+      <div class="card-header">
+        <h2 class="h5 mb-0">Profile</h2>
+      </div>
+      <div class="card-body">
+        <dl class="row">
+          <dt class="col-sm-4">Username</dt>
+          <dd class="col-sm-8">{{ request.user.username }}</dd>
+          <dt class="col-sm-4">Joined</dt>
+          <dd class="col-sm-8">{{ request.user.date_joined }}</dd>
+          <dt class="col-sm-4">Last login</dt>
+          <dd class="col-sm-8">{{ request.user.last_login|default:"Never" }}</dd>
+        </dl>
+
+        {% if can_edit %}
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="profile">
+          {% for field in profile_form %}
+          <div class="mb-3">
+            {{ field.label_tag }}
+            {{ field }}
+            {% if field.errors %}
+            <div class="invalid-feedback d-block">{{ field.errors.0 }}</div>
+            {% endif %}
+          </div>
+          {% endfor %}
+          <button type="submit" class="btn btn-primary">Save profile</button>
+        </form>
+        {% else %}
+        <p class="alert alert-info" role="status">
+          Profile details are read-only on this terminal. Make changes on the central server; they will sync to this terminal.
+        </p>
+        <dl class="row mb-0">
+          <dt class="col-sm-4">First name</dt>
+          <dd class="col-sm-8">{{ request.user.first_name|default:"—" }}</dd>
+          <dt class="col-sm-4">Last name</dt>
+          <dd class="col-sm-8">{{ request.user.last_name|default:"—" }}</dd>
+          <dt class="col-sm-4">Email</dt>
+          <dd class="col-sm-8">{{ request.user.email|default:"—" }}</dd>
+        </dl>
+        {% endif %}
+      </div>
+    </section>
+  </div>
+
+  <div class="col-lg-6">
+    <section class="card h-100">
+      <div class="card-header">
+        <h2 class="h5 mb-0">Organization access</h2>
+      </div>
+      <div class="card-body">
+        {% for membership in memberships %}
+        <div class="d-flex justify-content-between gap-3{% if not forloop.last %} mb-3 pb-3 border-bottom{% endif %}">
+          <span>{{ membership.organization.name }}</span>
+          <span class="text-muted">{{ membership.get_role_display }}</span>
+        </div>
+        {% empty %}
+        <p class="text-muted mb-0">No organization memberships.</p>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+
+  <div class="col-lg-6">
+    <section class="card">
+      <div class="card-header">
+        <h2 class="h5 mb-0">Change password</h2>
+      </div>
+      <div class="card-body">
+        {% if can_edit %}
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="password">
+          {% for field in password_form %}
+          <div class="mb-3">
+            {{ field.label_tag }}
+            {{ field }}
+            {% if field.help_text %}
+            <div class="form-text">{{ field.help_text|safe }}</div>
+            {% endif %}
+            {% if field.errors %}
+            <div class="invalid-feedback d-block">{{ field.errors.0 }}</div>
+            {% endif %}
+          </div>
+          {% endfor %}
+          <button type="submit" class="btn btn-primary">Change password</button>
+        </form>
+        {% else %}
+        <p class="text-muted mb-0">Password changes are available on the central server.</p>
+        {% endif %}
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}

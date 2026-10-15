@@ -2,64 +2,312 @@
 
 {% block title %}POS Dashboard{% endblock %}
 
+{% block extra_css %}
+<style>
+    .dashboard {
+        --dash-ink: #182230;
+        --dash-muted: #78869a;
+        --dash-border: #e8edf3;
+        color: var(--dash-ink);
+    }
+
+    .dashboard-hero {
+        position: relative;
+        overflow: hidden;
+        padding: clamp(1.5rem, 3vw, 2.5rem);
+        border-radius: 1.25rem;
+        background:
+            radial-gradient(circle at 82% 20%, rgba(255,255,255,.2), transparent 24%),
+            linear-gradient(115deg, #142b4a 0%, #245a80 55%, #18877f 100%);
+        color: #fff;
+        box-shadow: 0 1rem 2.5rem rgba(20, 43, 74, .16);
+    }
+
+    .dashboard-hero p {
+        color: rgba(255,255,255,.76);
+    }
+
+    .dashboard-eyebrow {
+        font-size: .75rem;
+        font-weight: 700;
+        letter-spacing: .12em;
+        text-transform: uppercase;
+    }
+
+    .dashboard .card {
+        border: 1px solid var(--dash-border);
+        border-radius: 1rem;
+        box-shadow: 0 .35rem 1.2rem rgba(29, 48, 69, .045);
+    }
+
+    .metric-card {
+        position: relative;
+        height: 100%;
+        overflow: hidden;
+    }
+
+    .metric-card::after {
+        position: absolute;
+        top: -2.2rem;
+        right: -2.2rem;
+        width: 6rem;
+        height: 6rem;
+        border-radius: 50%;
+        background: var(--metric-soft);
+        content: "";
+    }
+
+    .metric-icon {
+        display: grid;
+        width: 2.6rem;
+        height: 2.6rem;
+        place-items: center;
+        border-radius: .85rem;
+        background: var(--metric-soft);
+        color: var(--metric-color);
+        font-size: 1.15rem;
+        font-weight: 800;
+    }
+
+    .metric-label {
+        color: var(--dash-muted);
+        font-size: .84rem;
+        font-weight: 600;
+    }
+
+    .metric-value {
+        margin: .75rem 0 .2rem;
+        font-size: clamp(1.45rem, 2.5vw, 2rem);
+        font-weight: 750;
+        letter-spacing: -.045em;
+        overflow-wrap: anywhere;
+    }
+
+    .metric-note {
+        color: var(--dash-muted);
+        font-size: .78rem;
+    }
+
+    .section-title {
+        font-size: 1rem;
+        font-weight: 700;
+    }
+
+    .section-subtitle {
+        color: var(--dash-muted);
+        font-size: .82rem;
+    }
+
+    .chart-wrap {
+        position: relative;
+        min-height: 290px;
+    }
+
+    .chart-wrap.chart-donut {
+        min-height: 260px;
+    }
+
+    .table-dashboard > :not(caption) > * > * {
+        padding: .85rem 1rem;
+        border-bottom-color: var(--dash-border);
+        vertical-align: middle;
+    }
+
+    .sale-avatar {
+        display: inline-grid;
+        width: 2.2rem;
+        height: 2.2rem;
+        place-items: center;
+        border-radius: .75rem;
+        background: #edf4fa;
+        color: #245a80;
+        font-weight: 700;
+    }
+
+    .empty-state {
+        display: grid;
+        min-height: 220px;
+        place-items: center;
+        color: var(--dash-muted);
+        text-align: center;
+    }
+
+    @media (max-width: 575.98px) {
+        .dashboard-hero .btn-group {
+            display: grid;
+            width: 100%;
+        }
+
+        .chart-wrap {
+            min-height: 250px;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="row mb-4">
-    <div class="col-12 d-flex justify-content-between align-items-center">
-        <h1 class="h2">POS Dashboard</h1>
-        <div class="btn-group">
-            <a href="{% url 'pos:api_root' %}" class="btn btn-outline-secondary">API Root</a>
-            <a href="{% url 'pos:sale_panel' %}" class="btn btn-primary">SALE PANEL</a>
-            <a href="{% url 'inventory:item_list' %}" class="btn btn-outline-secondary">Manage Inventory</a>
+<div class="dashboard">
+    <section class="dashboard-hero mb-4">
+        <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-4">
+            <div>
+                <div class="dashboard-eyebrow mb-2">Your business at a glance</div>
+                <h1 class="display-6 fw-bold mb-2">POS Dashboard</h1>
+                <p class="mb-0">A clear view of today's sales and the last seven days.</p>
+                <div class="small mt-3" id="dashboard-date">Loading date…</div>
+            </div>
+            <div class="btn-group align-self-lg-center" role="group" aria-label="Dashboard actions">
+                <a href="{% url 'pos:sale_panel' %}" class="btn btn-light fw-semibold px-4">Start a sale</a>
+                <a href="{% url 'pos:sale_history' %}" class="btn btn-outline-light px-4">Sales history</a>
+                <a href="{% url 'inventory:stock_list' %}" class="btn btn-outline-light px-4">Stock</a>
+            </div>
         </div>
-    </div>
-</div>
+    </section>
 
-<!-- Key Metrics -->
-<div class="row mb-4">
-    <div class="col-md-4">
-        <div class="card text-center h-100">
-            <div class="card-body">
-                <h6 class="card-subtitle mb-2 text-muted">Today's Revenue</h6>
-                <h2 class="card-title text-success" id="revenue-display">PKR 0</h2>
-            </div>
-        </div>
+    <div class="alert alert-warning d-none" id="dashboard-error" role="alert">
+        Dashboard data could not be loaded. Check your connection and refresh the page.
     </div>
-    <div class="col-md-4">
-        <div class="card text-center h-100">
-            <div class="card-body">
-                <h6 class="card-subtitle mb-2 text-muted">Gross Profit</h6>
-                <h2 class="card-title text-primary" id="profit-display">PKR 0</h2>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card text-center h-100">
-            <div class="card-body">
-                <h6 class="card-subtitle mb-2 text-muted">Total Cost</h6>
-                <h2 class="card-title text-danger" id="cost-display">PKR 0</h2>
-            </div>
-        </div>
-    </div>
-</div>
 
-<!-- Charts -->
-<div class="row">
-    <div class="col-md-8 mb-4">
-        <div class="card">
-            <div class="card-header">Items Sold (Last 7 Days)</div>
-            <div class="card-body">
-                <canvas id="itemsSoldChart"></canvas>
-            </div>
+    <section class="row g-3 mb-4" aria-label="Today's key figures">
+        <div class="col-12 col-sm-6 col-xl-3">
+            <article class="card metric-card" style="--metric-color:#177c70;--metric-soft:#e5f5f1">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="metric-label">Today's revenue</span>
+                        <span class="metric-icon" aria-hidden="true">↗</span>
+                    </div>
+                    <div class="metric-value" id="revenue-display">—</div>
+                    <div class="metric-note">Sales recorded today</div>
+                </div>
+            </article>
         </div>
-    </div>
-    <div class="col-md-4 mb-4">
-        <div class="card">
-            <div class="card-header">Top 5 Items (Last 7 Days)</div>
-            <div class="card-body">
-                <canvas id="topItemsChart"></canvas>
-            </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <article class="card metric-card" style="--metric-color:#536bd2;--metric-soft:#edf0ff">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="metric-label">Gross profit</span>
+                        <span class="metric-icon" aria-hidden="true">✦</span>
+                    </div>
+                    <div class="metric-value" id="profit-display">—</div>
+                    <div class="metric-note">Revenue less estimated item cost</div>
+                </div>
+            </article>
         </div>
-    </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <article class="card metric-card" style="--metric-color:#d07d27;--metric-soft:#fff3e4">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="metric-label">Transactions</span>
+                        <span class="metric-icon" aria-hidden="true">#</span>
+                    </div>
+                    <div class="metric-value" id="sales-count-display">—</div>
+                    <div class="metric-note">Completed sales today</div>
+                </div>
+            </article>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <article class="card metric-card" style="--metric-color:#9d5db5;--metric-soft:#f6ebfa">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="metric-label">Average sale</span>
+                        <span class="metric-icon" aria-hidden="true">◉</span>
+                    </div>
+                    <div class="metric-value" id="average-sale-display">—</div>
+                    <div class="metric-note">Average value per transaction</div>
+                </div>
+            </article>
+        </div>
+    </section>
+
+    <section class="row g-3 mb-4">
+        <div class="col-12 col-xl-8">
+            <article class="card h-100">
+                <div class="card-body p-4">
+                    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+                        <div>
+                            <h2 class="section-title mb-1">Sales performance</h2>
+                            <p class="section-subtitle mb-0">Revenue and gross profit by day · last 7 days</p>
+                        </div>
+                        <span class="badge rounded-pill text-bg-light px-3 py-2">7-day view</span>
+                    </div>
+                    <div class="chart-wrap">
+                        <canvas id="salesTrendChart" aria-label="Revenue and gross profit chart for the last seven days"></canvas>
+                    </div>
+                    <div class="d-flex flex-wrap gap-4 mt-2 small text-secondary">
+                        <span>Today's cost: <strong id="cost-display" class="text-dark">—</strong></span>
+                        <span>Today's transactions: <strong id="sales-count-summary" class="text-dark">—</strong></span>
+                    </div>
+                </div>
+            </article>
+        </div>
+        <div class="col-12 col-xl-4">
+            <article class="card h-100">
+                <div class="card-body p-4">
+                    <div class="mb-3">
+                        <h2 class="section-title mb-1">Best sellers</h2>
+                        <p class="section-subtitle mb-0">Items sold in the last 7 days</p>
+                    </div>
+                    <div class="chart-wrap chart-donut">
+                        <canvas id="topItemsChart" aria-label="Top five items sold"></canvas>
+                        <div class="empty-state d-none" id="top-items-empty">No item sales in this period yet.</div>
+                    </div>
+                    <div id="top-items-list" class="mt-3"></div>
+                </div>
+            </article>
+        </div>
+    </section>
+
+    <section class="row g-3">
+        <div class="col-12 col-lg-8">
+            <article class="card h-100">
+                <div class="card-body p-0">
+                    <div class="d-flex justify-content-between align-items-center gap-3 p-4 pb-3">
+                        <div>
+                            <h2 class="section-title mb-1">Recent transactions</h2>
+                            <p class="section-subtitle mb-0">Your latest sales</p>
+                        </div>
+                        <a href="{% url 'pos:sale_history' %}" class="btn btn-sm btn-outline-secondary">View all</a>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-dashboard mb-0">
+                            <thead class="small text-secondary">
+                                <tr>
+                                    <th scope="col">Sale</th>
+                                    <th scope="col">Customer</th>
+                                    <th scope="col">Items</th>
+                                    <th scope="col">Time</th>
+                                    <th scope="col" class="text-end">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recent-sales-body">
+                                <tr><td colspan="5" class="text-center text-secondary py-4">Loading transactions…</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </article>
+        </div>
+        <div class="col-12 col-lg-4">
+            <article class="card h-100">
+                <div class="card-body p-4">
+                    <h2 class="section-title mb-1">At a glance</h2>
+                    <p class="section-subtitle mb-4">Today's sales mix</p>
+                    <div class="d-flex justify-content-between align-items-center py-3 border-bottom">
+                        <span class="text-secondary">Revenue</span>
+                        <strong id="quick-revenue">—</strong>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center py-3 border-bottom">
+                        <span class="text-secondary">Estimated cost</span>
+                        <strong id="quick-cost">—</strong>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center py-3">
+                        <span class="text-secondary">Gross margin</span>
+                        <strong id="margin-display">—</strong>
+                    </div>
+                    <a href="{% url 'pos:sale_panel' %}" class="btn btn-primary w-100 mt-3">Create a sale</a>
+                </div>
+            </article>
+        </div>
+    </section>
 </div>
 {% endblock %}
 
@@ -67,71 +315,221 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     document.addEventListener("DOMContentLoaded", async () => {
-        // 1. Fetch Key Metrics (Profit)
-        try {
-            const profitRes = await fetch('/pos/api/analytics/profit/');
-            const profitData = await profitRes.json();
-            document.getElementById('revenue-display').innerText = 'PKR ' + Math.round(parseFloat(profitData.revenue));
-            document.getElementById('profit-display').innerText = 'PKR ' + Math.round(parseFloat(profitData.profit));
-            document.getElementById('cost-display').innerText = 'PKR ' + Math.round(parseFloat(profitData.cost));
-        } catch (e) { console.error("Error fetching profit:", e); }
+        const currency = new Intl.NumberFormat(undefined, {
+            maximumFractionDigits: 0
+        });
+        const number = new Intl.NumberFormat(undefined, {
+            maximumFractionDigits: 2
+        });
+        const formatMoney = value => `PKR ${currency.format(Number(value) || 0)}`;
+        const dateElement = document.getElementById("dashboard-date");
+        dateElement.textContent = new Intl.DateTimeFormat(undefined, {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric"
+        }).format(new Date());
 
-        // 2. Items Sold (Last 7 Days) – bar chart, one bar per item
+        let response;
         try {
-            const itemsRes = await fetch('/pos/api/analytics/items_sold_7d/');
-            const itemsData = await itemsRes.json();
-            const itemLabels = itemsData.map(d => d.item_name);
-            const itemCounts = itemsData.map(d => d.total_sold);
+            response = await fetch("{% url 'pos:api_root' %}analytics/overview/");
+        } catch (error) {
+            document.getElementById("dashboard-error").classList.remove("d-none");
+            document.getElementById("recent-sales-body").innerHTML =
+                '<tr><td colspan="5" class="text-center text-secondary py-4">Dashboard data is temporarily unavailable.</td></tr>';
+            return;
+        }
+        if (!response.ok) {
+            document.getElementById("dashboard-error").classList.remove("d-none");
+            document.getElementById("recent-sales-body").innerHTML =
+                '<tr><td colspan="5" class="text-center text-secondary py-4">Dashboard data is temporarily unavailable.</td></tr>';
+            return;
+        }
 
-            if (itemLabels.length === 0) {
-                document.getElementById('itemsSoldChart').parentElement.innerHTML = '<p class="text-muted text-center mb-0">No items sold in the last 7 days.</p>';
-            } else {
-                new Chart(document.getElementById('itemsSoldChart'), {
-                    type: 'bar',
-                    data: {
-                        labels: itemLabels,
-                        datasets: [{
-                            label: 'Quantity sold',
-                            data: itemCounts,
-                            backgroundColor: 'rgba(13, 110, 253, 0.7)',
-                            borderColor: '#0d6efd',
-                            borderWidth: 1
-                        }]
-                    },
-                    options: {
-                        indexAxis: 'y',
-                        scales: {
-                            x: { beginAtZero: true, title: { display: true, text: 'Quantity sold' } },
-                            y: { title: { display: true, text: 'Item' } }
+        const data = await response.json();
+        const today = data.today;
+        const revenue = Number(today.revenue) || 0;
+        const cost = Number(today.cost) || 0;
+        const profit = Number(today.profit) || 0;
+        const margin = revenue ? (profit / revenue) * 100 : 0;
+
+        document.getElementById("revenue-display").textContent = formatMoney(revenue);
+        document.getElementById("profit-display").textContent = formatMoney(profit);
+        document.getElementById("cost-display").textContent = formatMoney(cost);
+        document.getElementById("sales-count-display").textContent = number.format(today.sales_count);
+        document.getElementById("sales-count-summary").textContent = number.format(today.sales_count);
+        document.getElementById("average-sale-display").textContent = formatMoney(today.average_sale);
+        document.getElementById("quick-revenue").textContent = formatMoney(revenue);
+        document.getElementById("quick-cost").textContent = formatMoney(cost);
+        document.getElementById("margin-display").textContent = `${margin.toFixed(1)}%`;
+
+        const chartColors = ["#177c70", "#536bd2", "#d07d27", "#9d5db5", "#dc6570"];
+        if (data.daily.length) {
+            new Chart(document.getElementById("salesTrendChart"), {
+                type: "bar",
+                data: {
+                    labels: data.daily.map(day =>
+                        new Intl.DateTimeFormat(undefined, {weekday: "short"}).format(
+                            new Date(`${day.date}T12:00:00`)
+                        )
+                    ),
+                    datasets: [
+                        {
+                            type: "bar",
+                            label: "Revenue",
+                            data: data.daily.map(day => Number(day.revenue)),
+                            backgroundColor: "rgba(23, 124, 112, .76)",
+                            hoverBackgroundColor: "#177c70",
+                            borderRadius: 7,
+                            maxBarThickness: 30
                         },
-                        plugins: { legend: { display: false } }
+                        {
+                            type: "line",
+                            label: "Gross profit",
+                            data: data.daily.map(day => Number(day.profit)),
+                            borderColor: "#536bd2",
+                            backgroundColor: "rgba(83, 107, 210, .12)",
+                            pointBackgroundColor: "#fff",
+                            pointBorderColor: "#536bd2",
+                            pointBorderWidth: 2,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            borderWidth: 3,
+                            tension: .35,
+                            fill: true
+                        },
+                        {
+                            type: "line",
+                            label: "Transactions",
+                            data: data.daily.map(day => Number(day.sales_count)),
+                            yAxisID: "sales",
+                            borderColor: "#d07d27",
+                            backgroundColor: "#d07d27",
+                            pointRadius: 3,
+                            pointHoverRadius: 5,
+                            borderWidth: 2,
+                            borderDash: [5, 4],
+                            tension: .25
+                        }
+                    ]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    interaction: {mode: "index", intersect: false},
+                    plugins: {
+                        legend: {
+                            position: "bottom",
+                            labels: {usePointStyle: true, boxWidth: 8, padding: 20}
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: context => `${context.dataset.label}: ${formatMoney(context.raw)}`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {grid: {display: false}, border: {display: false}},
+                        y: {
+                            beginAtZero: true,
+                            border: {display: false},
+                            grid: {color: "rgba(120, 134, 154, .12)"},
+                            ticks: {
+                                callback: value => currency.format(value)
+                            }
+                        },
+                        sales: {
+                            type: "linear",
+                            position: "right",
+                            beginAtZero: true,
+                            grid: {drawOnChartArea: false},
+                            border: {display: false},
+                            title: {display: true, text: "Transactions"}
+                        }
                     }
-                });
-            }
-        } catch (e) { console.error("Error fetching items sold:", e); }
+                }
+            });
+        }
 
-        // 3. Top 5 Items (doughnut) – includes items from bundles
-        try {
-            const topRes = await fetch('/pos/api/analytics/top_items/');
-            const topData = await topRes.json();
-            const topLabels = topData.map(d => d.item_name);
-            const topCounts = topData.map(d => d.total_sold);
-
-            if (topLabels.length === 0) {
-                document.getElementById('topItemsChart').parentElement.innerHTML = '<p class="text-muted text-center mb-0">No sales in the last 7 days.</p>';
-            } else {
-                new Chart(document.getElementById('topItemsChart'), {
-                    type: 'doughnut',
-                    data: {
-                        labels: topLabels,
-                        datasets: [{
-                            data: topCounts,
-                            backgroundColor: ['#0d6efd', '#6610f2', '#6f42c1', '#d63384', '#dc3545']
-                        }]
+        const topItems = data.top_items || [];
+        if (topItems.length) {
+            new Chart(document.getElementById("topItemsChart"), {
+                type: "doughnut",
+                data: {
+                    labels: topItems.map(item => item.item_name),
+                    datasets: [{
+                        data: topItems.map(item => Number(item.total_sold)),
+                        backgroundColor: chartColors,
+                        borderColor: "#fff",
+                        borderWidth: 4,
+                        hoverOffset: 7
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    cutout: "68%",
+                    plugins: {
+                        legend: {display: false},
+                        tooltip: {
+                            callbacks: {
+                                label: context => `${context.label}: ${number.format(context.raw)} sold`
+                            }
+                        }
                     }
-                });
-            }
-        } catch (e) { console.error("Error fetching top items:", e); }
+                }
+            });
+            const list = document.getElementById("top-items-list");
+            topItems.forEach((item, index) => {
+                const row = document.createElement("div");
+                row.className = "d-flex justify-content-between align-items-center py-2 border-bottom";
+                const name = document.createElement("span");
+                name.className = "text-truncate me-3";
+                name.textContent = item.item_name;
+                const quantity = document.createElement("strong");
+                quantity.textContent = `${number.format(item.total_sold)} sold`;
+                quantity.style.color = chartColors[index % chartColors.length];
+                row.append(name, quantity);
+                list.appendChild(row);
+            });
+        } else {
+            document.getElementById("topItemsChart").classList.add("d-none");
+            document.getElementById("top-items-empty").classList.remove("d-none");
+        }
+
+        const salesBody = document.getElementById("recent-sales-body");
+        if (!data.recent_sales.length) {
+            salesBody.innerHTML = '<tr><td colspan="5" class="text-center text-secondary py-4">No transactions yet today. Start a sale to see it here.</td></tr>';
+            return;
+        }
+        salesBody.innerHTML = "";
+        data.recent_sales.forEach(sale => {
+            const row = document.createElement("tr");
+            const saleCell = document.createElement("th");
+            saleCell.scope = "row";
+            const avatar = document.createElement("span");
+            avatar.className = "sale-avatar me-2";
+            avatar.textContent = "#";
+            const saleLink = document.createElement("a");
+            saleLink.href = `/pos/sale/${sale.id}/receipt/`;
+            saleLink.className = "text-decoration-none fw-semibold";
+            saleLink.textContent = `#${sale.id}`;
+            saleCell.append(avatar, saleLink);
+
+            const customerCell = document.createElement("td");
+            customerCell.textContent = sale.customer;
+            const itemsCell = document.createElement("td");
+            itemsCell.textContent = number.format(sale.item_count);
+            const timeCell = document.createElement("td");
+            timeCell.className = "text-nowrap text-secondary";
+            timeCell.textContent = new Intl.DateTimeFormat(undefined, {
+                hour: "numeric",
+                minute: "2-digit"
+            }).format(new Date(sale.created_at));
+            const totalCell = document.createElement("td");
+            totalCell.className = "text-end fw-semibold text-nowrap";
+            totalCell.textContent = formatMoney(sale.total);
+            row.append(saleCell, customerCell, itemsCell, timeCell, totalCell);
+            salesBody.appendChild(row);
+        });
     });
 </script>
 {% endblock %}
