@@ -1,7 +1,11 @@
 #!/bin/bash
 # run.sh - Linux/Mac running script for DJPOS
 
-export ALLOWED_HOSTS="192.168.1.4,localhost,127.0.0.1"
+export ALLOWED_HOSTS="192.168.1.10,localhost,127.0.0.1"
+
+echo "ALLOWED_HOSTS=${ALLOWED_HOSTS}"
+echo "IP:"
+ip addr show | grep "inet 192.168"
 
 # Check if virtual environment exists
 if [ ! -d ".venv" ]; then

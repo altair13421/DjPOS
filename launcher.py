@@ -5,6 +5,11 @@ from datetime import datetime
 from pathlib import Path
 from config.paths import data_dir
 
+# Windowed (noconsole) builds have no stdio — give Django & friends a dummy
+if sys.stdout is None:
+    sys.stdout = open(os.devnull, "w", encoding="utf-8")
+if sys.stderr is None:
+    sys.stderr = open(os.devnull, "w", encoding="utf-8")
 
 def receipt_pdf_filename(page_url, now=None):
     match = re.search(r"/sale/(\d+)/receipt/?", page_url)
