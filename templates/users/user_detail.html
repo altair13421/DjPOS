@@ -4,7 +4,13 @@
 {% block content %}
 
 
-<h2>User Logs</h2>
+<div class="page-header">
+    <div>
+        <h1 class="h2 mb-1">{{ user.get_full_name|default:user.username }}</h1>
+        <p class="mb-0">Profile, recent sales, and account activity.</p>
+    </div>
+    <a href="{% url 'users:user_list' %}" class="btn btn-outline-secondary">Back to team</a>
+</div>
 
 <div class="card">
     <div class="card-header">
@@ -46,8 +52,7 @@
  
     </div>
 </div>
-<br>
-<div class="card">
+<div class="card mt-4">
     <div class="card-header">
         <h5 class="card-title mb-0">Recent Sales Activity</h5>
     </div>
@@ -80,8 +85,7 @@
         </div>
     </div>
 </div>
-<br>
-<div class="card">
+<div class="card mt-4">
     <div class="card-header">
         <h5 class="card-title mb-0">Recent Account Activity</h5>
     </div>

@@ -666,8 +666,17 @@ class InventoryStatsView(OrgLoginRequiredMixin, TemplateView):
         # - compute bundle revenue revenue_allocation in Python with prefetch.
         # We’ll do that below using one query to fetch relevant cart lines.
 
-        qs = item_qs.order_by("name").values("id", "name", "wholesale_price")
-        items = {row["id"]: {"id": row["id"], "name": row["name"]} for row in qs}
+        qs = item_qs.order_by("name").values(
+            "id", "name", "category__name", "wholesale_price"
+        )
+        items = {
+            row["id"]: {
+                "id": row["id"],
+                "name": row["name"],
+                "category_name": row["category__name"],
+            }
+            for row in qs
+        }
 
         # Seed qty & cost via DB expressions
         seeded = (
@@ -675,7 +684,7 @@ class InventoryStatsView(OrgLoginRequiredMixin, TemplateView):
                 total_sold_qty=total_qty,
                 total_cost=total_cost,
             )
-            .values("id", "total_sold_qty", "total_cost", "name")
+            .values("id", "total_sold_qty", "total_cost", "name", "category__name")
             .order_by("name")
         )
 
@@ -684,6 +693,7 @@ class InventoryStatsView(OrgLoginRequiredMixin, TemplateView):
             item_id = r["id"]
             items[item_id]["total_sold_qty"] = r["total_sold_qty"] or 0
             items[item_id]["total_cost"] = r["total_cost"] or 0
+            items[item_id]["category_name"] = r["category__name"]
 
         # Bundle revenue allocation in Python (exact per cart line)
         bundle_lines = cart_base.filter(bundle__isnull=False).select_related("bundle").prefetch_related(
@@ -721,10 +731,34 @@ class InventoryStatsView(OrgLoginRequiredMixin, TemplateView):
         for it in items.values():
             total_revenue = it.get("total_revenue", 0) or 0
             total_cost = it.get("total_cost", 0) or 0
+            it["total_revenue"] = total_revenue
+            it["total_cost"] = total_cost
             it["profit"] = total_revenue - total_cost
             items_list.append(it)
 
         context["items"] = sorted(items_list, key=lambda x: x["name"])
+        context["top_items"] = sorted(
+            items_list, key=lambda x: x["total_revenue"], reverse=True
+        )[:8]
+        context["stats_summary"] = {
+            "items_count": len(items_list),
+            "units_sold": sum(
+                (Decimal(str(item["total_sold_qty"] or 0)) for item in items_list),
+                Decimal("0"),
+            ),
+            "revenue": sum(
+                (Decimal(str(item["total_revenue"] or 0)) for item in items_list),
+                Decimal("0"),
+            ),
+            "cost": sum(
+                (Decimal(str(item["total_cost"] or 0)) for item in items_list),
+                Decimal("0"),
+            ),
+            "profit": sum(
+                (Decimal(str(item["profit"] or 0)) for item in items_list),
+                Decimal("0"),
+            ),
+        }
         return context
 
 

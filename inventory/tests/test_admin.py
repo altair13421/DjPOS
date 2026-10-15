@@ -24,6 +24,8 @@ class FillSampleInventoryAdminTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Add dummy inventory")
+        self.assertContains(response, "DJPOS")
+        self.assertContains(response, "css/admin.css")
 
     def test_non_superuser_cannot_use_sample_inventory_page(self):
         staff_user = get_user_model().objects.create_user(

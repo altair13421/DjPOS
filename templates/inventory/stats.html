@@ -2,45 +2,152 @@
 {% block title %}Inventory Statistics{% endblock %}
 
 {% block content %}
-<div class="page-header d-flex flex-wrap align-items-center justify-content-between gap-2">
-  <h1 class="h2 mb-0">Inventory Statistics</h1>
-  <a href="{% url 'inventory:index' %}" class="btn btn-outline-secondary">Back to Dashboard</a>
+<div class="page-header">
+  <div>
+    <h1 class="h2 mb-1">Inventory performance</h1>
+    <p class="mb-0">Sales, cost, and profit across your catalog.</p>
+  </div>
+  <a href="{% url 'inventory:index' %}" class="btn btn-outline-secondary">Back to inventory</a>
 </div>
 
-<div class="card shadow-sm mt-4">
-  <div class="card-body">
+<section class="row g-3 mb-4" aria-label="Inventory summary">
+  <div class="col-6 col-xl-3">
+    <article class="card h-100">
+      <div class="card-body">
+        <div class="small text-muted fw-semibold">Catalog items</div>
+        <div class="fs-3 fw-bold mt-2">{{ stats_summary.items_count }}</div>
+      </div>
+    </article>
+  </div>
+  <div class="col-6 col-xl-3">
+    <article class="card h-100">
+      <div class="card-body">
+        <div class="small text-muted fw-semibold">Units sold</div>
+        <div class="fs-3 fw-bold mt-2">{{ stats_summary.units_sold|floatformat:0 }}</div>
+      </div>
+    </article>
+  </div>
+  <div class="col-6 col-xl-3">
+    <article class="card h-100">
+      <div class="card-body">
+        <div class="small text-muted fw-semibold">Sales revenue</div>
+        <div class="fs-3 fw-bold mt-2 text-success">PKR {{ stats_summary.revenue|floatformat:0 }}</div>
+      </div>
+    </article>
+  </div>
+  <div class="col-6 col-xl-3">
+    <article class="card h-100">
+      <div class="card-body">
+        <div class="small text-muted fw-semibold">Gross profit</div>
+        <div class="fs-3 fw-bold mt-2 {% if stats_summary.profit >= 0 %}text-primary{% else %}text-danger{% endif %}">
+          PKR {{ stats_summary.profit|floatformat:0 }}
+        </div>
+      </div>
+    </article>
+  </div>
+</section>
+
+<section class="card mb-4">
+  <div class="card-body p-4">
+    <div class="mb-3">
+      <h2 class="h5 mb-1">Top items by revenue</h2>
+      <p class="small text-muted mb-0">Revenue is allocated across bundle components by their wholesale value.</p>
+    </div>
+    {% if top_items %}
+    <div style="height: 300px">
+      <canvas id="inventoryRevenueChart" aria-label="Top items by revenue" role="img"></canvas>
+    </div>
+    {{ top_items|json_script:"inventory-chart-data" }}
+    {% else %}
+    <p class="text-muted mb-0 py-4 text-center">Sales data will appear here once items have been sold.</p>
+    {% endif %}
+  </div>
+</section>
+
+<section class="card">
+  <div class="card-header">
+    <h2 class="h5 mb-0">Item performance</h2>
+  </div>
+  <div class="card-body p-0">
     <div class="table-responsive">
-      <table class="table table-striped table-hover align-middle">
-        <thead class="table-light">
+      <table class="table table-hover align-middle">
+        <thead>
           <tr>
-            <th>Item Name</th>
+            <th>Item name</th>
             <th>Category</th>
-            <th>Total Sold</th>
-            <th>Cost</th>
-            <th>CashFlow</th>
-            <th>Profit</th>
+            <th class="text-end">Units sold</th>
+            <th class="text-end">Cost</th>
+            <th class="text-end">Revenue</th>
+            <th class="text-end">Profit</th>
           </tr>
         </thead>
         <tbody>
           {% for item in items %}
           <tr>
-            <td><strong>{{ item.name }}</strong></td>
-            <td>{{ item.category.name|default:"Uncategorized" }}</td>
-            <td>{{ item.total_sold_qty }}</td>
-            <td class="text-danger">{{ item.total_cost|floatformat:2 }}</td>
-            <td class="text-success">PKR {{ item.total_revenue|floatformat:2 }}</td>
-            <td class="{% if item.profit >= 0 %}text-success{% else %}text-danger{% endif %}">
+            <td class="fw-semibold">{{ item.name }}</td>
+            <td>{{ item.category_name|default:"Uncategorized" }}</td>
+            <td class="text-end">{{ item.total_sold_qty|floatformat:0 }}</td>
+            <td class="text-end text-danger">PKR {{ item.total_cost|floatformat:2 }}</td>
+            <td class="text-end text-success">PKR {{ item.total_revenue|floatformat:2 }}</td>
+            <td class="text-end {% if item.profit >= 0 %}text-success{% else %}text-danger{% endif %}">
               PKR {{ item.profit|floatformat:2 }}
             </td>
           </tr>
           {% empty %}
           <tr>
-            <td colspan="7" class="text-center text-muted">No items found.</td>
+            <td colspan="6" class="text-center text-muted py-4">No items found yet.</td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
   </div>
-</div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+{% if top_items %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const inventoryChartItems = JSON.parse(
+    document.getElementById("inventory-chart-data").textContent
+  );
+  new Chart(document.getElementById("inventoryRevenueChart"), {
+    type: "bar",
+    data: {
+      labels: inventoryChartItems.map(item => item.name),
+      datasets: [{
+        label: "Revenue (PKR)",
+        data: inventoryChartItems.map(item => Number(item.total_revenue) || 0),
+        backgroundColor: [
+          "#246b82", "#328c87", "#5a9d78", "#779c68",
+          "#a28656", "#b77656", "#8b6ca7", "#667b9d"
+        ],
+        borderRadius: 7,
+        maxBarThickness: 38
+      }]
+    },
+    options: {
+      maintainAspectRatio: false,
+      indexAxis: "y",
+      plugins: {
+        legend: {display: false},
+        tooltip: {
+          callbacks: {
+            label: context => `PKR ${new Intl.NumberFormat().format(context.raw)}`
+          }
+        }
+      },
+      scales: {
+        x: {
+          beginAtZero: true,
+          grid: {color: "rgba(120, 134, 154, .12)"},
+          ticks: {callback: value => new Intl.NumberFormat().format(value)}
+        },
+        y: {grid: {display: false}}
+      }
+    }
+  });
+</script>
+{% endif %}
 {% endblock %}

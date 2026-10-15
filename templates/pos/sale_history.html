@@ -2,34 +2,43 @@
 {% block title %}Sale History{% endblock %}
 
 {% block content %}
-<div class="page-header d-flex flex-wrap align-items-center justify-content-between gap-2">
-  <h1 class="h2 mb-0">Sale History</h1>
+<div class="page-header">
+  <div>
+    <h1 class="h2 mb-1">Sale History</h1>
+    <p class="mb-0">Browse transactions and print customer receipts.</p>
+  </div>
 </div>
 
-<div class="mb-3">
-  <span class="text-muted me-2">Filter:</span>
-  {% for key, label in range_labels.items %}
-    <a href="?range={{ key }}" class="btn btn-sm {% if range_param == key %}btn-primary{% else %}btn-outline-secondary{% endif %} me-1">{{ label }}</a>
-  {% endfor %}
-    <form action="" method="get">
-      <div class="row g-3">
-        <div class="col-md-3">
-          <label class="form-label">Date from and to</label>
-        </div>
-        <div class="col-md-3">
-          <input type="date" name="date_from" value='{{date_from}}' class="form-control">
-        </div>
-        <div class="col-md-3">
-          <input type="date" name="date_to" value='{{date_to}}' class="form-control">
-        </div>
-        <div class="col-md-3">
-          <input type="submit" name="submit" value="submit">
-        </div>
+<section class="card mb-4" aria-label="Filter sales">
+  <div class="card-body">
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+      <span class="form-label mb-0 me-1">Quick range</span>
+      {% for key, label in range_labels.items %}
+        <a href="?range={{ key }}" class="btn btn-sm {% if range_param == key %}btn-primary{% else %}btn-outline-secondary{% endif %}">{{ label }}</a>
+      {% endfor %}
+    </div>
+    <form action="" method="get" class="row g-3 align-items-end">
+      <div class="col-sm-6 col-lg-4">
+        <label class="form-label" for="date-from">From</label>
+        <input id="date-from" type="date" name="date_from" value="{{ date_from }}" class="form-control">
+      </div>
+      <div class="col-sm-6 col-lg-4">
+        <label class="form-label" for="date-to">To</label>
+        <input id="date-to" type="date" name="date_to" value="{{ date_to }}" class="form-control">
+      </div>
+      <div class="col-lg-4 d-flex gap-2">
+        <button type="submit" class="btn btn-primary">Apply dates</button>
+        <a href="{% url 'pos:sale_history' %}" class="btn btn-outline-secondary">Clear</a>
       </div>
     </form>
-</div>
+  </div>
+</section>
 
 <div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center gap-2">
+    <h2 class="h5 mb-0">Transactions</h2>
+    <span class="small text-muted">Matching the selected date range</span>
+  </div>
   <div class="card-body p-0">
     {% if sales %}
     <div class="table-responsive">

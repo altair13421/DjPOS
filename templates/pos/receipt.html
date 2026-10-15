@@ -9,7 +9,9 @@
       color-scheme: light;
       font-family: "Courier New", Courier, monospace;
       color: #111;
-      background: #eef1f4;
+      background:
+        radial-gradient(ellipse at 50% 0, rgb(36 107 130 / 10%), transparent 36rem),
+        #eef1f4;
     }
     * { box-sizing: border-box; }
     body {
@@ -19,11 +21,13 @@
       line-height: 1.4;
     }
     .receipt {
-      width: min(100%, 80mm);
+      width: min(100%, 92mm);
       margin: 0 auto;
-      padding: 8mm 6mm;
+      padding: 10mm 8mm;
+      border: 1px solid #e0e7ed;
+      border-radius: 12px;
       background: #fff;
-      box-shadow: 0 2px 16px rgb(0 0 0 / 14%);
+      box-shadow: 0 12px 36px rgb(24 37 54 / 12%);
     }
     .center { text-align: center; }
     .store-name {
@@ -80,17 +84,28 @@
       margin: 16px auto 0;
     }
     .actions button {
+      min-height: 42px;
       padding: 8px 12px;
-      border: 1px solid #555;
-      border-radius: 4px;
+      border: 1px solid #246b82;
+      border-radius: 8px;
       background: #fff;
-      color: #111;
+      color: #174b61;
       font: inherit;
+      font-weight: bold;
       cursor: pointer;
+      transition: transform .15s ease, box-shadow .15s ease;
+    }
+    .actions button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgb(24 37 54 / 12%);
     }
     .actions button:first-child {
-      background: #111;
+      background: #246b82;
       color: #fff;
+    }
+    .actions button:focus-visible {
+      outline: 3px solid rgb(47 147 153 / 45%);
+      outline-offset: 2px;
     }
     @page {
       size: 80mm auto;
@@ -108,6 +123,8 @@
         width: 80mm;
         margin: 0;
         padding: 4mm 5mm;
+        border: 0;
+        border-radius: 0;
         box-shadow: none;
       }
       .no-print { display: none !important; }

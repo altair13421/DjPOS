@@ -4,8 +4,17 @@
 {% block content %}
 
 
-<h2>User Logs</h2>
+<div class="page-header">
+    <div>
+        <h1 class="h2 mb-1">Activity details</h1>
+        <p class="mb-0">Full record for {{ userlog.user.username }}.</p>
+    </div>
+    <a href="{% url 'users:organization_logs' %}" class="btn btn-outline-secondary">Back to activity</a>
+</div>
 <div class="card">
+    <div class="card-header">
+        <h2 class="h5 mb-0">{{ userlog.get_reason_display }}</h2>
+    </div>
     <div class="card-body p-0">
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
@@ -33,6 +42,4 @@
         </div>
     </div>
 </div>
-<a href="{% url 'users:organization_logs' %}" class="btn btn-secondary mt-3">Back to User Logs</a>
-
 {% endblock %}
