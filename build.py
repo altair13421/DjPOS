@@ -16,13 +16,12 @@ cmd = [
     "--onefile",
     "--name",
     "djpos",
-    "--collect-all",
-    "webview",
 ]
 # Packages Django loads BY STRING (MIDDLEWARE, INSTALLED_APPS, backends...).
 # PyInstaller's static analysis can't see these — add one here whenever
 # you add a string entry to settings.
 DJANGO_STRING_LOADED = [
+    "webview",
     "whitenoise",
 ]
 
@@ -35,6 +34,7 @@ else:
     cmd += ["--hidden-import", "clr_loader", "--hidden-import", "pythonnet"]
 
 sep = ":" if IS_LINUX else ";"
+cmd += ["--add-data", f"templates{sep}templates"]
 cmd += ["--add-data", f"staticfiles{sep}staticfiles", "launcher.py"]
 
 subprocess.run(cmd, check=True)
